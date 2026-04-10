@@ -1,0 +1,509 @@
+/* ═══════════════════════════════════════════ */
+/*              COURSES TAB STYLES             */
+/* ═══════════════════════════════════════════ */
+
+/* ── Header Bar ── */
+.courses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.back-button {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    transition: all 0.2s ease;
+}
+.back-button:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.delete-course-btn {
+    background: none;
+    border: 1px solid var(--color-accent-lose);
+    border-radius: var(--radius-pill);
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-accent-lose);
+    transition: all 0.2s ease;
+}
+.delete-course-btn:hover {
+    background: var(--color-accent-lose);
+    color: #fff;
+}
+
+/* ── Add Course Actions ── */
+.add-course-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+@media (max-width: 480px) {
+    .add-course-actions {
+        flex-direction: column;
+    }
+}
+
+/* ── Course Grid / List ── */
+.course-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.course-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-align: left;
+    width: 100%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.course-card:hover {
+    border-color: var(--color-primary-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+.course-card:active {
+    transform: translateY(0) scale(0.995);
+}
+
+.course-card-icon {
+    font-size: 1.6rem;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    flex-shrink: 0;
+}
+
+.course-card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.course-card-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-card-meta {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+}
+
+.course-card-arrow {
+    font-size: 1.5rem;
+    color: var(--color-text-light);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.course-card:hover .course-card-arrow {
+    transform: translateX(3px);
+    color: var(--color-primary);
+}
+
+/* ── Detail View ── */
+.course-detail-header {
+    margin-bottom: 1.25rem;
+}
+.course-detail-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+.course-detail-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-top: 0.2rem;
+}
+
+/* ── Tee Selector ── */
+.tee-selector {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.tee-tab {
+    padding: 0.45rem 1.1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.tee-tab:hover {
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+}
+.tee-tab-active {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: #fff;
+    border-color: transparent;
+}
+.tee-tab-active:hover {
+    color: #fff;
+}
+
+/* ── Tee Metadata ── */
+.tee-meta-display {
+    margin-bottom: 1.25rem;
+}
+.tee-meta-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.tee-pill {
+    padding: 0.3rem 0.85rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-border);
+}
+.tee-pill-par {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: #fff;
+    border-color: transparent;
+}
+
+.tee-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+@media (max-width: 480px) {
+    .tee-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tee-meta-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.tee-meta-field input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    font-size: 0.9rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: border-color 0.2s ease;
+}
+.tee-meta-field input:focus {
+    outline: none;
+    border-color: var(--color-primary-light);
+    box-shadow: 0 0 0 3px rgba(39, 125, 76, 0.1);
+}
+
+/* ── Scorecard Table ── */
+.scorecard-container {
+    margin-bottom: 1.25rem;
+}
+
+.scorecard-nine {
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+}
+
+.scorecard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    min-width: 540px;
+}
+
+.scorecard-header-row {
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+}
+.scorecard-header-row th {
+    color: #fff;
+    font-weight: 700;
+    padding: 0.5rem 0.35rem;
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+}
+
+.scorecard-label-cell {
+    width: 48px;
+    min-width: 48px;
+    text-align: center !important;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-light);
+    padding: 0.4rem 0.35rem;
+}
+.scorecard-header-row .scorecard-label-cell {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.scorecard-hole-cell {
+    min-width: 40px;
+}
+
+.scorecard-total-cell {
+    min-width: 48px;
+    text-align: center;
+    font-weight: 700;
+    padding: 0.4rem 0.35rem;
+    background: rgba(0, 0, 0, 0.03);
+    border-left: 2px solid var(--color-border);
+}
+.scorecard-header-row .scorecard-total-cell {
+    background: rgba(0, 0, 0, 0.15);
+    border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.scorecard-data-cell {
+    text-align: center;
+    padding: 0.3rem 0.2rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.scorecard-par-row {
+    background: rgba(0, 0, 0, 0.02);
+}
+.scorecard-par-row .scorecard-label-cell {
+    background: rgba(39, 125, 76, 0.08);
+    color: var(--color-primary);
+}
+
+.scorecard-yardage-row .scorecard-label-cell {
+    color: var(--color-text-light);
+}
+
+.scorecard-hdcp-row .scorecard-label-cell {
+    color: var(--color-accent-push);
+}
+
+.scorecard-value {
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: 0.85rem;
+}
+.scorecard-value-total {
+    font-weight: 800;
+    color: var(--color-primary-dark);
+    font-size: 0.85rem;
+}
+.scorecard-yardage {
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+.scorecard-hdcp {
+    color: var(--color-accent-push);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.scorecard-input {
+    width: 100%;
+    max-width: 46px;
+    padding: 0.25rem 0.2rem;
+    text-align: center;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: border-color 0.15s ease;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+.scorecard-input::-webkit-inner-spin-button,
+.scorecard-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.scorecard-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(39, 125, 76, 0.15);
+}
+
+.scorecard-grand-total {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1rem;
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+    border-radius: var(--radius-sm);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.scorecard-grand-total-value {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+}
+.scorecard-grand-total-yds {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+/* ── Action Buttons ── */
+.detail-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* ── Create Course Form ── */
+.create-course-name {
+    margin-bottom: 1.5rem;
+}
+.create-course-name label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.course-name-input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: border-color 0.2s ease;
+}
+.course-name-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(39, 125, 76, 0.1);
+}
+
+.create-tee-section {
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.015);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+.create-tee-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.create-tee-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.remove-tee-btn {
+    background: none;
+    border: 1px solid var(--color-accent-lose);
+    border-radius: var(--radius-pill);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent-lose);
+    transition: all 0.15s ease;
+}
+.remove-tee-btn:hover {
+    background: var(--color-accent-lose);
+    color: #fff;
+}
+
+.create-tee-section .tee-meta-grid {
+    margin-bottom: 1rem;
+}
+
+.create-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+}
+
+/* ── Empty State ── */
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    font-style: italic;
+}
+
+/* ── Dark Mode Overrides ── */
+@media (prefers-color-scheme: dark) {
+    .course-card {
+        background: var(--color-surface);
+    }
+    .course-card:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .tee-pill {
+        background: rgba(255, 255, 255, 0.06);
+    }
+    .scorecard-par-row {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .scorecard-par-row .scorecard-label-cell {
+        background: rgba(39, 125, 76, 0.15);
+    }
+    .scorecard-total-cell {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .create-tee-section {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .scorecard-value-total {
+        color: var(--color-primary-light);
+    }
+}

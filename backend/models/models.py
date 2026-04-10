@@ -6,6 +6,8 @@ class Competition(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     admin_key = db.Column(db.String(50), nullable=False)
+    team_a_name = db.Column(db.String(50), nullable=True)
+    team_b_name = db.Column(db.String(50), nullable=True)
     
 class Player(db.Model):
     __tablename__ = 'players'
@@ -13,6 +15,7 @@ class Player(db.Model):
     competition_id = db.Column(db.Integer, db.ForeignKey('competitions.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     handicap_index = db.Column(db.Float, nullable=False, default=0.0)
+    team = db.Column(db.String(50), nullable=True)
 
     competition = db.relationship('Competition', backref=db.backref('players', lazy=True))
 
@@ -38,6 +41,7 @@ class Hole(db.Model):
     tee_id = db.Column(db.Integer, db.ForeignKey('tees.id'), nullable=False)
     hole_number = db.Column(db.Integer, nullable=False) # 1-18
     par = db.Column(db.Integer, nullable=False)
+    yardage = db.Column(db.Integer, nullable=True)  # Distance in yards
     handicap_index = db.Column(db.Integer, nullable=False) # 1-18 relative difficulty
 
     tee = db.relationship('Tee', backref=db.backref('holes', lazy=True))
@@ -57,9 +61,12 @@ class Matchup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=False)
     tee_id = db.Column(db.Integer, db.ForeignKey('tees.id'), nullable=False)
-    format = db.Column(db.String(20), nullable=False) # '1v1', '2v2_best_ball'
+    format = db.Column(db.String(20), nullable=False) # 'match_play', 'stroke_play', 'scramble'
+    use_handicaps = db.Column(db.Boolean, default=True)
     points_for_win = db.Column(db.Float, default=1.0)
     points_for_push = db.Column(db.Float, default=0.5)
+    hole_start = db.Column(db.Integer, default=1)   # First hole in this matchup
+    hole_end = db.Column(db.Integer, default=18)     # Last hole in this matchup
     status = db.Column(db.String(20), default='upcoming')
     
     tournament = db.relationship('Tournament', backref=db.backref('matchups', lazy=True))
