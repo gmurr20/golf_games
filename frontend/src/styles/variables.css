@@ -1,0 +1,56 @@
+:root {
+  /* Rich, Premium Green Palette */
+  --color-primary: hsl(150, 60%, 30%); /* Deep Golf Green */
+  --color-primary-light: hsl(150, 60%, 45%);
+  --color-primary-dark: hsl(150, 70%, 20%);
+  
+  /* Background / Dark Mode Support Base */
+  --color-background: hsl(0, 0%, 98%);
+  --color-surface: hsl(0, 0%, 100%);
+  --color-text: hsl(220, 20%, 15%);
+  --color-text-light: hsl(220, 10%, 40%);
+  --color-border: hsl(220, 15%, 90%);
+  
+  /* Accents */
+  --color-accent-win: hsl(200, 80%, 45%);   /* Blue for winning */
+  --color-accent-lose: hsl(0, 70%, 55%);    /* Red for losing */
+  --color-accent-push: hsl(40, 90%, 55%);   /* Orange for push */
+
+  /* Shadows for depth */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-blur: blur(10px);
+
+  /* Spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: hsl(220, 20%, 10%);
+    --color-surface: hsl(220, 20%, 15%);
+    --color-text: hsl(0, 0%, 98%);
+    --color-text-light: hsl(220, 10%, 70%);
+    --color-border: hsl(220, 20%, 25%);
+    
+    --glass-bg: rgba(30, 40, 50, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+}
