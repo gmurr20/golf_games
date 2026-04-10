@@ -604,6 +604,56 @@
     color: var(--color-text-light);
 }
 
+.matchup-result-banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.85rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.result-team-a {
+    background: rgba(39, 125, 76, 0.08);
+    border-left: 3px solid var(--color-primary);
+    color: var(--color-primary-dark);
+}
+
+.result-team-b {
+    background: rgba(239, 68, 68, 0.08); /* A nice reddish tone to differentiate */
+    border-left: 3px solid hsl(0, 70%, 50%);
+    color: hsl(0, 80%, 35%);
+}
+
+.result-push {
+    background: rgba(100, 116, 139, 0.08);
+    border-left: 3px solid var(--color-text-light);
+    color: var(--color-text);
+}
+
+.matchup-result-summary strong {
+    font-weight: 800;
+}
+
+.matchup-result-points {
+    font-weight: 700;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-pill);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
     .points-grid {
@@ -656,5 +706,20 @@
     }
     .matchup-hole-badge {
         background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Result Banner Overrides */
+    .result-team-a {
+        color: var(--color-primary-light);
+    }
+    .result-team-b {
+        color: hsl(0, 90%, 75%);
+    }
+    .result-push {
+        color: var(--color-text-light);
+    }
+    .matchup-result-points {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--color-text);
     }
 }

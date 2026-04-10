@@ -67,6 +67,7 @@ class Matchup(db.Model):
     points_for_push = db.Column(db.Float, default=0.5)
     hole_start = db.Column(db.Integer, default=1)   # First hole in this matchup
     hole_end = db.Column(db.Integer, default=18)     # Last hole in this matchup
+    tee_time = db.Column(db.DateTime, nullable=True) # When the group tees off
     status = db.Column(db.String(20), default='upcoming')
     
     tournament = db.relationship('Tournament', backref=db.backref('matchups', lazy=True))

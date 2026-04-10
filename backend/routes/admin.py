@@ -1,7 +1,9 @@
 import json
+from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from models import db
 from models.models import Competition, Player, Course, Tee, Hole, Tournament, Matchup, MatchupPlayer
+from services.match_engine import calculate_overall_winner
 from google import genai
 from google.genai import types
 import base64
@@ -10,18 +12,24 @@ import io
 
 admin_bp = Blueprint('admin', __name__)
 
-@admin_bp.route('/competitions', methods=['POST'])
-def create_competition():
+@admin_bp.route('/auth', methods=['POST'])
+def authenticate():
     data = request.json
-    master_pw = data.get('master_password')
+    password = data.get('password', '')
     
-    if master_pw != current_app.config['MASTER_PASSWORD']:
-        return jsonify({"error": "Invalid Master Password"}), 403
-        
-    comp = Competition(name=data['name'], admin_key=data['admin_key'])
-    db.session.add(comp)
-    db.session.commit()
-    return jsonify({"id": comp.id, "name": comp.name}), 201
+    if password != current_app.config['MASTER_PASSWORD']:
+        return jsonify({"error": "Invalid password"}), 403
+    
+    # Use the master password as the admin key
+    admin_key = current_app.config['MASTER_PASSWORD']
+    comp = Competition.query.filter_by(admin_key=admin_key).first()
+    
+    if not comp:
+        comp = Competition(name='Golf Games', admin_key=admin_key)
+        db.session.add(comp)
+        db.session.commit()
+    
+    return jsonify({"admin_key": admin_key, "name": comp.name}), 200
 
 @admin_bp.route('/competitions/settings', methods=['GET', 'PUT'])
 def manage_competition():
@@ -271,6 +279,13 @@ def create_matchup():
     db.session.add(tourney)
     db.session.flush()
     
+    tee_time = None
+    if data.get('tee_time'):
+        try:
+            tee_time = datetime.fromisoformat(data['tee_time'])
+        except (ValueError, TypeError):
+            pass
+
     matchup = Matchup(
         tournament_id=tourney.id,
         tee_id=data['tee_id'],
@@ -279,7 +294,8 @@ def create_matchup():
         points_for_win=data.get('points_for_win', 1.0),
         points_for_push=data.get('points_for_push', 0.5),
         hole_start=data.get('hole_start', 1),
-        hole_end=data.get('hole_end', 18)
+        hole_end=data.get('hole_end', 18),
+        tee_time=tee_time,
     )
     db.session.add(matchup)
     db.session.flush()
@@ -307,6 +323,20 @@ def get_matchups():
     
     out = []
     for m in matchups:
+        from models.models import Score
+        # Dynamically compute completion status using the match engine
+        from services.match_engine import calculate_match_status
+        ms_data = calculate_match_status(m.id)
+        
+        if "error" in ms_data:
+            actual_status = "error"
+        elif ms_data["holes_played"] == 0:
+            actual_status = "upcoming"
+        elif ms_data.get("is_completed"):
+            actual_status = "completed"
+        else:
+            actual_status = "in_progress"
+
         players = MatchupPlayer.query.filter_by(matchup_id=m.id).all()
         teams_dict = {}
         for mp in players:
@@ -319,6 +349,13 @@ def get_matchups():
         team_sizes = [len(v) for v in teams_dict.values()]
         is_2v2 = any(s >= 2 for s in team_sizes)
         
+        # Calculate winner if completed
+        result_data = None
+        if actual_status == "completed":
+            result_data = calculate_overall_winner(m.id)
+            if "error" in result_data:
+                result_data = None
+                
         out.append({
             "id": m.id,
             "format": m.format,
@@ -326,13 +363,19 @@ def get_matchups():
             "is_2v2": is_2v2,
             "course": m.tee.course.name if m.tee else "Unknown Course",
             "tee": m.tee.name if m.tee else "Unknown Tee",
-            "status": m.status,
+            "status": actual_status,
             "points_for_win": m.points_for_win,
             "points_for_push": m.points_for_push,
             "hole_start": m.hole_start or 1,
             "hole_end": m.hole_end or 18,
             "hole_label": hole_label,
-            "teams": teams_dict
+            "tee_time": m.tee_time.isoformat() if m.tee_time else None,
+            "tournament_id": m.tournament_id,
+            "tee_id": m.tee_id,
+            "first_player_id": players[0].player_id if players else None,
+            "first_player_name": players[0].player.name if players else "Admin",
+            "teams": teams_dict,
+            "result": result_data
         })
     return jsonify(out), 200
 

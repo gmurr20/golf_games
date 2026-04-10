@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import backend from '../api/backend';
@@ -9,6 +10,7 @@ export default function MatchupsTab({
     teamAName, teamBName
 }) {
     // Create Form State
+    const navigate = useNavigate();
     const [mFormat, setMFormat] = useState('match_play');
     const [useHandicaps, setUseHandicaps] = useState(true);
     const [mTeeId, setMTeeId] = useState('');
@@ -21,6 +23,7 @@ export default function MatchupsTab({
     const [selectedRanges, setSelectedRanges] = useState([{ start: 1, end: 18 }]);
     const [customStart, setCustomStart] = useState('1');
     const [customEnd, setCustomEnd] = useState('18');
+    const [teeTime, setTeeTime] = useState('');
     const [showCreate, setShowCreate] = useState(false);
 
     const arrTeamA = players.filter(p => p.team === teamAName);
@@ -36,6 +39,7 @@ export default function MatchupsTab({
         setPointsWin('1'); setPointsPush('0.5');
         setSelectedRanges([{ start: 1, end: 18 }]);
         setCustomStart('1'); setCustomEnd('18');
+        setTeeTime('');
     };
 
     const togglePreset = (preset) => {
@@ -95,7 +99,8 @@ export default function MatchupsTab({
                     points_for_win: parseFloat(pointsWin),
                     points_for_push: parseFloat(pointsPush),
                     hole_start: range.start,
-                    hole_end: range.end
+                    hole_end: range.end,
+                    tee_time: teeTime || undefined,
                 })
             );
             await Promise.all(promises);
@@ -134,6 +139,21 @@ export default function MatchupsTab({
         return `${prefix}${base}${hcap}`;
     };
 
+    const handleMatchupClick = (m) => {
+        if (!m.first_player_id) {
+            setStatus('Cannot edit: no players assigned to this matchup.');
+            return;
+        }
+        // Impersonate player for play route
+        localStorage.setItem('golf_player_id', String(m.first_player_id));
+        localStorage.setItem('golf_player_name', m.first_player_name || 'Admin');
+        
+        const params = new URLSearchParams();
+        if (m.tee_time) params.set('tee_time', m.tee_time);
+        
+        navigate(`/play/${m.tournament_id}/${m.tee_id}?${params.toString()}`);
+    };
+
     // Hole range presets
     const HOLE_PRESETS = [
         { label: 'Full 18', start: 1, end: 18 },
@@ -170,6 +190,17 @@ export default function MatchupsTab({
                     </div>
 
                     <form onSubmit={handleCreateMatchup} className="matchup-form">
+                        {/* Tee Time */}
+                        <div className="matchup-field">
+                            <label>Tee Time</label>
+                            <input
+                                type="datetime-local"
+                                value={teeTime}
+                                onChange={e => setTeeTime(e.target.value)}
+                                style={{ padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', fontSize: '0.95rem', width: '100%' }}
+                            />
+                        </div>
+
                         {/* Format */}
                         <div className="matchup-field">
                             <label>Format</label>
@@ -360,7 +391,12 @@ export default function MatchupsTab({
 
                 <div className="matchup-list">
                     {matchups.map(m => (
-                        <div key={m.id} className="matchup-card">
+                        <div 
+                            key={m.id} 
+                            className="matchup-card" 
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleMatchupClick(m)}
+                        >
                             <div className="matchup-card-header">
                                 <div className="matchup-card-title-row">
                                     <span className="matchup-card-id">#{m.id}</span>
@@ -369,7 +405,7 @@ export default function MatchupsTab({
                                 </div>
                                 <button
                                     className="matchup-delete-btn"
-                                    onClick={() => handleDeleteMatchup(m.id)}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteMatchup(m.id); }}
                                     title="Delete matchup"
                                 >
                                     ✕
@@ -378,6 +414,7 @@ export default function MatchupsTab({
 
                             <div className="matchup-card-course">
                                 📍 {m.course} — {m.tee}
+                                {m.tee_time && <span style={{ marginLeft: '0.5rem', opacity: 0.7 }}>🕐 {new Date(m.tee_time).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
                             </div>
 
                             <div className="matchup-card-teams">
@@ -393,6 +430,18 @@ export default function MatchupsTab({
                                     <span className="matchup-team-players">{m.teams['B']?.join(' & ') || '—'}</span>
                                 </div>
                             </div>
+
+                            {m.status === 'completed' && m.result && (
+                                <div className={`matchup-result-banner ${m.result.winner === 'Push' ? 'result-push' : m.result.winner === 'A' ? 'result-team-a' : 'result-team-b'}`}>
+                                    <div className="matchup-result-summary">
+                                        <strong>{m.result.winner === 'Push' ? 'Match Halved' : `${m.result.winner === 'A' ? teamAName : teamBName} Wins`}</strong>
+                                        <span> • {m.result.summary}</span>
+                                    </div>
+                                    <div className="matchup-result-points">
+                                        Pts: {m.result.points_a} - {m.result.points_b}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="matchup-card-footer">
                                 <div className="matchup-points-display">

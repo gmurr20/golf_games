@@ -1,0 +1,862 @@
+/* ==========================================
+   PLAY ROUND — Hole-by-Hole Scoring Styles
+   ========================================== */
+
+.play-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-4);
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top bar */
+.play-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-3);
+}
+
+.play-back-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.play-back-btn:hover {
+    color: var(--color-primary);
+}
+
+.play-course-label {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    text-align: right;
+}
+
+/* Hole Header */
+.hole-header {
+    text-align: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.hole-header-top {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-1);
+}
+
+.hole-nav-arrow {
+    background: transparent;
+    border: none;
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    transition: background 0.15s ease;
+    padding-bottom: 6px; /* align visual center of the arrows */
+}
+
+.hole-nav-arrow:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.hole-nav-arrow-placeholder {
+    width: 44px;
+    height: 44px;
+}
+
+
+.hole-number-label {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.hole-info-row {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-1);
+}
+
+.hole-info-chip {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    background: rgba(0,0,0,0.04);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+}
+
+/* Match status ticker */
+.match-status-ticker {
+    text-align: center;
+    margin-bottom: var(--spacing-4);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px var(--spacing-3);
+    border-radius: var(--radius-pill);
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.match-status-ticker.status-up {
+    background: rgba(34, 197, 94, 0.12);
+    color: hsl(150, 60%, 35%);
+}
+
+.match-status-ticker.status-down {
+    background: rgba(239, 68, 68, 0.12);
+    color: hsl(0, 70%, 50%);
+}
+
+.match-status-ticker.status-even {
+    background: rgba(100, 116, 139, 0.12);
+    color: hsl(215, 14%, 45%);
+}
+
+/* Score Entry Cards */
+.score-entries {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    flex: 1;
+}
+
+.score-entry-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-4);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s ease;
+}
+
+.score-entry-card.is-me {
+    border-color: var(--color-primary-light);
+    border-width: 2px;
+}
+
+.score-entry-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-3);
+}
+
+.score-entry-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--color-text);
+}
+
+.score-entry-you-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+}
+
+.score-entry-pops {
+    font-size: 0.7rem;
+    color: var(--color-accent-win);
+    font-weight: 600;
+}
+
+/* Stroke / Pop Indicators */
+.stroke-dots {
+    color: var(--color-accent-win);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    line-height: 1;
+}
+
+.stroke-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--color-accent-win);
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+}
+
+/* Stepper */
+.score-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+}
+
+.stepper-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.stepper-btn:hover {
+    border-color: var(--color-primary-light);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.stepper-btn:active {
+    transform: scale(0.92);
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.stepper-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    min-width: 60px;
+    text-align: center;
+    line-height: 1;
+    letter-spacing: -1px;
+    transition: color 0.2s ease;
+}
+
+
+.stepper-value.under-par {
+    color: var(--color-accent-win);
+}
+
+.stepper-value.over-par {
+    color: var(--color-accent-lose);
+}
+
+.stepper-value.at-par {
+    color: var(--color-text);
+}
+
+/* Bottom Actions */
+.play-bottom-actions {
+    margin-top: var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.save-next-btn {
+    width: 100%;
+    padding: var(--spacing-4);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+}
+
+.save-next-btn:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.save-next-btn:active {
+    transform: scale(0.98);
+}
+
+.save-next-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.clear-hole-scores-btn {
+    width: 100%;
+    padding: var(--spacing-3);
+    background: transparent;
+    color: var(--color-error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-hole-scores-btn:hover {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: var(--color-error);
+}
+
+.clear-hole-scores-btn:active {
+    transform: scale(0.98);
+}
+
+/* Hole Navigation Dots */
+.hole-nav-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
+}
+
+.hole-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.hole-dot:hover {
+    border-color: var(--color-primary-light);
+}
+
+.hole-dot.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.hole-dot.completed {
+    background: var(--color-primary-light);
+    color: #fff;
+    border-color: var(--color-primary-light);
+    opacity: 0.6;
+}
+
+.hole-dot.completed.active {
+    opacity: 1;
+}
+
+/* Completion Screen */
+.round-complete {
+    text-align: center;
+    padding: var(--spacing-8) var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-4);
+    min-height: calc(100vh - 200px);
+    justify-content: center;
+}
+
+.round-complete-trophy {
+    font-size: 4rem;
+    animation: bounce 0.8s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-20px); }
+    60% { transform: translateY(-10px); }
+}
+
+.round-complete h2 {
+    font-size: 1.5rem;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.round-complete-subtitle {
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+.round-complete-btn {
+    padding: var(--spacing-3) var(--spacing-6);
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: var(--spacing-4);
+}
+
+/* Saving indicator */
+.saving-indicator {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    text-align: center;
+    padding: var(--spacing-1);
+    transition: opacity 0.3s ease;
+}
+
+.saving-indicator.visible {
+    opacity: 1;
+}
+
+.saving-indicator.hidden {
+    opacity: 0;
+}
+
+/* Match result card shown on completion */
+.match-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    width: 100%;
+    max-width: 340px;
+}
+
+.match-result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.match-result-holes {
+    color: var(--color-text-light);
+}
+
+.match-result-status {
+    font-weight: 700;
+}
+
+/* ==========================================
+   GOLF-STYLE SCORECARD — Completion View
+   ========================================== */
+
+.scorecard-complete-header {
+    text-align: center;
+    padding: var(--spacing-4) 0 var(--spacing-2);
+}
+
+.scorecard-complete-header .round-complete-trophy {
+    font-size: 2.5rem;
+    display: block;
+}
+
+.scorecard-complete-header h2 {
+    font-size: 1.3rem;
+    margin: var(--spacing-1) 0 0;
+    color: var(--color-text);
+}
+
+.total-score-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    margin-top: var(--spacing-2);
+}
+
+.total-score-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--color-text);
+}
+
+.total-score-diff {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.total-score-diff.under {
+    color: var(--color-accent-win);
+}
+
+.total-score-diff.over {
+    color: var(--color-accent-lose);
+}
+
+.total-score-diff.even {
+    color: var(--color-text-light);
+}
+
+/* Legend */
+.sc-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-3);
+    flex-wrap: wrap;
+    margin: var(--spacing-3) 0;
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.sc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    color: var(--color-text-light);
+    font-weight: 600;
+}
+
+/* Scorecard Table */
+.scorecard-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: var(--spacing-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.golf-scorecard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 500px;
+}
+
+.golf-scorecard-table th,
+.golf-scorecard-table td {
+    text-align: center;
+    padding: 6px 4px;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.golf-scorecard-table th:last-child,
+.golf-scorecard-table td:last-child {
+    border-right: none;
+}
+
+.golf-scorecard-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sc-label-cell {
+    text-align: left !important;
+    padding-left: 8px !important;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-light);
+    min-width: 60px;
+    white-space: nowrap;
+}
+
+.sc-hole-header {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--color-text-light);
+    min-width: 32px;
+}
+
+.sc-total-header {
+    font-weight: 800;
+    font-size: 0.7rem;
+    color: var(--color-text);
+    min-width: 36px;
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-par-row td {
+    color: var(--color-text-light);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.sc-par-cell {
+    font-weight: 600;
+}
+
+.sc-player-name {
+    text-align: left !important;
+    padding-left: 8px !important;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--color-text);
+    white-space: nowrap;
+    position: relative;
+}
+
+.sc-you-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.sc-me-row {
+    background: rgba(34, 139, 84, 0.04);
+}
+
+.sc-score-cell {
+    cursor: pointer;
+    position: relative;
+    padding: 4px 2px !important;
+    transition: background 0.15s ease;
+}
+
+.sc-score-cell:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+/* === Golf-Style Score Marks === */
+.sc-score-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    position: relative;
+    line-height: 1;
+}
+
+/* Par — plain number */
+.sc-score-mark.score-par {
+    color: var(--color-text);
+}
+
+/* Birdie — single circle */
+.sc-score-mark.score-birdie {
+    color: hsl(200, 80%, 40%);
+    border: 2px solid hsl(200, 80%, 40%);
+    border-radius: 50%;
+}
+
+/* Eagle — double circle */
+.sc-score-mark.score-eagle {
+    color: hsl(200, 80%, 35%);
+    border: 2px solid hsl(200, 80%, 35%);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px hsl(200, 80%, 35%);
+}
+
+/* Bogey — single square */
+.sc-score-mark.score-bogey {
+    color: hsl(0, 60%, 50%);
+    border: 2px solid hsl(0, 60%, 50%);
+    border-radius: 2px;
+}
+
+/* Double Bogey+ — double square */
+.sc-score-mark.score-dbl-bogey {
+    color: hsl(0, 60%, 45%);
+    border: 2px solid hsl(0, 60%, 45%);
+    border-radius: 2px;
+    box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px hsl(0, 60%, 45%);
+}
+
+.sc-score-empty {
+    color: var(--color-text-light);
+    opacity: 0.4;
+}
+
+.sc-pop-dot {
+    display: block;
+    font-size: 0.4rem;
+    color: var(--color-accent-win);
+    line-height: 1;
+    margin-top: 1px;
+    letter-spacing: 1px;
+}
+
+.sc-total-cell {
+    font-weight: 700;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-under {
+    color: var(--color-accent-win) !important;
+}
+
+.sc-over {
+    color: var(--color-accent-lose) !important;
+}
+
+/* Totals Card */
+.scorecard-totals-card {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    margin-bottom: var(--spacing-3);
+}
+
+/* Actions at bottom */
+.scorecard-actions {
+    text-align: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.edit-scores-btn {
+    padding: var(--spacing-3) var(--spacing-6);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-scores-btn:hover {
+    border-color: var(--color-primary-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.sc-edit-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    margin-top: var(--spacing-2);
+}
+
+/* Edit Mode Banner */
+.edit-mode-banner {
+    text-align: center;
+    padding: var(--spacing-2) var(--spacing-3);
+    background: hsl(45, 90%, 92%);
+    color: hsl(35, 80%, 35%);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-3);
+    border: 1px solid hsl(45, 70%, 80%);
+}
+
+/* Match result row in scorecard table */
+.sc-match-row {
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-match-row td {
+    font-weight: 600;
+    font-size: 0.70rem;
+    color: var(--color-text-light);
+}
+
+.sc-match-won {
+    color: var(--color-success) !important;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.sc-match-lost {
+    color: var(--color-error) !important;
+}
+
+.sc-match-halved {
+    color: var(--color-text-light);
+}
+
+/* ==========================================
+   MOBILE RESPONSIVENESS — SCORECARD
+   ========================================== */
+@media (max-width: 480px) {
+    .golf-scorecard-table {
+        min-width: 100%;
+        font-size: 0.65rem;
+        table-layout: fixed;
+    }
+
+    .golf-scorecard-table th,
+    .golf-scorecard-table td {
+        padding: 4px 1px;
+    }
+
+    .sc-label-cell {
+        min-width: 36px;
+        padding-left: 4px !important;
+        font-size: 0.6rem;
+    }
+
+    .sc-player-name {
+        padding-left: 4px !important;
+        font-size: 0.65rem;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .sc-hole-header {
+        min-width: 20px;
+        font-size: 0.65rem;
+    }
+
+    .sc-total-header {
+        min-width: 28px;
+        font-size: 0.65rem;
+    }
+
+    .sc-score-cell {
+        padding: 4px 1px !important;
+    }
+
+    .sc-score-mark {
+        width: 18px;
+        height: 18px;
+        font-size: 0.65rem;
+        border-width: 1px !important;
+    }
+
+    .sc-score-mark.score-eagle {
+        box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px hsl(200, 80%, 35%);
+    }
+
+    .sc-score-mark.score-dbl-bogey {
+        box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px hsl(0, 60%, 45%);
+    }
+
+    .sc-you-dot {
+        width: 4px;
+        height: 4px;
+        margin-left: 2px;
+    }
+    
+    .sc-pop-dot {
+        font-size: 0.35rem;
+    }
+}
+

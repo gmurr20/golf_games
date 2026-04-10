@@ -8,7 +8,13 @@ def calculate_match_status(matchup_id: int) -> dict:
         return {"error": "Matchup not found"}
         
     tee = matchup.tee
-    holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
+    hole_start = matchup.hole_start or 1
+    hole_end = matchup.hole_end or 18
+    holes = Hole.query.filter(
+        Hole.tee_id == tee.id,
+        Hole.hole_number >= hole_start,
+        Hole.hole_number <= hole_end
+    ).order_by(Hole.hole_number).all()
     
     m_players = MatchupPlayer.query.filter_by(matchup_id=matchup_id).all()
     # Separate teams
@@ -46,7 +52,8 @@ def calculate_match_status(matchup_id: int) -> dict:
         "team_b_wins": 0,
         "holes_played": 0,
         "status_string": "All Square",
-        "scorecard": []
+        "scorecard": [],
+        "is_completed": False
     }
     
     # Evaluate holes in order
@@ -95,19 +102,131 @@ def calculate_match_status(matchup_id: int) -> dict:
         
     # Build status string
     diff = match_status["team_a_wins"] - match_status["team_b_wins"]
-    holes_remaining = 18 - match_status["holes_played"]
+    total_match_holes = hole_end - hole_start + 1
+    holes_remaining = total_match_holes - match_status["holes_played"]
     
+    is_match_play = matchup.format == 'match_play'
+    if is_match_play:
+        if abs(diff) > holes_remaining or holes_remaining == 0:
+            match_status["is_completed"] = True
+    else:
+        # Stroke / Scramble is completed only when all holes are played
+        if holes_remaining == 0:
+            match_status["is_completed"] = True
+
     if diff == 0:
-        match_status["status_string"] = f"AS thru {match_status['holes_played']}" if match_status['holes_played'] > 0 else "Upcoming"
+        if match_status["is_completed"]:
+            match_status["status_string"] = "Final: AS"
+        else:
+            match_status["status_string"] = f"AS thru {match_status['holes_played']}" if match_status['holes_played'] > 0 else "Upcoming"
     elif diff > 0:
-        if diff > holes_remaining:
-            match_status["status_string"] = f"Team A wins {diff} & {holes_remaining}"
+        if is_match_play and diff > holes_remaining:
+             match_status["status_string"] = f"Team A wins {diff} & {holes_remaining}" if holes_remaining > 0 else f"Team A wins {diff} UP"
+        elif match_status["is_completed"]:
+             match_status["status_string"] = f"Final: Team A wins {diff} UP"
         else:
             match_status["status_string"] = f"Team A is {diff} UP thru {match_status['holes_played']}"
     else:
-        if abs(diff) > holes_remaining:
-            match_status["status_string"] = f"Team B wins {abs(diff)} & {holes_remaining}"
+        ad = abs(diff)
+        if is_match_play and ad > holes_remaining:
+            match_status["status_string"] = f"Team B wins {ad} & {holes_remaining}" if holes_remaining > 0 else f"Team B wins {ad} UP"
+        elif match_status["is_completed"]:
+            match_status["status_string"] = f"Final: Team B wins {ad} UP"
         else:
-            match_status["status_string"] = f"Team B is {abs(diff)} UP thru {match_status['holes_played']}"
+            match_status["status_string"] = f"Team B is {ad} UP thru {match_status['holes_played']}"
 
     return match_status
+
+def calculate_overall_winner(matchup_id: int) -> dict:
+    matchup = db.session.get(Matchup, matchup_id)
+    if not matchup:
+        return {"error": "Matchup not found"}
+        
+    if matchup.format == 'match_play':
+        ms = calculate_match_status(matchup_id)
+        if "error" in ms:
+            return ms
+            
+        diff = ms["team_a_wins"] - ms["team_b_wins"]
+        
+        # Calculate points
+        if diff > 0:
+            pts_a, pts_b = matchup.points_for_win, 0.0
+            winner = 'A'
+        elif diff < 0:
+            pts_a, pts_b = 0.0, matchup.points_for_win
+            winner = 'B'
+        else:
+            pts_a, pts_b = matchup.points_for_push, matchup.points_for_push
+            winner = 'Push'
+            
+        return {
+            "winner": winner,
+            "summary": ms["status_string"],
+            "points_a": pts_a,
+            "points_b": pts_b
+        }
+    
+    # Stroke play / Scramble logic
+    tee = matchup.tee
+    holes = Hole.query.filter(Hole.tee_id == tee.id, Hole.hole_number >= (matchup.hole_start or 1), Hole.hole_number <= (matchup.hole_end or 18)).order_by(Hole.hole_number).all()
+    
+    m_players = MatchupPlayer.query.filter_by(matchup_id=matchup_id).all()
+    team_a_pids = [mp.player_id for mp in m_players if mp.team == 'A']
+    team_b_pids = [mp.player_id for mp in m_players if mp.team == 'B']
+    
+    players = Player.query.filter(Player.id.in_(team_a_pids + team_b_pids)).all()
+    
+    if matchup.use_handicaps:
+        course_handicaps = { p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par) for p in players }
+        playing_handicaps = calculate_playing_handicaps(course_handicaps)
+        pops_per_hole = { p.id: allocate_pops(playing_handicaps[p.id], holes) for p in players }
+    else:
+        pops_per_hole = { p.id: {} for p in players }
+    
+    scores = Score.query.filter_by(matchup_id=matchup_id).all()
+    scores_by_hole_player = {}
+    for s in scores:
+        if s.hole_number not in scores_by_hole_player:
+            scores_by_hole_player[s.hole_number] = {}
+        scores_by_hole_player[s.hole_number][s.player_id] = s.strokes
+        
+    team_a_total = 0
+    team_b_total = 0
+    
+    for h in holes:
+        a_scores = []
+        b_scores = []
+        for pid in team_a_pids + team_b_pids:
+            raw_score = scores_by_hole_player.get(h.hole_number, {}).get(pid)
+            if raw_score is not None:
+                net_score = raw_score - pops_per_hole[pid].get(h.hole_number, 0)
+                if pid in team_a_pids:
+                    a_scores.append(net_score)
+                else:
+                    b_scores.append(net_score)
+        
+        if a_scores: team_a_total += min(a_scores)
+        if b_scores: team_b_total += min(b_scores)
+            
+    if team_a_total < team_b_total:
+        winner = 'A'
+        summary = f"Team A won by {team_b_total - team_a_total} strokes"
+        pts_a, pts_b = matchup.points_for_win, 0.0
+    elif team_b_total < team_a_total:
+        winner = 'B'
+        summary = f"Team B won by {team_a_total - team_b_total} strokes"
+        pts_a, pts_b = 0.0, matchup.points_for_win
+    else:
+        winner = 'Push'
+        summary = "Tied"
+        pts_a, pts_b = matchup.points_for_push, matchup.points_for_push
+        
+    return {
+        "winner": winner,
+        "summary": summary,
+        "points_a": pts_a,
+        "points_b": pts_b,
+        "score_a": team_a_total,
+        "score_b": team_b_total
+    }

@@ -7,79 +7,76 @@ import backend, { setAdminKey } from '../api/backend';
 
 export default function AdminSetup() {
     const [dashboardMode, setDashboardMode] = useState(false);
-    const [authMode, setAuthMode] = useState('create');
-    
-    const [name, setName] = useState('');
-    const [masterPass, setMasterPass] = useState('');
-    const [authKey, setAuthKey] = useState('');
+    const [password, setPassword] = useState('');
     const [status, setStatus] = useState('');
+    const [loading, setLoading] = useState(false);
     
     useEffect(() => {
         const stored = localStorage.getItem('golf_admin_key');
         if (stored) {
             setAdminKey(stored);
-            setDashboardMode(true);
+            // Validate stored key is still valid
+            backend.get('/competitions/settings').then(() => {
+                setDashboardMode(true);
+            }).catch(() => {
+                localStorage.removeItem('golf_admin_key');
+                setAdminKey(null);
+            });
         }
     }, []);
 
-    const handleCreateComp = async (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setStatus('');
         try {
-            const res = await backend.post('/competitions', {
-                name, admin_key: authKey, master_password: masterPass
-            });
-            setAdminKey(authKey);
-            localStorage.setItem('golf_admin_key', authKey);
+            const res = await backend.post('/auth', { password });
+            setAdminKey(res.data.admin_key);
+            localStorage.setItem('golf_admin_key', res.data.admin_key);
             setDashboardMode(true);
-            setStatus(`Status: Welcome to ${res.data.name}!`);
         } catch (error) {
-            setStatus('Error authenticating with Master Password.');
+            setStatus('Wrong password.');
+        } finally {
+            setLoading(false);
         }
-    };
-    
-    const handleResumeComp = async (e) => {
-        e.preventDefault();
-        setAdminKey(authKey);
-        localStorage.setItem('golf_admin_key', authKey);
-        setDashboardMode(true);
     };
 
     if (!dashboardMode) {
         return (
-            <div style={{ padding: 'var(--spacing-4)' }}>
-                <h1 style={{ marginBottom: 'var(--spacing-4)' }}>Admin Lock</h1>
-                <Card className="animate-slide-up">
-                    <div style={{display: 'flex', gap: '8px', marginBottom: 'var(--spacing-4)'}}>
-                        <Button variant={authMode === 'create' ? 'primary' : 'outline'} onClick={() => setAuthMode('create')} style={{flex: 1}}>Create New Game</Button>
-                        <Button variant={authMode === 'resume' ? 'primary' : 'outline'} onClick={() => setAuthMode('resume')} style={{flex: 1}}>Resume Pending</Button>
-                    </div>
-
-                    {authMode === 'create' ? (
-                        <>
-                            <form onSubmit={handleCreateComp} style={{ display: 'grid', gap: 'var(--spacing-4)' }}>
-                                <input type="password" required value={masterPass} onChange={e => setMasterPass(e.target.value)}
-                                    placeholder="Enter Global Master Password"
-                                    style={{ width: '100%', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-sm)' }} />
-                                <input type="text" required value={name} onChange={e => setName(e.target.value)}
-                                    placeholder="Competition Name"
-                                    style={{ width: '100%', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-sm)' }} />
-                                 <input type="text" required value={authKey} onChange={e => setAuthKey(e.target.value)}
-                                    placeholder="Create an Admin Key for logging back in later"
-                                    style={{ width: '100%', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-sm)' }} />
-                                <Button type="submit">Boot Engine</Button>
-                            </form>
-                        </>
-                    ) : (
-                        <>
-                            <form onSubmit={handleResumeComp} style={{ display: 'grid', gap: 'var(--spacing-4)' }}>
-                                 <input type="text" required value={authKey} onChange={e => setAuthKey(e.target.value)}
-                                    placeholder="Enter your specific Admin Key"
-                                    style={{ width: '100%', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-sm)' }} />
-                                <Button type="submit">Unlock Dashboard</Button>
-                            </form>
-                        </>
-                    )}
-                    {status && <div style={{marginTop: '1rem', color: 'var(--color-accent-lose)'}}>{status}</div>}
+            <div style={{ 
+                padding: 'var(--spacing-4)', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                minHeight: '60vh' 
+            }}>
+                <Card className="animate-slide-up" style={{ width: '100%', maxWidth: '380px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔒</div>
+                    <h2 style={{ margin: '0 0 0.25rem 0', color: 'var(--color-text)' }}>Admin</h2>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '1.5rem' }}>Enter the password to continue</p>
+                    <form onSubmit={handleLogin} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
+                        <input 
+                            type="password" 
+                            required 
+                            value={password} 
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="Password"
+                            autoFocus
+                            style={{ 
+                                width: '100%', 
+                                padding: 'var(--spacing-3)', 
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--color-border)',
+                                fontSize: '1rem',
+                                textAlign: 'center'
+                            }} 
+                        />
+                        <Button type="submit" disabled={loading}>
+                            {loading ? 'Unlocking...' : 'Unlock'}
+                        </Button>
+                    </form>
+                    {status && <div style={{marginTop: '1rem', color: 'var(--color-accent-lose)', fontSize: '0.85rem'}}>{status}</div>}
                 </Card>
             </div>
         );
