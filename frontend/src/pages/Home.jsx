@@ -12,6 +12,7 @@ export default function Home() {
     const [playerName, setPlayerName] = useState('');
     const [players, setPlayers] = useState([]);
     const [rounds, setRounds] = useState([]);
+    const [compName, setCompName] = useState('Golf Games');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -23,6 +24,7 @@ export default function Home() {
             setPlayerId(parseInt(storedId));
             setPlayerName(storedName || '');
         }
+        fetchCompInfo();
     }, []);
 
     // Fetch players (for picker) or rounds (when player is selected)
@@ -33,6 +35,15 @@ export default function Home() {
             fetchPlayers();
         }
     }, [playerId]);
+
+    const fetchCompInfo = async () => {
+        try {
+            const res = await backend.get('/competition/active');
+            setCompName(res.data.name);
+        } catch (e) {
+            console.error('Failed to fetch competition info', e);
+        }
+    };
 
     const fetchPlayers = async () => {
         setLoading(true);
@@ -122,7 +133,7 @@ export default function Home() {
         return (
             <div className="home-container animate-slide-up">
                 <div className="home-header">
-                    <h1>⛳ Golf Games</h1>
+                    <h1>⛳ {compName}</h1>
                     <p>Who are you?</p>
                 </div>
 
@@ -157,6 +168,7 @@ export default function Home() {
         <div className="home-container animate-slide-up">
             <div className="greeting-row">
                 <div>
+                    <span className="home-subtitle">{compName}</span>
                     <h1>Hey {playerName.split(' ')[0]} 👋</h1>
                 </div>
                 <button className="change-player-link" onClick={handleChangePlayer}>

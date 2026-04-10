@@ -17,7 +17,7 @@ class Player(db.Model):
     handicap_index = db.Column(db.Float, nullable=False, default=0.0)
     team = db.Column(db.String(50), nullable=True)
 
-    competition = db.relationship('Competition', backref=db.backref('players', lazy=True))
+    competition = db.relationship('Competition', backref=db.backref('players', cascade="all, delete-orphan", lazy=True))
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -33,7 +33,7 @@ class Tee(db.Model):
     slope = db.Column(db.Integer, nullable=False)
     par = db.Column(db.Integer, nullable=False)
 
-    course = db.relationship('Course', backref=db.backref('tees', lazy=True))
+    course = db.relationship('Course', backref=db.backref('tees', cascade="all, delete-orphan", lazy=True))
 
 class Hole(db.Model):
     __tablename__ = 'holes'
@@ -44,7 +44,7 @@ class Hole(db.Model):
     yardage = db.Column(db.Integer, nullable=True)  # Distance in yards
     handicap_index = db.Column(db.Integer, nullable=False) # 1-18 relative difficulty
 
-    tee = db.relationship('Tee', backref=db.backref('holes', lazy=True))
+    tee = db.relationship('Tee', backref=db.backref('holes', cascade="all, delete-orphan", lazy=True))
 
 class Tournament(db.Model):
     __tablename__ = 'tournaments'
@@ -54,7 +54,7 @@ class Tournament(db.Model):
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='upcoming') # 'upcoming', 'in_progress', 'completed'
 
-    competition = db.relationship('Competition', backref=db.backref('tournaments', lazy=True))
+    competition = db.relationship('Competition', backref=db.backref('tournaments', cascade="all, delete-orphan", lazy=True))
 
 class Matchup(db.Model):
     __tablename__ = 'matchups'
@@ -70,8 +70,8 @@ class Matchup(db.Model):
     tee_time = db.Column(db.DateTime, nullable=True) # When the group tees off
     status = db.Column(db.String(20), default='upcoming')
     
-    tournament = db.relationship('Tournament', backref=db.backref('matchups', lazy=True))
-    tee = db.relationship('Tee')
+    tournament = db.relationship('Tournament', backref=db.backref('matchups', cascade="all, delete-orphan", lazy=True))
+    tee = db.relationship('Tee', backref=db.backref('matchups', cascade="all, delete-orphan", lazy=True))
 
 class MatchupPlayer(db.Model):
     __tablename__ = 'matchup_players'
@@ -80,8 +80,8 @@ class MatchupPlayer(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     team = db.Column(db.String(5), nullable=False) # 'A' or 'B'
 
-    matchup = db.relationship('Matchup', backref=db.backref('players', lazy=True))
-    player = db.relationship('Player')
+    matchup = db.relationship('Matchup', backref=db.backref('player_links', cascade="all, delete-orphan", lazy=True))
+    player = db.relationship('Player', backref=db.backref('matchup_players', cascade="all, delete-orphan", lazy=True))
 
 class Score(db.Model):
     __tablename__ = 'scores'
@@ -91,5 +91,5 @@ class Score(db.Model):
     hole_number = db.Column(db.Integer, nullable=False)
     strokes = db.Column(db.Integer, nullable=False)
 
-    matchup = db.relationship('Matchup')
-    player = db.relationship('Player')
+    matchup = db.relationship('Matchup', backref=db.backref('scores', cascade="all, delete-orphan", lazy=True))
+    player = db.relationship('Player', backref=db.backref('scores', cascade="all, delete-orphan", lazy=True))

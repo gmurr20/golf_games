@@ -26,6 +26,26 @@ def list_players():
     ]), 200
 
 
+@player_bp.route('/competition/active', methods=['GET'])
+def get_active_competition():
+    """Return the active competition and tournament name."""
+    admin_key = current_app.config['MASTER_PASSWORD']
+    comp = Competition.query.filter_by(admin_key=admin_key).first()
+    if not comp:
+        # Fallback to first if admin key doesn't match for some reason
+        comp = Competition.query.first()
+    
+    if not comp:
+        return jsonify({"name": "Golf Games", "tournament": None}), 200
+        
+    tourney = Tournament.query.filter_by(competition_id=comp.id).first()
+    
+    return jsonify({
+        "name": comp.name,
+        "tournament_name": tourney.name if tourney else None
+    }), 200
+
+
 @player_bp.route('/players/<int:player_id>/rounds', methods=['GET'])
 def get_player_rounds(player_id):
     """

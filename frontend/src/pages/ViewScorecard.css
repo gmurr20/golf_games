@@ -1,0 +1,252 @@
+.view-scorecard-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-4);
+    padding-bottom: 80px;
+}
+
+.view-scorecard-header {
+    text-align: center;
+    margin-bottom: var(--spacing-6);
+}
+
+.view-scorecard-header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: var(--spacing-1);
+    color: var(--color-text);
+}
+
+.view-scorecard-meta {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-4);
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.live-badge {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-accent-lose);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.live-badge .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-accent-lose);
+    border-radius: 50%;
+    animation: pulse-red 2s infinite;
+}
+
+/* Player "To Par" Summary */
+.player-par-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-6);
+}
+
+.player-par-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.player-par-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.player-par-score {
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.player-par-score.under { color: var(--color-accent-win); }
+.player-par-score.over { color: var(--color-accent-lose); }
+.player-par-score.even { color: var(--color-text-light); }
+
+/* Scorecard Table Styles (simplified from PlayRound.css) */
+.sc-table-container {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+}
+
+.sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 500px;
+}
+
+.sc-table th, .sc-table td {
+    padding: var(--spacing-2);
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    text-align: center;
+}
+
+.sc-table th:last-child, .sc-table td:last-child {
+    border-right: none;
+}
+
+.sc-header-row {
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-label {
+    text-align: left !important;
+    padding-left: var(--spacing-3) !important;
+    font-weight: 700;
+    color: var(--color-text-light);
+    width: 80px;
+}
+
+.sc-par-row td {
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.sc-player-row {
+    height: 44px;
+}
+
+.sc-player-name {
+    text-align: left !important;
+    padding-left: var(--spacing-3) !important;
+    font-weight: 700;
+}
+
+.sc-score-val {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-weight: 700;
+}
+
+/* Golf Marks */
+.sc-score-val.birdie { border: 2px solid var(--color-accent-win); border-radius: 50%; color: var(--color-accent-win); }
+.sc-score-val.eagle { border: 2px solid var(--color-accent-win); border-radius: 50%; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-win); color: var(--color-accent-win); }
+.sc-score-val.bogey { border: 2px solid var(--color-accent-lose); border-radius: 2px; color: var(--color-accent-lose); }
+.sc-score-val.dbl-bogey { border: 2px solid var(--color-accent-lose); border-radius: 2px; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-lose); color: var(--color-accent-lose); }
+
+.sc-pop-dot {
+    display: block;
+    font-size: 0.4rem;
+    color: var(--color-accent-win);
+    line-height: 1;
+    margin-top: 1px;
+    letter-spacing: 1px;
+}
+
+.sc-match-row {
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-match-val {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--color-text-light);
+}
+
+.sc-total {
+    font-weight: 800;
+    background: rgba(0,0,0,0.02);
+}
+
+/* Legend */
+.sc-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.sc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.sc-score-val-plain {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-weight: 700;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-light);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-4);
+}
+
+.back-link:hover {
+    color: var(--color-primary);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+    .view-scorecard-container {
+        padding: var(--spacing-2);
+    }
+
+    .sc-table {
+        min-width: 100%;
+        font-size: 0.65rem;
+    }
+
+    .sc-label {
+        width: 60px;
+        padding-left: var(--spacing-2) !important;
+    }
+
+    .sc-player-name {
+        padding-left: var(--spacing-2) !important;
+    }
+
+    .sc-score-val {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
+
+    .sc-table th, .sc-table td {
+        padding: 4px 2px;
+    }
+
+    .player-par-card {
+        padding: var(--spacing-2);
+    }
+}

@@ -452,9 +452,16 @@ export default function MatchupsTab({
                                         🤝 {m.points_for_push} pt{m.points_for_push !== 1 ? 's' : ''}
                                     </span>
                                 </div>
-                                <span className={`matchup-status matchup-status-${m.status}`}>
-                                    {m.status}
-                                </span>
+                                <div className="matchup-status-group">
+                                    {m.status === 'in_progress' && m.live_status && (
+                                        <span className="matchup-live-score">
+                                            {m.live_status}
+                                        </span>
+                                    )}
+                                    <span className={`matchup-status matchup-status-${m.status}`}>
+                                        {m.status}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     ))}

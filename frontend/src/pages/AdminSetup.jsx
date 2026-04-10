@@ -213,7 +213,7 @@ function Dashboard() {
     };
 
     const handleDeleteClick = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this player?")) return;
+        if (!window.confirm("Are you sure you want to delete this player? This will also remove any matchups they are part of.")) return;
         await backend.delete(`/players/${id}`);
         setStatus('Player deleted.');
         fetchPlayers();

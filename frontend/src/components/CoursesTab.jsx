@@ -72,7 +72,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     };
 
     const handleDeleteCourse = async (courseId) => {
-        if (!window.confirm('Delete this entire course and all tee data? This cannot be undone.')) return;
+        if (!window.confirm('Delete this entire course? This will also remove any matchups and scores associated with this course.')) return;
         try {
             await backend.delete(`/courses/${courseId}`);
             setStatus('Course deleted.');

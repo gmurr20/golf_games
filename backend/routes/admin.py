@@ -27,7 +27,15 @@ def authenticate():
     if not comp:
         comp = Competition(name='Golf Games', admin_key=admin_key)
         db.session.add(comp)
-        db.session.commit()
+        db.session.flush()
+    
+    # Ensure a default tournament exists
+    tourney = Tournament.query.filter_by(competition_id=comp.id).first()
+    if not tourney:
+        tourney = Tournament(competition_id=comp.id, name='Main Competition')
+        db.session.add(tourney)
+    
+    db.session.commit()
     
     return jsonify({"admin_key": admin_key, "name": comp.name}), 200
 
@@ -80,6 +88,12 @@ def manage_player(id):
     if not player: return jsonify({"error": "Player not found"}), 404
     
     if request.method == 'DELETE':
+        # Find all matchups this player is part of
+        matchup_ids = [mp.matchup_id for mp in player.matchup_players]
+        for mid in matchup_ids:
+            m = Matchup.query.get(mid)
+            if m: db.session.delete(m)
+            
         db.session.delete(player)
         db.session.commit()
         return jsonify({"success": True}), 200
@@ -235,10 +249,6 @@ def delete_course(id):
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
     c = Course.query.get_or_404(id)
-    # Delete all holes -> tees -> course
-    for t in c.tees:
-        Hole.query.filter_by(tee_id=t.id).delete()
-        db.session.delete(t)
     db.session.delete(c)
     db.session.commit()
     return jsonify({"success": True}), 200
@@ -274,10 +284,12 @@ def create_matchup():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
-    tourn_name = data.get('tournament_name', 'Open Game')
-    tourney = Tournament(competition_id=comp.id, name=tourn_name)
-    db.session.add(tourney)
-    db.session.flush()
+    # Use existing tournament for this competition
+    tourney = Tournament.query.filter_by(competition_id=comp.id).first()
+    if not tourney:
+        tourney = Tournament(competition_id=comp.id, name='Main Competition')
+        db.session.add(tourney)
+        db.session.flush()
     
     tee_time = None
     if data.get('tee_time'):
@@ -375,6 +387,7 @@ def get_matchups():
             "first_player_id": players[0].player_id if players else None,
             "first_player_name": players[0].player.name if players else "Admin",
             "teams": teams_dict,
+            "live_status": ms_data.get("status_string"),
             "result": result_data
         })
     return jsonify(out), 200
@@ -391,10 +404,6 @@ def delete_matchup(id):
     if not tourney or tourney.competition_id != comp.id:
         return jsonify({"error": "Unauthorized"}), 403
     
-    # Clean up related records
-    from models.models import Score
-    Score.query.filter_by(matchup_id=id).delete()
-    MatchupPlayer.query.filter_by(matchup_id=id).delete()
     db.session.delete(matchup)
     db.session.commit()
     return jsonify({"success": True}), 200

@@ -11,7 +11,7 @@ export function StickyNav() {
                 <Home size={24} />
                 <span>Home</span>
             </button>
-            <button className="nav-item" onClick={() => navigate('/leaderboard/1')}>
+            <button className="nav-item" onClick={() => navigate('/leaderboard')}>
                 <Trophy size={24} />
                 <span>Board</span>
             </button>

@@ -33,9 +33,10 @@ def calculate_match_status(matchup_id: int) -> dict:
     # Calculate Playing Handicaps
     playing_handicaps = calculate_playing_handicaps(course_handicaps)
     
-    # Allocate pops per hole for each player
+    # Allocate pops per hole for each player using all holes for context
+    all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
     pops_per_hole = {
-        p.id: allocate_pops(playing_handicaps[p.id], holes)
+        p.id: allocate_pops(playing_handicaps[p.id], all_holes)
         for p in players
     }
     
@@ -114,18 +115,27 @@ def calculate_match_status(matchup_id: int) -> dict:
         if holes_remaining == 0:
             match_status["is_completed"] = True
 
+    # Determine the 'Thru' label (e.g. 'thru 15' instead of 'thru 6' for back 9)
+    last_hole_played = 0
+    if match_status["scorecard"]:
+        played_hole_nums = [h["hole_number"] for h in match_status["scorecard"] if h["winner"] is not None]
+        if played_hole_nums:
+            last_hole_played = max(played_hole_nums)
+    
+    thru_label = f"thru {last_hole_played}" if last_hole_played > 0 else "Upcoming"
+
     if diff == 0:
         if match_status["is_completed"]:
             match_status["status_string"] = "Final: AS"
         else:
-            match_status["status_string"] = f"AS thru {match_status['holes_played']}" if match_status['holes_played'] > 0 else "Upcoming"
+            match_status["status_string"] = f"AS {thru_label}" if last_hole_played > 0 else "Upcoming"
     elif diff > 0:
         if is_match_play and diff > holes_remaining:
              match_status["status_string"] = f"Team A wins {diff} & {holes_remaining}" if holes_remaining > 0 else f"Team A wins {diff} UP"
         elif match_status["is_completed"]:
              match_status["status_string"] = f"Final: Team A wins {diff} UP"
         else:
-            match_status["status_string"] = f"Team A is {diff} UP thru {match_status['holes_played']}"
+            match_status["status_string"] = f"Team A is {diff} UP {thru_label}"
     else:
         ad = abs(diff)
         if is_match_play and ad > holes_remaining:
@@ -133,7 +143,7 @@ def calculate_match_status(matchup_id: int) -> dict:
         elif match_status["is_completed"]:
             match_status["status_string"] = f"Final: Team B wins {ad} UP"
         else:
-            match_status["status_string"] = f"Team B is {ad} UP thru {match_status['holes_played']}"
+            match_status["status_string"] = f"Team B is {ad} UP {thru_label}"
 
     return match_status
 
@@ -180,7 +190,8 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     if matchup.use_handicaps:
         course_handicaps = { p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par) for p in players }
         playing_handicaps = calculate_playing_handicaps(course_handicaps)
-        pops_per_hole = { p.id: allocate_pops(playing_handicaps[p.id], holes) for p in players }
+        all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
+        pops_per_hole = { p.id: allocate_pops(playing_handicaps[p.id], all_holes) for p in players }
     else:
         pops_per_hole = { p.id: {} for p in players }
     

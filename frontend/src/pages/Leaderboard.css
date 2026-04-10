@@ -1,0 +1,344 @@
+.leaderboard-container {
+    padding: var(--spacing-4);
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 80px; /* Space for nav if any */
+}
+
+.leaderboard-header {
+    margin-bottom: var(--spacing-6);
+    text-align: center;
+}
+
+.leaderboard-header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--spacing-1);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.leaderboard-header p {
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+/* Overall Team Scoreboard */
+.team-scoreboard {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-8);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-6);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.team-scoreboard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 100%;
+    background: var(--color-border);
+}
+
+.team-score-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    z-index: 1;
+}
+
+.team-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-2);
+}
+
+.team-score {
+    font-size: 3.5rem;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.team-score.team-a {
+    color: var(--color-primary);
+}
+
+.team-score.team-b {
+    color: var(--color-accent-win);
+}
+
+/* Live Matches Section */
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-4);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.live-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--color-accent-lose); /* Red */
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-8);
+}
+
+.match-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.match-card:active {
+    transform: scale(0.98);
+}
+
+.match-format-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.match-format {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.match-range-chip {
+    font-size: 0.65rem;
+    background: var(--color-background);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--color-text-light);
+    font-weight: 600;
+    width: fit-content;
+}
+
+.match-status-pill {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-accent-win);
+}
+
+.match-status-pill.live {
+    color: var(--color-accent-lose);
+}
+
+.match-players {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-4);
+    position: relative;
+    padding-bottom: var(--spacing-2);
+}
+
+.match-team {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.match-player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.match-player-row.reverse {
+    flex-direction: row-reverse;
+}
+
+.match-player-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.match-player-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text);
+}
+
+.match-player-team-label {
+    font-size: 0.65rem;
+    color: var(--color-text-light);
+    font-weight: 600;
+}
+
+.match-player-to-par {
+    font-size: 0.8rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.match-player-to-par.under {
+    color: var(--color-accent-win);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.match-player-to-par.over {
+    color: var(--color-accent-lose);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.match-player-to-par.even {
+    color: var(--color-text-light);
+    background: var(--color-background);
+}
+
+.match-vs {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: var(--color-text-light);
+    background: var(--color-surface);
+    padding: 2px 4px;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.match-points-awarded {
+    margin-top: var(--spacing-3);
+    padding-top: var(--spacing-2);
+    border-top: 1px dashed var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.points-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+}
+
+.points-value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+/* Player Stats Section */
+.stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.stat-player-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.stat-rank {
+    font-weight: 800;
+    color: var(--color-text-light);
+    width: 20px;
+}
+
+.stat-name {
+    font-weight: 600;
+}
+
+.stat-value-container {
+    text-align: right;
+}
+
+.stat-value {
+    font-weight: 800;
+    color: var(--color-primary);
+    font-size: 1.1rem;
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    font-weight: 700;
+}
+
+/* Empty states */
+.list-empty {
+    text-align: center;
+    padding: var(--spacing-8);
+    color: var(--color-text-light);
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--color-border);
+}
