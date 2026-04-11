@@ -30,4 +30,4 @@ EXPOSE 8080
 
 # The Fix: Use Shell Form (no brackets) so $PORT is correctly expanded.
 # We also provide a default (8080) in case you run this locally.
-CMD gunicorn --chdir backend "app:create_app()" --bind 0.0.0.0:${PORT:-8080}
+CMD gunicorn --chdir backend "app:create_app()" --bind 0.0.0.0:$PORT
