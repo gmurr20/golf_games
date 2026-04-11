@@ -167,7 +167,7 @@ def upload_scorecard():
     
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=[prompt, types.Part.from_bytes(data=img_data, mime_type=mime_type)]
         )
         resp_text = response.text.strip()
