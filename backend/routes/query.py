@@ -43,9 +43,11 @@ def get_leaderboard():
         'worst_hole_rel': -99, # Max (raw - par)
     })
 
-    # Track per-tournament stats for Best/Worst round
-    # {player_id: {tournament_id: {'net': 0, 'par': 0, 'holes': 0, 'name': ''}}}
-    player_round_stats = defaultdict(lambda: defaultdict(lambda: {'net': 0, 'par': 0, 'holes': 0, 'name': ''}))
+    # Track per-tournament-per-tee stats for Best/Worst round
+    # {player_id: {tournament_id: {tee_id: {'net': 0, 'par': 0, 'holes': 0, 'name': ''}}}}
+    player_round_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: {
+        'net': 0, 'par': 0, 'holes': 0, 'name': '', 'tee_id': None, 'tee_time': None, 'hole_counts': set()
+    })))
 
     for t in tournaments:
         matchups = Matchup.query.filter_by(tournament_id=t.id).all()
@@ -56,17 +58,22 @@ def get_leaderboard():
                 team_a_points += res.get('points_a', 0)
                 team_b_points += res.get('points_b', 0)
 
+            # Determine status but don't skip score accrual yet
             derived_status = 'completed' if ms.get('is_completed') else ('in_progress' if ms.get('holes_played', 0) > 0 else 'upcoming')
-            if derived_status == 'upcoming':
+            # If no holes have been scored by EITHER side, we can truly skip it
+            if not any(h_st.get('players') for h_st in ms.get('scorecard', [])):
                 continue
 
             # Basic Player Info & Tournament Name
             for pid, player_dict in ms.get('player_stats', {}).items():
                 p_stats = player_stats[pid]
-                r_box = player_round_stats[pid][t.id]
+                r_box = player_round_stats[pid][t.id][m.tee_id]
                 r_box['name'] = t.name
                 r_box['tee_id'] = m.tee_id
-                r_box['tee_time'] = m.tee_time.isoformat() if m.tee_time else None
+                # Track the earliest tee time for the round link
+                m_time = m.tee_time.isoformat() if m.tee_time else None
+                if m_time and (not r_box.get('tee_time') or m_time < r_box['tee_time']):
+                    r_box['tee_time'] = m_time
                 if p_stats['name'] == '':
                     p = Player.query.get(pid)
                     if p:
@@ -114,11 +121,13 @@ def get_leaderboard():
                         if diff > p_stats['worst_hole_rel']:
                             p_stats['worst_hole_rel'] = diff
 
-                        # Round Stats
-                        r_stats = player_round_stats[pid][t.id]
-                        r_stats['net'] += (net if net is not None else raw)
-                        r_stats['par'] += h_par
-                        r_stats['holes'] += 1
+                        # Round Stats (Unique Holes per Tee)
+                        r_stats = player_round_stats[pid][t.id][m.tee_id]
+                        if h_st['hole_number'] not in r_stats['hole_counts']:
+                            r_stats['net'] += (net if net is not None else raw)
+                            r_stats['par'] += h_par
+                            r_stats['hole_counts'].add(h_st['hole_number'])
+                            r_stats['holes'] = len(r_stats['hole_counts'])
 
             # Points logic
             winner = res.get('winner')
@@ -158,24 +167,25 @@ def get_leaderboard():
                         "to_par": to_par_str
                     })
             
-            matches.append({
-                "id": m.id,
-                "tournament_id": t.id,
-                "tee_id": m.tee_id,
-                "tee_time": m.tee_time.isoformat() if m.tee_time else None,
-                "status": derived_status,
-                "status_string": ms.get('status_string', 'Upcoming'),
-                "display_value": ms.get('display_value'),
-                "display_thru": ms.get('display_thru'),
-                "leading_team": ms.get('leading_team'),
-                "format": m.format,
-                "players": players,
-                "competition_name": comp.name,
-                "points_a": res.get('points_a', 0),
-                "points_b": res.get('points_b', 0),
-                "hole_start": m.hole_start or 1,
-                "hole_end": m.hole_end or 18
-            })
+            if derived_status != 'upcoming':
+                matches.append({
+                    "id": m.id,
+                    "tournament_id": t.id,
+                    "tee_id": m.tee_id,
+                    "tee_time": m.tee_time.isoformat() if m.tee_time else None,
+                    "status": derived_status,
+                    "status_string": ms.get('status_string', 'Upcoming'),
+                    "display_value": ms.get('display_value'),
+                    "display_thru": ms.get('display_thru'),
+                    "leading_team": ms.get('leading_team'),
+                    "format": m.format,
+                    "players": players,
+                    "competition_name": comp.name,
+                    "points_a": res.get('points_a', 0),
+                    "points_b": res.get('points_b', 0),
+                    "hole_start": m.hole_start or 1,
+                    "hole_end": m.hole_end or 18
+                })
 
     # Prepare Player Data for Awards
     sorted_stats = []
@@ -191,18 +201,19 @@ def get_leaderboard():
         sorted_stats.append(s)
 
         # Flatten rounds for Best/Worst round search
-        for tid, r in player_round_stats[pid].items():
-            if r['holes'] > 0:
-                rounds_data.append({
-                    'player_id': pid,
-                    'tournament_id': tid,
-                    'tee_id': r.get('tee_id'),
-                    'tee_time': r.get('tee_time'),
-                    'name': s['name'],
-                    'tournament_name': r['name'],
-                    'net_rel': r['net'] - r['par'],
-                    'holes': r['holes']
-                })
+        for tid, r_tees in player_round_stats[pid].items():
+            for tee_id, r in r_tees.items():
+                if r['holes'] > 0:
+                    rounds_data.append({
+                        'player_id': pid,
+                        'tournament_id': tid,
+                        'tee_id': r.get('tee_id'),
+                        'tee_time': r.get('tee_time'),
+                        'name': s['name'],
+                        'tournament_name': r['name'],
+                        'net_rel': r['net'] - r['par'],
+                        'holes': r['holes']
+                    })
     
     # Sort for Leaderboard
     sorted_stats.sort(key=lambda x: (x['points_earned'], -x['gross_rel_num'], x['birdies'], -x['net_rel_num']), reverse=True)
@@ -236,11 +247,8 @@ def get_leaderboard():
     worst_hole_tie = len([x for x in sorted_stats if x['worst_hole_rel'] == worst_hole['worst_hole_rel']]) > 1 if worst_hole else False
 
     # Filter rounds_data to only include "full enough" rounds if possible, or just all
-    has_18_hole_round = any(r['holes'] >= 18 for r in rounds_data)
-    if has_18_hole_round:
-        valid_rounds = [r for r in rounds_data if r['holes'] >= 18]
-    else:
-        valid_rounds = [r for r in rounds_data if r['holes'] >= 9]
+    # Include any round with at least 9 holes finished
+    valid_rounds = [r for r in rounds_data if r['holes'] >= 9]
 
     best_round = min(valid_rounds, key=lambda x: x['net_rel']) if valid_rounds else None
     best_round_tie = len([x for x in valid_rounds if x['net_rel'] == best_round['net_rel']]) > 1 if best_round else False
@@ -339,6 +347,7 @@ def get_public_scorecard(tournament_id, tee_id):
     from datetime import datetime
     
     tee_time_param = request.args.get('tee_time')
+    player_id_param = request.args.get('player_id')
     tee = db.session.get(Tee, tee_id)
     if not tee:
         return jsonify({"error": "Tee not found"}), 404
@@ -349,8 +358,16 @@ def get_public_scorecard(tournament_id, tee_id):
         tee_id=tee_id
     ).all()
 
+    # Filter by player_id if provided (useful for Awards/History split rounds)
+    if player_id_param:
+        try:
+            pid = int(player_id_param)
+            matchups = [m for m in matchups if any(mp.player_id == pid for mp in m.player_links)]
+        except ValueError:
+            pass
+
     # Filter by tee_time if provided
-    if tee_time_param and tee_time_param != 'null':
+    elif tee_time_param and tee_time_param != 'null':
         try:
             target_tt = datetime.fromisoformat(tee_time_param)
             matchups = [m for m in matchups if m.tee_time and abs((m.tee_time - target_tt).total_seconds()) < 60]
@@ -433,8 +450,8 @@ def get_public_scorecard(tournament_id, tee_id):
                     p_st = match_st.get('player_stats', {}).get(mp.player_id, {})
                     handicap_index = p_st.get('handicap_index', 0)
                     total_pops = p_st.get('playing_handicap', 0)
-                    print(total_pops, h.handicap_index)
-                    pops = 1 if h.handicap_index <= total_pops else 0
+                    pops = p_st.get('pops_per_hole', {}).get(h.hole_number, 0)
+
                 hole_data["players"][str(mp.player_id)] = {
                     "name": p.name if p else "Unknown",
                     "team": mp.team,

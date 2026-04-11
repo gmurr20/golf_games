@@ -84,6 +84,11 @@ export default function MatchupsTab({
         if (teamA2) teams.A.push(parseInt(teamA2));
         if (teamB2) teams.B.push(parseInt(teamB2));
 
+        if ((mFormat === 'shamble' || mFormat === 'scramble') && (!teamA2 || !teamB2)) {
+            setStatus(`${mFormat.charAt(0).toUpperCase() + mFormat.slice(1)} requires 2 players per team.`);
+            return;
+        }
+
         if (selectedRanges.length === 0) {
             setStatus('Select at least one hole range.');
             return;
@@ -128,7 +133,8 @@ export default function MatchupsTab({
     const FORMAT_BASES = {
         'match_play': 'Match Play',
         'stroke_play': 'Stroke Play',
-        'scramble': 'Scramble'
+        'scramble': 'Scramble',
+        'shamble': 'Shamble'
     };
 
     // Compose a display label from backend data

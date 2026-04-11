@@ -110,6 +110,7 @@ export default function PlayerStats() {
                                 className="round-history-item"
                                 onClick={() => {
                                     const params = new URLSearchParams();
+                                    if (playerId) params.set('player_id', playerId);
                                     if (r.tee_time) params.set('tee_time', r.tee_time);
                                     navigate(`/view-scorecard/${r.tournament_id}/${r.tee_id}?${params.toString()}`);
                                 }}

@@ -174,8 +174,8 @@ function AwardCard({ title, award, icon, className }) {
 
     const handleClick = () => {
         if (award.tournament_id && award.tee_id) {
-            // Round awards link to scorecard with tee_time filter
             const params = new URLSearchParams();
+            if (award.player_id) params.set('player_id', award.player_id);
             if (award.tee_time) params.set('tee_time', award.tee_time);
             navigate(`/view-scorecard/${award.tournament_id}/${award.tee_id}?${params.toString()}`);
         } else if (award.player_id) {

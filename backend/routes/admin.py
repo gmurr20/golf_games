@@ -284,6 +284,12 @@ def create_matchup():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
+    # Validation for Shamble and Scramble (2v2 only)
+    if data.get('format') in ['shamble', 'scramble']:
+        teams = data.get('teams', {})
+        if len(teams) != 2 or any(len(pids) != 2 for pids in teams.values()):
+            return jsonify({"error": f"{data['format'].capitalize()} requires exactly 2 players per team"}), 400
+    
     # Use existing tournament for this competition
     tourney = Tournament.query.filter_by(competition_id=comp.id).first()
     if not tourney:

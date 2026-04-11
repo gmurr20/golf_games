@@ -137,7 +137,7 @@ def get_player_rounds(player_id):
             # Get match result for match_play formats
             match_result = None
             if completed_holes > 0:
-                if m.format == 'match_play':
+                if m.format in ['match_play', 'shamble']:
                     ms = calculate_match_status(m.id)
                     if my_team and 'error' not in ms:
                         opp_team = 'B' if my_team == 'A' else 'A'
@@ -164,7 +164,7 @@ def get_player_rounds(player_id):
                                 match_result = f'Lost {ad}&{holes_remaining}' if holes_remaining > 0 else f'{ad} DN'
                             else:
                                 match_result = f'{ad} DN thru {ms["holes_played"]}'
-                else:
+                elif m.format in ['stroke_play', 'scramble']:
                     res = calculate_overall_winner(m.id)
                     if 'error' not in res and res.get('score_a') is not None:
                         my_score = res['score_a'] if my_team == 'A' else res['score_b']
@@ -279,24 +279,12 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                 "team": p.team,
             }
 
-    # Calculate handicaps if any matchup uses them
-    course_handicaps = {}
-    playing_handicaps = {}
-    pops_per_hole = {}
-    use_handicaps = any(m.use_handicaps for m in matchups)
-
-    if use_handicaps and all_player_ids:
-        for pid in all_player_ids:
-            p = db.session.get(Player, pid)
-            if p:
-                course_handicaps[pid] = calculate_course_handicap(
-                    p.handicap_index, tee.slope, tee.rating, tee.par
-                )
-
-        playing_handicaps = calculate_playing_handicaps(course_handicaps)
-        for pid in all_player_ids:
-            if pid in playing_handicaps:
-                pops_per_hole[pid] = allocate_pops(playing_handicaps[pid], holes)
+    # Fetch match status for each matchup to get correct pops/handicaps
+    matchup_stats = {}
+    for m in matchups:
+        ms = calculate_match_status(m.id)
+        if "error" not in ms:
+            matchup_stats[m.id] = ms
 
     # Fetch all existing scores for these matchups
     all_matchup_ids = [m.id for m in matchups]
@@ -337,11 +325,17 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             pdata = players_data.get(pid, {})
             mp_entry = next((mp for mp in hole_mps if mp.player_id == pid), None)
 
+            # Get pops and handicaps from matchup stats
+            pops = 0
+            if matchup.id in matchup_stats:
+                p_st = matchup_stats[matchup.id].get('player_stats', {}).get(pid, {})
+                pops = p_st.get('pops_per_hole', {}).get(h.hole_number, 0)
+
             hole_data["players"][str(pid)] = {
                 "name": pdata.get("name", "Unknown"),
                 "team": mp_entry.team if mp_entry else None,
                 "is_me": pid == player_id,
-                "pops": pops_per_hole.get(pid, {}).get(h.hole_number, 0) if use_handicaps else 0,
+                "pops": pops,
                 "score": scores_lookup.get((h.hole_number, pid)),
             }
 
@@ -352,7 +346,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
     # Compute per-hole match play results and overall match results
     match_results_data = []
     for m in sorted(matchups, key=lambda x: x.hole_start or 1):
-        if m.format == 'match_play':
+        if m.format in ['match_play', 'shamble']:
             ms = calculate_match_status(m.id)
             if 'error' not in ms:
                 diff = ms['team_a_wins'] - ms['team_b_wins']
@@ -413,6 +407,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             if hr is not None:
                 hole_data['match_result'] = hr
 
+    use_handicaps = any(m.use_handicaps for m in matchups)
     return jsonify({
         "player_id": player_id,
         "player_name": player.name,
@@ -425,6 +420,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         "use_handicaps": use_handicaps,
         "scorecard": scorecard,
         "match_results": match_results_data,
+        "format": matchups[0].format if matchups else 'match_play'
     }), 200
 
 

@@ -61,7 +61,7 @@ class Matchup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=False)
     tee_id = db.Column(db.Integer, db.ForeignKey('tees.id'), nullable=False)
-    format = db.Column(db.String(20), nullable=False) # 'match_play', 'stroke_play', 'scramble'
+    format = db.Column(db.String(20), nullable=False) # 'match_play', 'stroke_play', 'scramble', 'shamble'
     use_handicaps = db.Column(db.Boolean, default=True)
     points_for_win = db.Column(db.Float, default=1.0)
     points_for_push = db.Column(db.Float, default=0.5)

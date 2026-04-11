@@ -324,6 +324,17 @@ export default function PlayRound() {
         return scorecard.scorecard.reduce((sum, h) => sum + h.par, 0);
     };
 
+    const formatMatchName = (format) => {
+        if (!format) return '';
+        const names = {
+            'match_play': 'Match Play Net',
+            'shamble': 'Shamble Net',
+            'stroke_play': 'Stroke Play Net',
+            'scramble': 'Scramble'
+        };
+        return names[format] || format.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
     // ===== LOADING =====
     if (loading || !scorecard) {
         return (
@@ -442,8 +453,10 @@ export default function PlayRound() {
                                                     ) : (
                                                         <span className="sc-score-empty">–</span>
                                                     )}
-                                                    {pdata?.pops > 0 && (
-                                                        <span className="sc-pop-dot">{'●'.repeat(pdata.pops)}</span>
+                                                    {pdata?.pops !== 0 && (
+                                                        <span className={`sc-pop-dot ${pdata.pops < 0 ? 'sc-pop-plus' : ''}`}>
+                                                            {pdata.pops > 0 ? '●'.repeat(pdata.pops) : '○'.repeat(Math.abs(pdata.pops))}
+                                                        </span>
                                                     )}
                                                 </td>
                                             );
@@ -477,6 +490,13 @@ export default function PlayRound() {
                     <p className="round-complete-subtitle">
                         {scorecard.course_name} — {scorecard.tee_name} Tees
                     </p>
+                    {scorecard.format && (
+                        <div style={{ marginTop: 'var(--spacing-1)' }}>
+                            <span className="match-format-badge">
+                                {formatMatchName(scorecard.format)}
+                            </span>
+                        </div>
+                    )}
                     {/* Total score summary */}
                     {(() => {
                         const { total, count } = getPlayerTotal(String(playerId));
@@ -499,14 +519,7 @@ export default function PlayRound() {
                     })()}
                 </div>
 
-                {/* Golf-style scorecard legend */}
-                <div className="sc-legend animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                    <span className="sc-legend-item"><span className="sc-score-mark score-eagle">2</span> Eagle</span>
-                    <span className="sc-legend-item"><span className="sc-score-mark score-birdie">3</span> Birdie</span>
-                    <span className="sc-legend-item"><span className="sc-score-mark score-par">4</span> Par</span>
-                    <span className="sc-legend-item"><span className="sc-score-mark score-bogey">5</span> Bogey</span>
-                    <span className="sc-legend-item"><span className="sc-score-mark score-dbl-bogey">6</span> Dbl Bogey+</span>
-                </div>
+
 
                 {/* Scorecard tables */}
                 <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
@@ -653,6 +666,9 @@ export default function PlayRound() {
                         <span className="hole-info-chip">{currentHoleData.yardage} yds</span>
                     )}
                     <span className="hole-info-chip">HDCP {currentHoleData?.handicap_index}</span>
+                    {scorecard.format && (
+                        <span className="match-format-badge-mini">{formatMatchName(scorecard.format)}</span>
+                    )}
                 </div>
             </div>
 
@@ -689,16 +705,16 @@ export default function PlayRound() {
                             <div className="score-entry-label">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <span className="score-entry-name">{pdata.name}</span>
-                                    {pdata.pops > 0 && (
-                                        <span className="stroke-dots" title={`${pdata.pops} stroke${pdata.pops > 1 ? 's' : ''} on this hole`}>
-                                            {'●'.repeat(pdata.pops)}
+                                    {pdata.pops !== 0 && (
+                                        <span className={`stroke-dots ${pdata.pops < 0 ? 'stroke-dots-plus' : ''}`} title={`${Math.abs(pdata.pops)} stroke${Math.abs(pdata.pops) > 1 ? 's' : ''} ${pdata.pops < 0 ? 'given back' : 'received'} on this hole`}>
+                                            {pdata.pops > 0 ? '●'.repeat(pdata.pops) : '○'.repeat(Math.abs(pdata.pops))}
                                         </span>
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {pdata.pops > 0 && (
-                                        <span className="stroke-badge">
-                                            {pdata.pops > 1 ? `${pdata.pops} strokes` : '1 stroke'}
+                                    {pdata.pops !== 0 && (
+                                        <span className={`stroke-badge ${pdata.pops < 0 ? 'stroke-badge-plus' : ''}`}>
+                                            {Math.abs(pdata.pops) > 1 ? `${Math.abs(pdata.pops)} strokes` : '1 stroke'} {pdata.pops < 0 ? 'given' : ''}
                                         </span>
                                     )}
                                     {pdata.is_me && <span className="score-entry-you-badge">You</span>}

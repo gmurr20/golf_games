@@ -105,6 +105,39 @@
     border-radius: var(--radius-pill);
 }
 
+.match-format-badge {
+    display: inline-block;
+    background: rgba(var(--color-primary-rgb), 0.1);
+    color: var(--color-primary);
+    padding: 2px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid var(--color-border);
+}
+
+.match-format-badge-mini {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    background: rgba(0,0,0,0.04);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    opacity: 0.8;
+}
+
+@media (prefers-color-scheme: dark) {
+    .match-format-badge {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .match-format-badge-mini {
+        background: rgba(255, 255, 255, 0.05);
+    }
+}
+
 /* Match status ticker */
 .match-status-ticker {
     text-align: center;

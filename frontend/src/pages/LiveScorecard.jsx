@@ -1,22 +1,137 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import backend from '../api/backend';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 
 export default function LiveScorecard() {
-    const [score, setScore] = useState(4); // default par 4
-    return (
-        <div style={{ padding: 'var(--spacing-4)' }}>
-            <h1 style={{ marginBottom: 'var(--spacing-2)' }}>Hole 1</h1>
-            <p style={{ color: 'var(--color-text-light)', marginBottom: 'var(--spacing-4)' }}>Par 4 • Handicap 12</p>
+    const { matchupId } = useParams();
+    const navigate = useNavigate();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-            <Card className="animate-slide-up" style={{ textAlign: 'center' }}>
-                <h2 style={{ fontSize: '3rem', margin: 'var(--spacing-4) 0' }}>{score}</h2>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--spacing-4)' }}>
-                    <Button variant="outline" onClick={() => setScore(s => Math.max(1, s - 1))}>-1</Button>
-                    <Button onClick={() => setScore(s => s + 1)}>+1</Button>
+    useEffect(() => {
+        fetchMatchup();
+        const interval = setInterval(fetchMatchup, 30000);
+        return () => clearInterval(interval);
+    }, [matchupId]);
+
+    const fetchMatchup = async () => {
+        try {
+            const res = await backend.get(`/matchups/${matchupId}`);
+            setData(res.data);
+        } catch (e) {
+            console.error('Failed to fetch matchup', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatMatchName = (format) => {
+        if (!format) return '';
+        const names = {
+            'match_play': 'Match Play Net',
+            'shamble': 'Shamble Net',
+            'stroke_play': 'Stroke Play Net',
+            'scramble': 'Scramble'
+        };
+        return names[format] || format.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    if (loading && !data) {
+        return (
+            <div className="play-container">
+                <div className="home-loading">
+                    <div className="spinner"></div>
+                    <span>Loading live match...</span>
                 </div>
-                <Button className="animate-slide-up" style={{ width: '100%', marginTop: 'var(--spacing-6)' }}>Submit Score</Button>
+            </div>
+        );
+    }
+
+    if (!data || data.error) {
+        return (
+            <div className="play-container">
+                <div style={{ textAlign: 'center', padding: 'var(--spacing-10)' }}>
+                    <h2>Match not found</h2>
+                    <Button onClick={() => navigate('/leaderboard')}>Back to Leaderboard</Button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="play-container animate-slide-up">
+            <div className="play-top-bar">
+                <button className="play-back-btn" onClick={() => navigate(-1)}>
+                    ← Back
+                </button>
+                {data.format && (
+                    <span className="match-format-badge">
+                        {formatMatchName(data.format)}
+                    </span>
+                )}
+            </div>
+
+            <header className="hole-header" style={{ marginBottom: 'var(--spacing-6)' }}>
+                <h1 className="hole-number-label">{data.status_string}</h1>
+                <p style={{ color: 'var(--color-text-light)', marginTop: 'var(--spacing-1)', fontWeight: 600 }}>
+                    {data.display_thru}
+                </p>
+            </header>
+
+            <Card className="animate-slide-up" style={{ padding: '0', overflow: 'hidden' }}>
+                <table className="golf-scorecard-table" style={{ minWidth: '100%', margin: '0' }}>
+                    <thead>
+                        <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
+                            <th className="sc-label-cell">Hole</th>
+                            {data.scorecard.map(h => (
+                                <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
+                            ))}
+                        </tr>
+                        <tr>
+                            <td className="sc-label-cell">Par</td>
+                            {data.scorecard.map(h => (
+                                <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr className="sc-match-row">
+                            <td className="sc-label-cell">Match</td>
+                            {(() => {
+                                let running = 0;
+                                return data.scorecard.map(h => {
+                                    if (h.winner === 'A') running++;
+                                    else if (h.winner === 'B') running--;
+                                    
+                                    let display = '–';
+                                    let className = '';
+                                    if (h.winner) {
+                                        display = running === 0 ? 'AS' : (running > 0 ? `+${running}` : running);
+                                        if (h.winner === 'A') className = 'sc-match-won';
+                                        else if (h.winner === 'B') className = 'sc-match-lost';
+                                    }
+                                    return <td key={h.hole_number} className={`sc-match-cell ${className}`} style={{ fontWeight: 700 }}>{display}</td>
+                                });
+                            })()}
+                        </tr>
+                    </tbody>
+                </table>
             </Card>
+
+            <div style={{ marginTop: 'var(--spacing-8)', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: 'var(--spacing-4)' }}>
+                    Detailed handicaps and scores are available on the full scorecard.
+                </p>
+                <Button 
+                    variant="outline" 
+                    style={{ width: '100%' }}
+                    onClick={() => navigate('/leaderboard')}
+                >
+                    View Overall Leaderboard
+                </Button>
+            </div>
         </div>
     );
 }

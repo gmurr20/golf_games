@@ -7,6 +7,7 @@ export default function ViewScorecard() {
     const { tournamentId, teeId } = useParams();
     const [searchParams] = useSearchParams();
     const teeTime = searchParams.get('tee_time');
+    const playerId = searchParams.get('player_id');
     const navigate = useNavigate();
     
     const [data, setData] = useState(null);
@@ -16,12 +17,13 @@ export default function ViewScorecard() {
         fetchScorecard();
         const interval = setInterval(fetchScorecard, 30000);
         return () => clearInterval(interval);
-    }, [tournamentId, teeId, teeTime]);
+    }, [tournamentId, teeId, teeTime, playerId]);
 
     const fetchScorecard = async () => {
         try {
             const params = new URLSearchParams();
             if (teeTime) params.set('tee_time', teeTime);
+            if (playerId) params.set('player_id', playerId);
             const res = await backend.get(`/scorecard/${tournamentId}/${teeId}?${params.toString()}`);
             setData(res.data);
         } catch (e) {
@@ -114,7 +116,7 @@ export default function ViewScorecard() {
                         ))}
                         <td className="sc-total">{holes.reduce((s, h) => s + h.par, 0)}</td>
                     </tr>
-                    {data.format === 'match_play' && (
+                    {(data.format === 'match_play' || data.format === 'shamble') && (
                         <tr className="sc-match-row">
                             <td className="sc-label">Match</td>
                             {holes.map(h => {
@@ -147,8 +149,10 @@ export default function ViewScorecard() {
                                             <span className={`sc-score-val ${getScoreClass(s, h.par)}`}>
                                                 {s || '–'}
                                             </span>
-                                            {pdata?.pops > 0 && (
-                                                <span className="sc-pop-dot">{'●'.repeat(pdata.pops)}</span>
+                                            {pdata?.pops !== 0 && (
+                                                <span className={`sc-pop-dot ${pdata.pops < 0 ? 'sc-pop-plus' : ''}`}>
+                                                    {pdata.pops > 0 ? '●'.repeat(pdata.pops) : '○'.repeat(Math.abs(pdata.pops))}
+                                                </span>
                                             )}
                                         </td>
                                     );
@@ -177,6 +181,13 @@ export default function ViewScorecard() {
                         <span className="live-badge">
                             <span className="dot"></span>
                             Live: Hole {current_hole}
+                        </span>
+                    )}
+                    {data.format && (
+                        <span className="match-format-badge">
+                            {data.format === 'shamble' ? 'Shamble Net' : 
+                             data.format === 'match_play' ? 'Match Play Net' : 
+                             data.format.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </span>
                     )}
                 </div>

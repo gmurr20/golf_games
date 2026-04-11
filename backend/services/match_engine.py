@@ -1,6 +1,12 @@
 from models import db
 from models.models import Matchup, MatchupPlayer, Hole, Score, Tee, Player
-from services.handicap import calculate_course_handicap, calculate_playing_handicaps, allocate_pops
+from services.handicap import (
+    calculate_course_handicap, 
+    calculate_playing_handicaps, 
+    allocate_pops, 
+    calculate_shamble_pops,
+    round_half_up
+)
 
 def calculate_match_status(matchup_id: int) -> dict:
     matchup = db.session.get(Matchup, matchup_id)
@@ -28,21 +34,72 @@ def calculate_match_status(matchup_id: int) -> dict:
     players = Player.query.filter(Player.id.in_(team_a_pids + team_b_pids)).all()
     player_map = {p.id: p for p in players}
     
-    # Calculate Course Handicaps
-    course_handicaps = {
-        p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par)
-        for p in players
-    }
-    
-    # Calculate Playing Handicaps
-    playing_handicaps = calculate_playing_handicaps(course_handicaps)
-    
-    # Allocate pops per hole for each player using all holes for context
+    # Calculate handicaps and pops
     all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
-    pops_per_hole = {
-        p.id: allocate_pops(playing_handicaps[p.id], all_holes)
-        for p in players
-    }
+    
+    if matchup.format == 'shamble':
+        # Shamble uses 75% for 2-person, 65% for 4-person
+        team_size = len(team_a_pids)
+        shamble_type = "4-person" if team_size >= 4 else "2-person"
+        allowance = 0.75 if shamble_type == "2-person" else 0.65
+        
+        # Course handicaps (Course Net - full allowance adjusted)
+        course_playing_handicaps = {
+            p.id: round_half_up(
+                calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par, rounded=False) * allowance
+            ) for p in players
+        }
+        
+        # Match handicaps (Relative to low man in the matchup)
+        match_playing_handicaps = calculate_playing_handicaps(course_playing_handicaps)
+        
+        # Pops for stats (Course Net)
+        course_pops_per_hole = {
+            p.id: allocate_pops(course_playing_handicaps[p.id], all_holes)
+            for p in players
+        }
+        
+        # Pops for Match UI (Relative)
+        match_pops_per_hole = {
+            p.id: allocate_pops(match_playing_handicaps[p.id], all_holes)
+            for p in players
+        }
+
+        # For the engine logic: 
+        # - course_handicaps (full WHS CH)
+        # - playing_handicaps (reduced Match CH for UI)
+        # - pops_per_hole (match relative dots)
+        # - stats_pops_per_hole (full allowance dots for Net calculation)
+        course_handicaps = {
+            p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par)
+            for p in players
+        }
+        playing_handicaps = match_playing_handicaps
+        pops_per_hole = match_pops_per_hole
+        stats_pops_per_hole = course_pops_per_hole # Used for net score calculation
+    else:
+        # Standard calculations
+        # CH is used for Course Net
+        ch_dict = {
+            p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par)
+            for p in players
+        }
+        # PH (Relative) is used for Match Standings UI dots
+        ph_dict = calculate_playing_handicaps(ch_dict)
+        
+        course_handicaps = ch_dict
+        playing_handicaps = ph_dict
+        
+        # Course Pops (Full CH) for stats/leaderboard
+        stats_pops_per_hole = {
+            p.id: allocate_pops(course_handicaps[p.id], all_holes)
+            for p in players
+        }
+        # Match Pops (Relative) for visual dots
+        pops_per_hole = {
+            p.id: allocate_pops(playing_handicaps[p.id], all_holes)
+            for p in players
+        }
     
     # Fetch Scores
     scores = Score.query.filter_by(matchup_id=matchup_id).all()
@@ -56,6 +113,7 @@ def calculate_match_status(matchup_id: int) -> dict:
         "team_a_wins": 0,
         "team_b_wins": 0,
         "holes_played": 0,
+        "format": matchup.format,
         "status_string": "All Square",
         "scorecard": [],
         "is_completed": False,
@@ -86,7 +144,9 @@ def calculate_match_status(matchup_id: int) -> dict:
         for pid in team_a_pids + team_b_pids:
             raw_score = scores_by_hole_player.get(h.hole_number, {}).get(pid)
             if raw_score is not None:
-                net_score = raw_score - pops_per_hole[pid].get(h.hole_number, 0)
+                # IMPORTANT: Use STATS_POPS (full allowance) for net score so leaderboard/stats are accurate
+                # even though the MATCH_POPS (relative) are shown as dots on the scorecard.
+                net_score = raw_score - stats_pops_per_hole[pid].get(h.hole_number, 0)
                 hole_data["players"][pid] = {
                     "raw": raw_score,
                     "net": net_score,
@@ -118,7 +178,7 @@ def calculate_match_status(matchup_id: int) -> dict:
     total_match_holes = hole_end - hole_start + 1
     holes_remaining = total_match_holes - match_status["holes_played"]
     
-    is_match_play = matchup.format == 'match_play'
+    is_match_play = matchup.format in ['match_play', 'shamble']
     if is_match_play:
         if abs(diff) > holes_remaining or holes_remaining == 0:
             match_status["is_completed"] = True
@@ -178,7 +238,7 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     if not matchup:
         return {"error": "Matchup not found"}
         
-    if matchup.format == 'match_play':
+    if matchup.format in ['match_play', 'shamble']:
         ms = calculate_match_status(matchup_id)
         if "error" in ms:
             return ms
