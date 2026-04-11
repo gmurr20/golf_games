@@ -109,3 +109,15 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+.admin-dashboard-container {
+  padding: var(--spacing-4);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .admin-dashboard-container {
+    padding: var(--spacing-2);
+  }
+}

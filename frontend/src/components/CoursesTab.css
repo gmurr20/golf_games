@@ -5,40 +5,59 @@
 /* ── Header Bar ── */
 .courses-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    width: 100%;
+    padding: 0.75rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+}
+
+.detail-header-sticky {
+    position: sticky;
+    top: 0;
+    background: var(--color-background);
+    z-index: 100;
 }
 
 .back-button {
-    background: none;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    padding: 0.4rem 1rem;
-    font-size: 0.85rem;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
     font-weight: 600;
-    color: var(--color-text);
+    cursor: pointer;
     transition: all 0.2s ease;
-}
-.back-button:hover {
-    background: var(--color-surface);
-    border-color: var(--color-primary-light);
-    color: var(--color-primary);
+    white-space: nowrap;
+    border: none;
+    background: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
 }
 
-.delete-course-btn {
-    background: none;
-    border: 1px solid var(--color-accent-lose);
-    border-radius: var(--radius-pill);
-    padding: 0.4rem 1rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-accent-lose);
-    transition: all 0.2s ease;
+.back-button:hover {
+    background: var(--color-primary-dark);
+    box-shadow: var(--shadow-md);
 }
-.delete-course-btn:hover {
-    background: var(--color-accent-lose);
-    color: #fff;
+
+.back-text-short {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .back-text-full {
+        display: none;
+    }
+    .back-text-short {
+        display: inline;
+    }
+    .back-button {
+        padding: 0 0.85rem;
+    }
 }
 
 /* ── Add Course Actions ── */
@@ -128,7 +147,32 @@
 
 /* ── Detail View ── */
 .course-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 1.25rem;
+}
+
+.card-level-delete-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--color-accent-lose);
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.card-level-delete-btn:hover {
+    background: var(--color-accent-lose);
+    color: white;
+    transform: scale(1.1);
 }
 .course-detail-title {
     font-size: 1.5rem;
@@ -143,35 +187,40 @@
     margin-top: 0.2rem;
 }
 
-/* ── Tee Selector ── */
+/* ── Tee Selection (Wrapped) ── */
 .tee-selector {
     display: flex;
-    gap: 0.4rem;
-    margin-bottom: 1.25rem;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    max-width: 100%; /* Prevent blowout */
 }
 
 .tee-tab {
-    padding: 0.45rem 1.1rem;
+    padding: 0.45rem 1rem;
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-border);
-    background: transparent;
+    background: var(--color-surface);
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-text-light);
     transition: all 0.2s ease;
     white-space: nowrap;
+    cursor: pointer;
 }
+
 .tee-tab:hover {
     border-color: var(--color-primary-light);
     color: var(--color-primary);
 }
+
 .tee-tab-active {
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
     color: #fff;
     border-color: transparent;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
+
 .tee-tab-active:hover {
     color: #fff;
 }
@@ -254,6 +303,12 @@
     font-size: 0.8rem;
     min-width: 540px;
 }
+@media (max-width: 600px) {
+    .scorecard-table {
+        min-width: 450px;
+        font-size: 0.75rem;
+    }
+}
 
 .scorecard-header-row {
     background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
@@ -297,6 +352,20 @@
 .scorecard-header-row .scorecard-total-cell {
     background: rgba(0, 0, 0, 0.15);
     border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 600px) {
+    .scorecard-label-cell {
+        width: 36px;
+        min-width: 36px;
+        font-size: 0.65rem !important;
+    }
+    .scorecard-hole-cell {
+        min-width: 32px;
+    }
+    .scorecard-total-cell {
+        min-width: 40px;
+    }
 }
 
 .scorecard-data-cell {
@@ -365,6 +434,13 @@
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(39, 125, 76, 0.15);
+}
+
+@media (max-width: 600px) {
+    .scorecard-input {
+        padding: 0.15rem 0.1rem;
+        font-size: 0.75rem;
+    }
 }
 
 .scorecard-grand-total {

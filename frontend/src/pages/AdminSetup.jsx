@@ -146,6 +146,11 @@ function Dashboard() {
         fetchMatchups();
     }, []);
 
+    // Clear status when switching tabs
+    useEffect(() => {
+        setStatus('');
+    }, [tab]);
+
     // CONFIG EDITING
     const saveTeamConfig = async () => {
         await backend.put('/competitions/settings', { team_a_name: teamAName, team_b_name: teamBName });
@@ -338,7 +343,7 @@ function Dashboard() {
     );
 
     return (
-        <div style={{ padding: 'var(--spacing-4)' }}>
+        <div className="admin-dashboard-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
                 <h1 style={{ margin: 0 }}>Dashboard</h1>
                 <Button variant="outline" onClick={handleLogout} style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}>Log Out</Button>

@@ -251,11 +251,12 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     if (view === 'create') {
         return (
             <div className="animate-slide-up">
-                <div className="courses-header">
-                    <button className="back-button" onClick={() => setView('list')}>
-                        ← Back to Courses
+                <div className="courses-header detail-header-sticky">
+                    <button className="back-button nav-back" onClick={() => setView('list')}>
+                        <span className="back-icon">←</span>
+                        <span className="back-text">Courses</span>
                     </button>
-                    <h3 style={{ margin: 0 }}>Create Course Manually</h3>
+                    <h3 className="header-title">Create Course</h3>
                 </div>
                 <Card style={{ marginTop: '1rem' }}>
                     <form onSubmit={handleCreateCourse}>
@@ -321,24 +322,30 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
 
         return (
             <div className="animate-slide-up">
-                <div className="courses-header">
-                    <button className="back-button" onClick={() => { setView('list'); setEditMode(false); }}>
-                        ← Back to Courses
-                    </button>
-                    <button className="delete-course-btn" onClick={() => handleDeleteCourse(selectedCourse.id)}>
-                        🗑 Delete Course
+                <div className="courses-header detail-header-sticky">
+                    <button className="back-button nav-back" onClick={() => { setView('list'); setEditMode(false); }}>
+                        <span className="back-icon">←</span>
+                        <span className="back-text-full">Back to Courses</span>
+                        <span className="back-text-short">Back</span>
                     </button>
                 </div>
 
                 <Card style={{ marginTop: '1rem' }}>
                     <div className="course-detail-header">
-                        <div>
+                        <div className="course-title-section">
                             <h2 className="course-detail-title">{selectedCourse.name}</h2>
                             <p className="course-detail-subtitle">{selectedCourse.tees.length} tee{selectedCourse.tees.length !== 1 ? 's' : ''} registered</p>
                         </div>
+                        <button 
+                            className="card-level-delete-btn" 
+                            onClick={() => handleDeleteCourse(selectedCourse.id)}
+                            title="Delete Course"
+                        >
+                            ×
+                        </button>
                     </div>
 
-                    {/* Tee Selector Tabs */}
+                    {/* Tee Selector Buttons (Wrapped) */}
                     {selectedCourse.tees.length > 0 && (
                         <div className="tee-selector">
                             {selectedCourse.tees.map((t, idx) => (
