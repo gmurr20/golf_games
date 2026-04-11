@@ -39,7 +39,7 @@ export default function Leaderboard() {
 
     if (!data) return null;
 
-    const { competition, matches, player_stats } = data;
+    const { competition, matches } = data;
 
     return (
         <div className="leaderboard-container animate-slide-up">
@@ -86,54 +86,6 @@ export default function Leaderboard() {
                     ) : (
                         matches.filter(m => m.status === 'completed').map((m, i) => (
                             <MatchCard key={m.id} m={m} i={i} navigate={navigate} />
-                        ))
-                    )}
-                </div>
-            </section>
-
-            {/* Player Stats */}
-            <section className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                <h2 className="section-title">🏆 Top Performers</h2>
-                <div className="stats-grid">
-                    {player_stats.length === 0 ? (
-                        <div className="list-empty">No stats recorded yet.</div>
-                    ) : (
-                        player_stats.map((s, i) => (
-                            <div
-                                key={s.player_id}
-                                className={`stat-row animate-slide-up team-${s.team.toLowerCase()}`}
-                                style={{ animationDelay: `${0.2 + (i * 0.05)}s` }}
-                            >
-                                <div className="stat-player-info">
-                                    <span className="stat-rank">#{i + 1}</span>
-                                    <div className="stat-name-group">
-                                        <span className="stat-name">{s.name}</span>
-                                        <span className={`stat-team-badge team-${s.team.toLowerCase()}`}>
-                                            {s.team_display_name}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="stat-metrics">
-                                    <div className="stat-metric-block">
-                                        <span className="metric-label">GROSS</span>
-                                        <span className={`metric-value ${s.gross_to_par === 'E' ? 'even' : s.gross_to_par.startsWith('-') ? 'under' : 'over'}`}>
-                                            {s.gross_to_par}
-                                        </span>
-                                    </div>
-                                    <div className="stat-metric-block">
-                                        <span className="metric-label">NET</span>
-                                        <span className={`metric-value ${s.net_to_par === 'E' ? 'even' : s.net_to_par.startsWith('-') ? 'under' : 'over'}`}>
-                                            {s.net_to_par}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="stat-value-container">
-                                    <div className="stat-value">{s.wins}-{s.losses}-{s.ties}</div>
-                                    <div className="stat-label">{s.points_earned} PTS</div>
-                                </div>
-                            </div>
                         ))
                     )}
                 </div>

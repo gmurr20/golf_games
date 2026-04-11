@@ -428,6 +428,201 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
     }), 200
 
 
+@player_bp.route('/players/<int:player_id>/stats', methods=['GET'])
+def get_player_stats(player_id):
+    """
+    Return comprehensive stats for a player:
+    - Aggregate Birdie+ (Gross and Net)
+    - Match Record (W-L-T)
+    - Total Competition Points
+    - Round History
+    - Matchup History
+    """
+    player = db.session.get(Player, player_id)
+    if not player:
+        return jsonify({"error": "Player not found"}), 404
+
+    # Determine Active Competition (scoped by admin_key)
+    admin_key = current_app.config['MASTER_PASSWORD']
+    comp = Competition.query.filter_by(admin_key=admin_key).first()
+    if not comp:
+        comp = Competition.query.first()
+        
+    if not comp:
+        return jsonify({"error": "No competition found"}), 404
+
+    # Get all tournaments for this competition
+    tournaments = Tournament.query.filter_by(competition_id=comp.id).all()
+    tournament_ids = [t.id for t in tournaments]
+
+    # Determine Team (A or B)
+    team_letter = ""
+    team_display = ""
+    if player.team:
+        if player.team == comp.team_a_name:
+            team_letter = "A"
+            team_display = comp.team_a_name
+        elif player.team == comp.team_b_name:
+            team_letter = "B"
+            team_display = comp.team_b_name
+        else:
+            team_letter = player.team
+            team_display = player.team
+
+    # Initialize stats
+    stats = {
+        "player_id": player.id,
+        "name": player.name,
+        "handicap_index": player.handicap_index,
+        "team": team_letter,
+        "team_display_name": team_display,
+        "gross_birdies_plus": 0,
+        "net_birdies_plus": 0,
+        "wins": 0,
+        "losses": 0,
+        "ties": 0,
+        "total_points": 0.0,
+        "rounds": [],
+        "matchups": []
+    }
+
+    # Fetch all matchups for this player in these tournaments
+    mp_entries = MatchupPlayer.query.filter(
+        MatchupPlayer.player_id == player_id
+    ).all()
+    
+    matchup_ids = [mp.matchup_id for mp in mp_entries]
+    all_matchups = Matchup.query.filter(
+        Matchup.id.in_(matchup_ids),
+        Matchup.tournament_id.in_(tournament_ids)
+    ).all()
+    
+    matchup_lookup = {m.id: m for m in all_matchups}
+
+    # Group matchups by round (tee_id, tee_time)
+    round_groups = defaultdict(list)
+    for m in all_matchups:
+        tee_time_key = m.tee_time.isoformat() if m.tee_time else "none"
+        key = (m.tee_id, tee_time_key)
+        round_groups[key].append(m)
+
+    # Process Stats and Records
+    for m in all_matchups:
+        # Match Status & Results
+        ms = calculate_match_status(m.id)
+        res = calculate_overall_winner(m.id)
+        
+        my_team = next((mp.team for mp in mp_entries if mp.matchup_id == m.id), None)
+        
+        if res.get('winner') and ms.get('is_completed'):
+            if res['winner'] == 'Push':
+                stats['ties'] += 1
+                stats['total_points'] += m.points_for_push
+            elif res['winner'] == my_team:
+                stats['wins'] += 1
+                stats['total_points'] += m.points_for_win
+            else:
+                stats['losses'] += 1
+
+        # Scores for Birdie+ counters
+        if 'scorecard' in ms:
+            for h_st in ms['scorecard']:
+                # The match engine might use int keys; jsonify converts to str keys later.
+                # Since we are calling it internally, we check both.
+                p_hole = h_st['players'].get(player_id) or h_st['players'].get(str(player_id))
+                
+                if p_hole and p_hole.get('raw') is not None:
+                    h_par = h_st.get('par', 0)
+                    if p_hole['raw'] <= h_par - 1:
+                        stats['gross_birdies_plus'] += 1
+                    if p_hole.get('net') is not None and p_hole['net'] <= h_par - 1:
+                        stats['net_birdies_plus'] += 1
+
+        # Matchup Item for list
+        opponents = []
+        for mp in MatchupPlayer.query.filter_by(matchup_id=m.id).all():
+            if mp.player_id != player_id and mp.team != my_team:
+                opp = db.session.get(Player, mp.player_id)
+                if opp: opponents.append(opp.name)
+
+        matchup_result = "Upcoming"
+        if ms.get('holes_played', 0) > 0:
+            matchup_result = ms.get('display_value', 'In Progress')
+            if ms.get('display_thru'):
+                matchup_result += f" {ms['display_thru']}"
+
+        stats['matchups'].append({
+            "id": m.id,
+            "tournament_id": m.tournament_id,
+            "tee_id": m.tee_id,
+            "tee_time": m.tee_time.isoformat() if m.tee_time else None,
+            "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown",
+            "format": m.format,
+            "opponents": opponents,
+            "result": matchup_result,
+            "is_completed": ms.get('is_completed', False)
+        })
+
+    # Round History
+    for (tee_id, tee_time_key), group_matchups in round_groups.items():
+        tee = db.session.get(Tee, tee_id)
+        course = tee.course if tee else None
+        
+        # Calculate total holes and completion
+        all_holes = set()
+        for m in group_matchups:
+            for h in range(m.hole_start or 1, (m.hole_end or 18) + 1):
+                all_holes.add(h)
+        
+        total_holes = len(all_holes)
+        
+        # Use scorecard logic to get consistent totals
+        raw_scores = {}
+        net_scores = {}
+        pars = {}
+        
+        for m in group_matchups:
+            ms = calculate_match_status(m.id)
+            if 'scorecard' in ms:
+                for h_st in ms['scorecard']:
+                    h_num = h_st['hole_number']
+                    p_hole = h_st['players'].get(player_id) or h_st['players'].get(str(player_id))
+                    if p_hole and p_hole.get('raw') is not None:
+                        raw_scores[h_num] = p_hole['raw']
+                        net_scores[h_num] = p_hole['net']
+                        pars[h_num] = h_st['par']
+
+        completed_holes = len(raw_scores)
+        if completed_holes == 0: continue # Skip if no scores entered
+
+        gross_total = sum(raw_scores.values())
+        net_total = sum(net_scores.values())
+        par_total = sum(pars.values())
+        
+        to_par = gross_total - par_total
+        net_to_par = net_total - par_total
+
+        stats['rounds'].append({
+            "tournament_id": group_matchups[0].tournament_id,
+            "tee_id": tee_id,
+            "tee_time": group_matchups[0].tee_time.isoformat() if group_matchups[0].tee_time else None,
+            "course_name": course.name if course else "Unknown",
+            "tee_name": tee.name if tee else "Unknown",
+            "gross_score": gross_total,
+            "net_score": net_total,
+            "to_par": f"+{to_par}" if to_par > 0 else ("E" if to_par == 0 else str(to_par)),
+            "net_to_par": f"+{net_to_par}" if net_to_par > 0 else ("E" if net_to_par == 0 else str(net_to_par)),
+            "completed_holes": completed_holes,
+            "total_holes": total_holes
+        })
+
+    # Sort historical lists
+    stats['rounds'].sort(key=lambda r: r['tee_time'] or "0", reverse=True)
+    stats['matchups'].sort(key=lambda m: m['tee_time'] or "0", reverse=True)
+
+    return jsonify(stats), 200
+
+
 @player_bp.route('/scores/batch', methods=['POST'])
 def batch_upsert_scores():
     """Accept an array of scores and upsert them all."""

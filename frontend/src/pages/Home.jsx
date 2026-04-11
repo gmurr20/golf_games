@@ -171,9 +171,14 @@ export default function Home() {
                     <span className="home-subtitle">{compName}</span>
                     <h1>Hey {playerName.split(' ')[0]} 👋</h1>
                 </div>
-                <button className="change-player-link" onClick={handleChangePlayer}>
-                    Not you?
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
+                    <button className="change-player-link" onClick={() => navigate(`/player-stats/${playerId}`)}>
+                        View Stats
+                    </button>
+                    <button className="change-player-link" onClick={handleChangePlayer}>
+                        Not you?
+                    </button>
+                </div>
             </div>
 
             {/* Resume Banner — only show if round is not completed */}

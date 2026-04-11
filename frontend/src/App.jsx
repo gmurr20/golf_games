@@ -6,6 +6,8 @@ import LiveScorecard from './pages/LiveScorecard';
 import Leaderboard from './pages/Leaderboard';
 import PlayRound from './pages/PlayRound';
 import ViewScorecard from './pages/ViewScorecard';
+import PlayerStats from './pages/PlayerStats';
+import Awards from './pages/Awards';
 import { StickyNav } from './components/layout/StickyNav';
 
 import './styles/global.css';
@@ -19,8 +21,10 @@ function App() {
           <Route path="/admin" element={<AdminSetup />} />
           <Route path="/match/:matchupId" element={<LiveScorecard />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/awards" element={<Awards />} />
           <Route path="/view-scorecard/:tournamentId/:teeId" element={<ViewScorecard />} />
           <Route path="/play/:tournamentId/:teeId" element={<PlayRound />} />
+          <Route path="/player-stats/:playerId" element={<PlayerStats />} />
         </Routes>
       </div>
       <StickyNav />

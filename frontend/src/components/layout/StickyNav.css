@@ -22,6 +22,8 @@
     font-size: 0.75rem;
 }
 
-.nav-item:hover, .nav-item:active {
+.nav-item:hover, 
+.nav-item:active,
+.nav-item.active {
     color: var(--color-primary);
 }

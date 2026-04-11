@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import backend from '../api/backend';
 import './ViewScorecard.css';
 
@@ -7,6 +7,7 @@ export default function ViewScorecard() {
     const { tournamentId, teeId } = useParams();
     const [searchParams] = useSearchParams();
     const teeTime = searchParams.get('tee_time');
+    const navigate = useNavigate();
     
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -163,9 +164,9 @@ export default function ViewScorecard() {
 
     return (
         <div className="view-scorecard-container">
-            <Link to="/leaderboard" className="back-link">
-                ← Back to Leaderboard
-            </Link>
+            <div className="back-link" onClick={() => navigate(-1)} style={{ cursor: 'pointer' }}>
+                ← Back
+            </div>
 
             <header className="view-scorecard-header">
                 <h1>{course_name}</h1>
