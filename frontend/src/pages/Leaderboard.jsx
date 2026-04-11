@@ -99,18 +99,39 @@ export default function Leaderboard() {
                         <div className="list-empty">No stats recorded yet.</div>
                     ) : (
                         player_stats.map((s, i) => (
-                            <div 
-                                key={s.player_id} 
-                                className="stat-row animate-slide-up"
+                            <div
+                                key={s.player_id}
+                                className={`stat-row animate-slide-up team-${s.team.toLowerCase()}`}
                                 style={{ animationDelay: `${0.2 + (i * 0.05)}s` }}
                             >
                                 <div className="stat-player-info">
                                     <span className="stat-rank">#{i + 1}</span>
-                                    <span className="stat-name">{s.name}</span>
+                                    <div className="stat-name-group">
+                                        <span className="stat-name">{s.name}</span>
+                                        <span className={`stat-team-badge team-${s.team.toLowerCase()}`}>
+                                            {s.team_display_name}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                <div className="stat-metrics">
+                                    <div className="stat-metric-block">
+                                        <span className="metric-label">GROSS</span>
+                                        <span className={`metric-value ${s.gross_to_par === 'E' ? 'even' : s.gross_to_par.startsWith('-') ? 'under' : 'over'}`}>
+                                            {s.gross_to_par}
+                                        </span>
+                                    </div>
+                                    <div className="stat-metric-block">
+                                        <span className="metric-label">NET</span>
+                                        <span className={`metric-value ${s.net_to_par === 'E' ? 'even' : s.net_to_par.startsWith('-') ? 'under' : 'over'}`}>
+                                            {s.net_to_par}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div className="stat-value-container">
-                                    <div className="stat-value">{s.birdies}</div>
-                                    <div className="stat-label">Birdies+</div>
+                                    <div className="stat-value">{s.wins}-{s.losses}-{s.ties}</div>
+                                    <div className="stat-label">{s.points_earned} PTS</div>
                                 </div>
                             </div>
                         ))
@@ -127,6 +148,12 @@ function MatchCard({ m, i, navigate }) {
     const isLive = m.status === 'in_progress';
     const isCompleted = m.status === 'completed';
 
+    const formatTeeTime = (isoString) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    };
+
     const getHoleRangeLabel = () => {
         if (m.hole_start === 1 && m.hole_end === 9) return 'Front 9';
         if (m.hole_start === 10 && m.hole_end === 18) return 'Back 9';
@@ -134,8 +161,11 @@ function MatchCard({ m, i, navigate }) {
         return `Holes ${m.hole_start}-${m.hole_end}`;
     };
 
+    const winner = m.points_a > m.points_b ? 'A' : m.points_b > m.points_a ? 'B' : 'Push';
+    const statusClass = winner === 'A' ? 'status-a' : winner === 'B' ? 'status-b' : 'status-push';
+
     return (
-        <div 
+        <div
             className="match-card animate-slide-up"
             style={{ animationDelay: `${0.1 + (i * 0.05)}s` }}
             onClick={() => {
@@ -144,53 +174,51 @@ function MatchCard({ m, i, navigate }) {
                 navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?${params.toString()}`);
             }}
         >
-            <div className="match-card-header">
-                <div className="match-format-group">
-                    <span className="match-format">{m.format.replace('_', ' ')}</span>
-                    <span className="match-range-chip">{getHoleRangeLabel()}</span>
+            <div className="match-card-context">
+                <div className="match-location">
+                    <span className="match-course">{m.course_name}</span>
+                    <span className="match-time">
+                        {formatTeeTime(m.tee_time)} • <span className="match-range-text">{getHoleRangeLabel()}</span>
+                    </span>
                 </div>
-                <span className={`match-status-pill ${isLive ? 'live' : ''}`}>
-                    {m.status_string}
-                </span>
+                <span className="match-format-chip">{m.format.replace('_', ' ')}</span>
             </div>
-            
-            <div className="match-players">
-                <div className="match-team">
+
+            <div className="match-main-row">
+                <div className="match-team side-a">
                     {teamA.map(p => (
-                        <div key={p.id} className="match-player-row">
-                            <div className="match-player-info">
-                                <span className="match-player-name">{p.name}</span>
-                                <span className="match-player-team-label">{p.team_name}</span>
-                            </div>
-                            <span className={`match-player-to-par ${p.to_par.startsWith('-') ? 'under' : p.to_par === 'E' ? 'even' : 'over'}`}>
-                                {p.to_par}
-                            </span>
+                        <div key={p.id} className="player-minimal">
+                            <span className="player-name">{p.name}</span>
+                            <span className="player-to-par-subtle">{p.to_par}</span>
                         </div>
                     ))}
                 </div>
-                
-                <span className="match-vs">vs</span>
-                
-                <div className="match-team" style={{ textAlign: 'right' }}>
+
+                <div className={`match-status-arrow-container ${statusClass} ${isLive ? 'live' : ''}`}>
+                    <div className="match-status-arrow">
+                        <span className="status-text">{m.display_value}</span>
+                    </div>
+                    {m.display_thru && (
+                        <div className="match-thru-label">
+                            {m.display_thru}
+                        </div>
+                    )}
+                </div>
+
+                <div className="match-team side-b">
                     {teamB.map(p => (
-                        <div key={p.id} className="match-player-row reverse">
-                            <div className="match-player-info">
-                                <span className="match-player-name">{p.name}</span>
-                                <span className="match-player-team-label">{p.team_name}</span>
-                            </div>
-                            <span className={`match-player-to-par ${p.to_par.startsWith('-') ? 'under' : p.to_par === 'E' ? 'even' : 'over'}`}>
-                                {p.to_par}
-                            </span>
+                        <div key={p.id} className="player-minimal">
+                            <span className="player-to-par-subtle">{p.to_par}</span>
+                            <span className="player-name">{p.name}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
             {isCompleted && (
-                <div className="match-points-awarded">
-                    <span className="points-label">Points Awarded:</span>
-                    <span className="points-value">
-                        {m.points_a} - {m.points_b}
+                <div className="match-footer-line">
+                    <span className={`points-status-badge ${statusClass}`}>
+                        MATCH POINTS: {m.points_a} - {m.points_b}
                     </span>
                 </div>
             )}

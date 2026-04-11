@@ -1,8 +1,8 @@
 :root {
   /* Rich, Premium Green Palette */
-  --color-primary: hsl(150, 60%, 30%); /* Deep Golf Green */
-  --color-primary-light: hsl(150, 60%, 45%);
-  --color-primary-dark: hsl(150, 70%, 20%);
+  --color-primary: hsl(220, 30%, 25%); /* Deep Navy/Slate for competition theme */
+  --color-primary-light: hsl(220, 25%, 40%);
+  --color-primary-dark: hsl(220, 35%, 15%);
   
   /* Background / Dark Mode Support Base */
   --color-background: hsl(0, 0%, 98%);
@@ -49,6 +49,10 @@
     --color-text: hsl(0, 0%, 98%);
     --color-text-light: hsl(220, 10%, 70%);
     --color-border: hsl(220, 20%, 25%);
+    
+    --color-primary: hsl(220, 50%, 70%); /* Lighter Navy for Dark Mode legibility */
+    --color-primary-light: hsl(220, 50%, 80%);
+    --color-primary-dark: hsl(220, 50%, 60%);
     
     --glass-bg: rgba(30, 40, 50, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);

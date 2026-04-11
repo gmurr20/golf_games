@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, current_app, request
 from models.models import Competition, Tournament, Matchup, Score, Player, Tee, MatchupPlayer
 from services.match_engine import calculate_match_status, calculate_overall_winner
+from services.handicap import calculate_course_handicap, allocate_pops
 from collections import defaultdict
 
 query_bp = Blueprint('query', __name__)
@@ -34,9 +35,12 @@ def get_leaderboard():
     team_b_points = 0.0
     matches = []
     
-    # Track player stats
-    # player_stats = { player_id: { 'birdies': 0, 'eagles': 0, 'strokes': 0, 'holes': 0, 'name': '' } }
-    player_stats = defaultdict(lambda: {'birdies': 0, 'eagles': 0, 'strokes': 0, 'holes': 0, 'name': ''})
+    player_stats = defaultdict(lambda: {
+        'birdies': 0, 'eagles': 0, 'strokes': 0, 'holes': 0, 
+        'wins': 0, 'losses': 0, 'ties': 0, 'points_earned': 0.0, 
+        'name': '', 'team': '', 'team_display_name': '',
+        'total_par': 0, 'total_net_strokes': 0
+    })
 
     for t in tournaments:
         matchups = Matchup.query.filter_by(tournament_id=t.id).all()
@@ -59,6 +63,31 @@ def get_leaderboard():
                 continue
 
             # Calculate each player's to_par for THIS specific match
+            for pid, player_dict in ms.get('player_stats', {}).items():
+                p_stats = player_stats[pid]
+                if p_stats['name'] == '':
+                    p = Player.query.get(pid)
+                    if p:
+                        p_stats['name'] = p.name
+                        team_str = p.team or ''
+                        if team_str == comp.team_a_name:
+                            p_stats['team'] = 'A'
+                            p_stats['team_display_name'] = comp.team_a_name
+                        elif team_str == comp.team_b_name:
+                            p_stats['team'] = 'B'
+                            p_stats['team_display_name'] = comp.team_b_name
+                        else:
+                            p_stats['team'] = team_str
+                            p_stats['team_display_name'] = team_str
+
+            m_players = MatchupPlayer.query.filter_by(matchup_id=m.id).all()
+            players_in_match = Player.query.filter(Player.id.in_([mp.player_id for mp in m_players])).all()
+            all_holes = m.tee.holes
+            player_course_pops = {}
+            for p in players_in_match:
+                ch = calculate_course_handicap(p.handicap_index, m.tee.slope, m.tee.rating, m.tee.par)
+                player_course_pops[p.id] = allocate_pops(ch, all_holes)
+
             player_match_to_par = {}
             for h_st in ms.get('scorecard', []):
                 h_par = h_st.get('par', 0)
@@ -66,8 +95,40 @@ def get_leaderboard():
                     if pid not in player_match_to_par:
                         player_match_to_par[pid] = 0
                     raw = p_hole_data.get('raw')
+                    net = p_hole_data.get('net')
                     if raw is not None:
                         player_match_to_par[pid] += (raw - h_par)
+                        
+                        # Accrue live overall player stats using matchplay net scores!
+                        p_stats = player_stats[pid]
+                        p_stats['strokes'] += raw
+                        p_stats['total_net_strokes'] += (net if net is not None else raw)
+                        p_stats['total_par'] += h_par
+                        p_stats['holes'] += 1
+                        
+                        diff = raw - h_par
+                        if diff <= -2:
+                            p_stats['eagles'] += 1
+                            p_stats['birdies'] += 1
+                        elif diff == -1:
+                            p_stats['birdies'] += 1
+
+            # Match display summary filtering
+            if derived_status == 'upcoming':
+                continue
+                
+            winner = res.get('winner')
+            if winner and derived_status == 'completed':
+                for mp in m_players:
+                    p_stats = player_stats[mp.player_id]
+                    if winner == 'Push':
+                        p_stats['ties'] += 1
+                        p_stats['points_earned'] += m.points_for_push
+                    elif winner == mp.team:
+                        p_stats['wins'] += 1
+                        p_stats['points_earned'] += m.points_for_win
+                    else:
+                        p_stats['losses'] += 1
 
             # Match summary for display
             players = []
@@ -95,6 +156,9 @@ def get_leaderboard():
                 "tee_time": m.tee_time.isoformat() if m.tee_time else None,
                 "status": derived_status,
                 "status_string": ms.get('status_string', 'Upcoming'),
+                "display_value": ms.get('display_value'),
+                "display_thru": ms.get('display_thru'),
+                "leading_team": ms.get('leading_team'),
                 "format": m.format,
                 "players": players,
                 "competition_name": comp.name,
@@ -104,50 +168,22 @@ def get_leaderboard():
                 "hole_end": m.hole_end or 18
             })
 
-    # Calculate player stats from all scores in this competition
-    all_matchups = Matchup.query.filter(Matchup.tournament_id.in_(tournament_ids)).all()
-    all_matchup_ids = [m.id for m in all_matchups]
-    
-    all_scores = Score.query.filter(Score.matchup_id.in_(all_matchup_ids)).all()
-    
-    # Need hole pars to identify birdies/eagles
-    # Cache hole pars per tee
-    tee_pars = {} # { tee_id: { hole_number: par } }
-
-    for s in all_scores:
-        m = next((m for m in all_matchups if m.id == s.matchup_id), None)
-        if not m: continue
-        
-        if m.tee_id not in tee_pars:
-            holes = m.tee.holes
-            tee_pars[m.tee_id] = {h.hole_number: h.par for h in holes}
-        
-        par = tee_pars[m.tee_id].get(s.hole_number, 4)
-        diff = s.strokes - par
-        
-        stats = player_stats[s.player_id]
-        if stats['name'] == '':
-            p = Player.query.get(s.player_id)
-            stats['name'] = p.name if p else 'Unknown'
-        
-        stats['strokes'] += s.strokes
-        stats['holes'] += 1
-        if diff <= -2:
-            stats['eagles'] += 1
-            stats['birdies'] += 1 # Eagle is also a birdie or better
-        elif diff == -1:
-            stats['birdies'] += 1
-
     # Convert stats to a list and sort
     sorted_stats = []
     for pid, s in player_stats.items():
         s['player_id'] = pid
-        # Calculate net or relative to par? 
-        # Standard leaderboard often shows "Birdies" as a fun stat.
+        
+        # Calculate final relative to par numbers
+        gross_rel = s['strokes'] - s['total_par']
+        net_rel = s['total_net_strokes'] - s['total_par']
+        
+        s['gross_to_par'] = f"+{gross_rel}" if gross_rel > 0 else ("E" if gross_rel == 0 else str(gross_rel))
+        s['net_to_par'] = f"+{net_rel}" if net_rel > 0 else ("E" if net_rel == 0 else str(net_rel))
+        
         sorted_stats.append(s)
     
-    # Sort by birdies descending
-    sorted_stats.sort(key=lambda x: x['birdies'], reverse=True)
+    # Sort by points earned descending, then wins, then net_to_par
+    sorted_stats.sort(key=lambda x: (x['points_earned'], x['wins'], -x['birdies']), reverse=True)
 
     return jsonify({
         "competition": {
@@ -260,16 +296,22 @@ def get_public_scorecard(tournament_id, tee_id):
                 
                 # Get pops from matchup stats
                 pops = 0
+                handicap_index = 0
+                total_pops = 0
                 if m.id in matchup_stats:
-                    hole_st = next((sh for sh in matchup_stats[m.id].get('scorecard', []) if sh['hole_number'] == h.hole_number), None)
-                    if hole_st:
-                        pops = hole_st.get('players', {}).get(mp.player_id, {}).get('pops', 0)
-
+                    match_st = matchup_stats[m.id]
+                    p_st = match_st.get('player_stats', {}).get(mp.player_id, {})
+                    handicap_index = p_st.get('handicap_index', 0)
+                    total_pops = p_st.get('playing_handicap', 0)
+                    print(total_pops, h.handicap_index)
+                    pops = 1 if h.handicap_index <= total_pops else 0
                 hole_data["players"][str(mp.player_id)] = {
                     "name": p.name if p else "Unknown",
                     "team": mp.team,
                     "score": scores_lookup.get((h.hole_number, mp.player_id)),
-                    "pops": pops
+                    "pops": pops,
+                    "handicap_index": handicap_index,
+                    "total_pops": total_pops
                 }
         
         if hole_data["players"]:

@@ -331,7 +331,7 @@ def get_matchups():
     
     if not tourney_ids: return jsonify([]), 200
     
-    matchups = Matchup.query.filter(Matchup.tournament_id.in_(tourney_ids)).all()
+    matchups = Matchup.query.filter(Matchup.tournament_id.in_(tourney_ids)).order_by(Matchup.tee_time, Matchup.id).all()
     
     out = []
     for m in matchups:

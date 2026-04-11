@@ -50,7 +50,15 @@ export default function ViewScorecard() {
     scorecard.forEach(h => {
         Object.entries(h.players).forEach(([pid, pdata]) => {
             if (!players[pid]) {
-                players[pid] = { name: pdata.name, team: pdata.team, total: 0, parTotal: 0, holesPlayed: 0 };
+                players[pid] = { 
+                    name: pdata.name, 
+                    team: pdata.team, 
+                    total: 0, 
+                    parTotal: 0, 
+                    holesPlayed: 0,
+                    handicap_index: pdata.handicap_index,
+                    total_pops: pdata.total_pops
+                };
             }
             if (pdata.score != null) {
                 players[pid].total += pdata.score;
@@ -124,7 +132,10 @@ export default function ViewScorecard() {
                         return (
                             <tr key={pid} className="sc-player-row">
                                 <td className="sc-player-name">
-                                    {players[pid].name}
+                                    <div className="sc-player-name-text">{players[pid].name}</div>
+                                    <div className="sc-player-hcp-sub">
+                                        Idx: {players[pid].handicap_index} • {players[pid].total_pops} strokes
+                                    </div>
                                 </td>
                                 {holes.map(h => {
                                     const pdata = h.players[pid];
@@ -186,14 +197,7 @@ export default function ViewScorecard() {
                 })}
             </section>
 
-            {/* Legend */}
-            <div className="sc-legend animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                <span className="sc-legend-item"><span className="sc-score-val eagle">2</span> Eagle</span>
-                <span className="sc-legend-item"><span className="sc-score-val birdie">3</span> Birdie</span>
-                <span className="sc-legend-item"><span className="sc-score-val-plain">4</span> Par</span>
-                <span className="sc-legend-item"><span className="sc-score-val bogey">5</span> Bogey</span>
-                <span className="sc-legend-item"><span className="sc-score-val dbl-bogey">6</span> Dbl Bogey+</span>
-            </div>
+
 
             {renderTable(front9, 'OUT')}
             {renderTable(back9, 'IN')}

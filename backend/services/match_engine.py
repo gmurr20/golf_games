@@ -8,6 +8,10 @@ def calculate_match_status(matchup_id: int) -> dict:
         return {"error": "Matchup not found"}
         
     tee = matchup.tee
+    comp = matchup.tournament.competition
+    team_a_name = comp.team_a_name or "Team A"
+    team_b_name = comp.team_b_name or "Team B"
+    
     hole_start = matchup.hole_start or 1
     hole_end = matchup.hole_end or 18
     holes = Hole.query.filter(
@@ -54,7 +58,15 @@ def calculate_match_status(matchup_id: int) -> dict:
         "holes_played": 0,
         "status_string": "All Square",
         "scorecard": [],
-        "is_completed": False
+        "is_completed": False,
+        "player_stats": {
+            pid: {
+                "course_handicap": course_handicaps[pid],
+                "playing_handicap": playing_handicaps[pid],
+                "handicap_index": player_map[pid].handicap_index,
+                "pops_per_hole": pops_per_hole[pid]
+            } for pid in team_a_pids + team_b_pids
+        }
     }
     
     # Evaluate holes in order
@@ -101,7 +113,7 @@ def calculate_match_status(matchup_id: int) -> dict:
                 
         match_status["scorecard"].append(hole_data)
         
-    # Build status string
+    # Build status string and structured data
     diff = match_status["team_a_wins"] - match_status["team_b_wins"]
     total_match_holes = hole_end - hole_start + 1
     holes_remaining = total_match_holes - match_status["holes_played"]
@@ -124,26 +136,40 @@ def calculate_match_status(matchup_id: int) -> dict:
     
     thru_label = f"thru {last_hole_played}" if last_hole_played > 0 else "Upcoming"
 
+    match_status["display_thru"] = "FINAL" if match_status["is_completed"] else (f"THRU {last_hole_played}" if last_hole_played > 0 else "UPCOMING")
+    match_status["leading_team"] = None
+
     if diff == 0:
+        match_status["display_value"] = "AS"
         if match_status["is_completed"]:
             match_status["status_string"] = "Final: AS"
         else:
             match_status["status_string"] = f"AS {thru_label}" if last_hole_played > 0 else "Upcoming"
     elif diff > 0:
+        match_status["leading_team"] = "A"
         if is_match_play and diff > holes_remaining:
-             match_status["status_string"] = f"Team A wins {diff} & {holes_remaining}" if holes_remaining > 0 else f"Team A wins {diff} UP"
+             val = f"{diff} & {holes_remaining}" if holes_remaining > 0 else f"{diff} UP"
+             match_status["display_value"] = val
+             match_status["status_string"] = f"{team_a_name} wins {val}"
         elif match_status["is_completed"]:
-             match_status["status_string"] = f"Final: Team A wins {diff} UP"
+             match_status["display_value"] = f"{diff} UP"
+             match_status["status_string"] = f"Final: {team_a_name} wins {diff} UP"
         else:
-            match_status["status_string"] = f"Team A is {diff} UP {thru_label}"
+            match_status["display_value"] = f"{diff} UP"
+            match_status["status_string"] = f"{team_a_name} is {diff} UP {thru_label}"
     else:
+        match_status["leading_team"] = "B"
         ad = abs(diff)
         if is_match_play and ad > holes_remaining:
-            match_status["status_string"] = f"Team B wins {ad} & {holes_remaining}" if holes_remaining > 0 else f"Team B wins {ad} UP"
+            val = f"{ad} & {holes_remaining}" if holes_remaining > 0 else f"{ad} UP"
+            match_status["display_value"] = val
+            match_status["status_string"] = f"{team_b_name} wins {val}"
         elif match_status["is_completed"]:
-            match_status["status_string"] = f"Final: Team B wins {ad} UP"
+            match_status["display_value"] = f"{ad} UP"
+            match_status["status_string"] = f"Final: {team_b_name} wins {ad} UP"
         else:
-            match_status["status_string"] = f"Team B is {ad} UP {thru_label}"
+            match_status["display_value"] = f"{ad} UP"
+            match_status["status_string"] = f"{team_b_name} is {ad} UP {thru_label}"
 
     return match_status
 

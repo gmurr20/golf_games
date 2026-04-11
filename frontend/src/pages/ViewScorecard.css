@@ -113,7 +113,7 @@
     padding-left: var(--spacing-3) !important;
     font-weight: 700;
     color: var(--color-text-light);
-    width: 80px;
+    width: 100px;
 }
 
 .sc-par-row td {
@@ -128,7 +128,22 @@
 .sc-player-name {
     text-align: left !important;
     padding-left: var(--spacing-3) !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.sc-player-name-text {
     font-weight: 700;
+    font-size: 0.85rem;
+    line-height: 1.2;
+}
+
+.sc-player-hcp-sub {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-top: 1px;
 }
 
 .sc-score-val {
@@ -148,7 +163,7 @@
 
 .sc-pop-dot {
     display: block;
-    font-size: 0.4rem;
+    font-size: 0.5rem;
     color: var(--color-accent-win);
     line-height: 1;
     margin-top: 1px;

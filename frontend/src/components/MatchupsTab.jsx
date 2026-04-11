@@ -390,7 +390,7 @@ export default function MatchupsTab({
                 )}
 
                 <div className="matchup-list">
-                    {matchups.map(m => (
+                    {matchups.map((m, i) => (
                         <div 
                             key={m.id} 
                             className="matchup-card" 
@@ -399,7 +399,7 @@ export default function MatchupsTab({
                         >
                             <div className="matchup-card-header">
                                 <div className="matchup-card-title-row">
-                                    <span className="matchup-card-id">#{m.id}</span>
+                                    <span className="matchup-card-id">#{i + 1}</span>
                                     <span className="matchup-format-badge">{getMatchupLabel(m)}</span>
                                     <span className="matchup-hole-badge">{m.hole_label}</span>
                                 </div>
