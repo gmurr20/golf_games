@@ -132,8 +132,11 @@ export default function Home() {
     if (!playerId) {
         return (
             <div className="home-container animate-slide-up">
+                <div className="home-brand-header">
+                    <img src="/full-logo.jpg" alt="Golf Games Logo" className="home-logo" />
+                    <h1>Golf Games</h1>
+                </div>
                 <div className="home-header">
-                    <h1>⛳ {compName}</h1>
                     <p>Who are you?</p>
                 </div>
 
@@ -167,17 +170,23 @@ export default function Home() {
     return (
         <div className="home-container animate-slide-up">
             <div className="greeting-row">
+                <div className="home-brand-header-mini">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                        <img src="/full-logo.jpg" alt="Golf Games Logo" className="home-logo-mini" />
+                        <span className="home-brand-title">Golf Games</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
+                        <button className="change-player-link" onClick={() => navigate(`/player-stats/${playerId}`)}>
+                            Stats
+                        </button>
+                        <button className="change-player-link" onClick={handleChangePlayer}>
+                            Switch
+                        </button>
+                    </div>
+                </div>
                 <div>
                     <span className="home-subtitle">{compName}</span>
-                    <h1>Hey {playerName.split(' ')[0]} 👋</h1>
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
-                    <button className="change-player-link" onClick={() => navigate(`/player-stats/${playerId}`)}>
-                        View Stats
-                    </button>
-                    <button className="change-player-link" onClick={handleChangePlayer}>
-                        Not you?
-                    </button>
+                    <h1 style={{ marginTop: 'var(--spacing-1)' }}>Hey {playerName.split(' ')[0]} 👋</h1>
                 </div>
             </div>
 

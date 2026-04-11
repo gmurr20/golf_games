@@ -10,41 +10,68 @@
     min-height: calc(100vh - 80px);
 }
 
+.home-brand-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-4);
+    margin-top: var(--spacing-4);
+}
+
+.home-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(var(--color-primary-rgb), 0.1);
+    border: 3px solid var(--color-surface);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.home-logo:hover {
+    transform: scale(1.05) rotate(3deg);
+}
+
+.home-brand-header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.01em;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-transform: uppercase;
+}
+
 .home-header {
     text-align: center;
     margin-bottom: var(--spacing-6);
 }
 
-.home-header h1 {
-    font-size: 1.8rem;
-    margin: 0 0 0.25rem 0;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
 .home-header p {
     color: var(--color-text-light);
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.8;
 }
 
 /* Player Grid */
 .player-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-3);
+    gap: var(--spacing-2);
 }
 
 .player-pick-card {
     background: var(--color-surface);
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--spacing-4);
+    padding: var(--spacing-3) var(--spacing-2);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
@@ -61,8 +88,8 @@
 }
 
 .player-avatar {
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
     display: flex;
@@ -90,10 +117,10 @@
 
 /* --- My Rounds View --- */
 .greeting-row {
+    margin-bottom: var(--spacing-6);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-4);
+    flex-direction: column;
+    gap: var(--spacing-4);
 }
 
 .greeting-row h1 {
@@ -101,13 +128,37 @@
     margin: 0;
 }
 
+.home-brand-header-mini {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.home-logo-mini {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.home-brand-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+}
+
 .home-subtitle {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-primary);
+    color: var(--color-text-light);
+    opacity: 0.6;
     margin-bottom: 2px;
 }
 
