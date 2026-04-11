@@ -29,4 +29,4 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 EXPOSE 8080
 
-CMD sh -c 'gunicorn --chdir backend "app:create_app()" --bind 0.0.0.0:${PORT:-8080}'
+CMD sh -c "gunicorn --chdir backend \"app:create_app()\" --bind 0.0.0.0:${PORT:-8080}"
