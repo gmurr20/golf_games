@@ -27,15 +27,11 @@ export default function LiveScorecard() {
         }
     };
 
-    const formatMatchName = (format) => {
-        if (!format) return '';
-        const names = {
-            'match_play': 'Match Play Net',
-            'shamble': 'Shamble Net',
-            'stroke_play': 'Stroke Play Net',
-            'scramble': 'Scramble'
-        };
-        return names[format] || format.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const formatMatchName = (format, scoring) => {
+        if (!format || !scoring) return '';
+        const fmt = format.charAt(0).toUpperCase() + format.slice(1);
+        const scr = scoring === 'match_play' ? 'Match Play' : 'Stroke Play';
+        return `${fmt} ${scr} Net`;
     };
 
     if (loading && !data) {
@@ -68,7 +64,7 @@ export default function LiveScorecard() {
                 </button>
                 {data.format && (
                     <span className="match-format-badge">
-                        {formatMatchName(data.format)}
+                        {formatMatchName(data.format, data.scoring_type)}
                     </span>
                 )}
             </div>

@@ -179,6 +179,7 @@ def get_leaderboard():
                     "display_thru": ms.get('display_thru'),
                     "leading_team": ms.get('leading_team'),
                     "format": m.format,
+                    "scoring_type": m.scoring_type,
                     "players": players,
                     "competition_name": comp.name,
                     "points_a": res.get('points_a', 0),
@@ -477,5 +478,6 @@ def get_public_scorecard(tournament_id, tee_id):
         "tee_time": matchups[0].tee_time.isoformat() if matchups[0].tee_time else None,
         "current_hole": current_hole,
         "scorecard": scorecard_data,
-        "format": matchups[0].format if matchups else 'match_play'
+        "format": matchups[0].format if matchups else 'individual',
+        "scoring_type": matchups[0].scoring_type if matchups else 'match_play'
     }), 200

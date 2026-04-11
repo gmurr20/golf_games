@@ -178,7 +178,7 @@ def calculate_match_status(matchup_id: int) -> dict:
     total_match_holes = hole_end - hole_start + 1
     holes_remaining = total_match_holes - match_status["holes_played"]
     
-    is_match_play = matchup.format in ['match_play', 'shamble']
+    is_match_play = matchup.scoring_type == 'match_play'
     if is_match_play:
         if abs(diff) > holes_remaining or holes_remaining == 0:
             match_status["is_completed"] = True
@@ -238,7 +238,7 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     if not matchup:
         return {"error": "Matchup not found"}
         
-    if matchup.format in ['match_play', 'shamble']:
+    if matchup.scoring_type == 'match_play':
         ms = calculate_match_status(matchup_id)
         if "error" in ms:
             return ms

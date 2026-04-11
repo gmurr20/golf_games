@@ -116,7 +116,7 @@ export default function ViewScorecard() {
                         ))}
                         <td className="sc-total">{holes.reduce((s, h) => s + h.par, 0)}</td>
                     </tr>
-                    {(data.format === 'match_play' || data.format === 'shamble') && (
+                    {data.scoring_type === 'match_play' && (
                         <tr className="sc-match-row">
                             <td className="sc-label">Match</td>
                             {holes.map(h => {
@@ -183,11 +183,9 @@ export default function ViewScorecard() {
                             Live: Hole {current_hole}
                         </span>
                     )}
-                    {data.format && (
+                    {data.format && data.scoring_type && (
                         <span className="match-format-badge">
-                            {data.format === 'shamble' ? 'Shamble Net' : 
-                             data.format === 'match_play' ? 'Match Play Net' : 
-                             data.format.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {data.format.charAt(0).toUpperCase() + data.format.slice(1)} {data.scoring_type === 'match_play' ? 'Match Play' : 'Stroke Play'} Net
                         </span>
                     )}
                 </div>

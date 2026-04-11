@@ -11,7 +11,8 @@ export default function MatchupsTab({
 }) {
     // Create Form State
     const navigate = useNavigate();
-    const [mFormat, setMFormat] = useState('match_play');
+    const [mFormat, setMFormat] = useState('individual');
+    const [mScoring, setMScoring] = useState('match_play');
     const [useHandicaps, setUseHandicaps] = useState(true);
     const [mTeeId, setMTeeId] = useState('');
     const [teamA1, setTeamA1] = useState('');
@@ -31,7 +32,8 @@ export default function MatchupsTab({
     const arrUnassigned = players.filter(p => p.team !== teamAName && p.team !== teamBName);
 
     const resetForm = () => {
-        setMFormat('match_play');
+        setMFormat('individual');
+        setMScoring('match_play');
         setUseHandicaps(true);
         setMTeeId('');
         setTeamA1(''); setTeamA2('');
@@ -98,6 +100,7 @@ export default function MatchupsTab({
             const promises = selectedRanges.map(range =>
                 backend.post('/matchups', {
                     format: mFormat,
+                    scoring_type: mScoring,
                     use_handicaps: useHandicaps,
                     tee_id: parseInt(mTeeId),
                     teams,
@@ -130,19 +133,24 @@ export default function MatchupsTab({
         }
     };
 
-    const FORMAT_BASES = {
-        'match_play': 'Match Play',
-        'stroke_play': 'Stroke Play',
+    const FORMAT_DISPLAY = {
+        'individual': 'Individual (1v1)',
         'scramble': 'Scramble',
-        'shamble': 'Shamble'
+        'shamble': 'Shamble',
+        'best_ball': 'Best Ball'
+    };
+
+    const SCORING_DISPLAY = {
+        'match_play': 'Match Play',
+        'stroke_play': 'Stroke Play'
     };
 
     // Compose a display label from backend data
     const getMatchupLabel = (m) => {
-        const base = FORMAT_BASES[m.format] || m.format;
-        const prefix = m.is_2v2 ? '2v2 ' : '';
+        const fmt = FORMAT_DISPLAY[m.format] || m.format;
+        const scr = SCORING_DISPLAY[m.scoring_type] || m.scoring_type;
         const hcap = m.use_handicaps ? ' · Net' : ' · Gross';
-        return `${prefix}${base}${hcap}`;
+        return `${fmt} · ${scr}${hcap}`;
     };
 
     const handleMatchupClick = (m) => {
@@ -211,12 +219,29 @@ export default function MatchupsTab({
                         <div className="matchup-field">
                             <label>Format</label>
                             <div className="format-toggle-row">
-                                {Object.entries(FORMAT_BASES).map(([key, label]) => (
+                                {Object.entries(FORMAT_DISPLAY).map(([key, label]) => (
                                     <button
                                         key={key}
                                         type="button"
                                         className={`format-toggle-btn ${mFormat === key ? 'format-toggle-active' : ''}`}
                                         onClick={() => setMFormat(key)}
+                                    >
+                                        {label.split(' (')[0]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Scoring Type */}
+                        <div className="matchup-field">
+                            <label>Scoring</label>
+                            <div className="format-toggle-row">
+                                {Object.entries(SCORING_DISPLAY).map(([key, label]) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        className={`format-toggle-btn ${mScoring === key ? 'format-toggle-active' : ''}`}
+                                        onClick={() => setMScoring(key)}
                                     >
                                         {label}
                                     </button>
@@ -357,8 +382,8 @@ export default function MatchupsTab({
                                         {arrTeamA.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                         {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
-                                    <select value={teamA2} onChange={e => setTeamA2(e.target.value)} className="draft-select draft-select-optional">
-                                        <option value="">Player 2 (opt)...</option>
+                                    <select value={teamA2} onChange={e => setTeamA2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
+                                        <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
                                         {arrTeamA.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                         {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
@@ -371,8 +396,8 @@ export default function MatchupsTab({
                                         {arrTeamB.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                         {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
-                                    <select value={teamB2} onChange={e => setTeamB2(e.target.value)} className="draft-select draft-select-optional">
-                                        <option value="">Player 2 (opt)...</option>
+                                    <select value={teamB2} onChange={e => setTeamB2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
+                                        <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
                                         {arrTeamB.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                         {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>

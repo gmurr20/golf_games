@@ -284,11 +284,17 @@ def create_matchup():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
-    # Validation for Shamble and Scramble (2v2 only)
-    if data.get('format') in ['shamble', 'scramble']:
+    # Validation for 2v2 formats
+    if data.get('format') in ['shamble', 'scramble', 'best_ball']:
         teams = data.get('teams', {})
         if len(teams) != 2 or any(len(pids) != 2 for pids in teams.values()):
             return jsonify({"error": f"{data['format'].capitalize()} requires exactly 2 players per team"}), 400
+    
+    # Validation for Individual (must be 1v1)
+    if data.get('format') == 'individual':
+        teams = data.get('teams', {})
+        if len(teams) != 2 or any(len(pids) != 1 for pids in teams.values()):
+            return jsonify({"error": "Individual format requires exactly 1 player per team (1v1)"}), 400
     
     # Use existing tournament for this competition
     tourney = Tournament.query.filter_by(competition_id=comp.id).first()
@@ -308,6 +314,7 @@ def create_matchup():
         tournament_id=tourney.id,
         tee_id=data['tee_id'],
         format=data['format'],
+        scoring_type=data.get('scoring_type', 'match_play'),
         use_handicaps=data.get('use_handicaps', True),
         points_for_win=data.get('points_for_win', 1.0),
         points_for_push=data.get('points_for_push', 0.5),
@@ -377,6 +384,7 @@ def get_matchups():
         out.append({
             "id": m.id,
             "format": m.format,
+            "scoring_type": m.scoring_type,
             "use_handicaps": m.use_handicaps if m.use_handicaps is not None else True,
             "is_2v2": is_2v2,
             "course": m.tee.course.name if m.tee else "Unknown Course",

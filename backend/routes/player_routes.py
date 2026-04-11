@@ -137,7 +137,7 @@ def get_player_rounds(player_id):
             # Get match result for match_play formats
             match_result = None
             if completed_holes > 0:
-                if m.format in ['match_play', 'shamble']:
+                if m.scoring_type == 'match_play':
                     ms = calculate_match_status(m.id)
                     if my_team and 'error' not in ms:
                         opp_team = 'B' if my_team == 'A' else 'A'
@@ -164,7 +164,7 @@ def get_player_rounds(player_id):
                                 match_result = f'Lost {ad}&{holes_remaining}' if holes_remaining > 0 else f'{ad} DN'
                             else:
                                 match_result = f'{ad} DN thru {ms["holes_played"]}'
-                elif m.format in ['stroke_play', 'scramble']:
+                elif m.scoring_type == 'stroke_play':
                     res = calculate_overall_winner(m.id)
                     if 'error' not in res and res.get('score_a') is not None:
                         my_score = res['score_a'] if my_team == 'A' else res['score_b']
@@ -346,7 +346,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
     # Compute per-hole match play results and overall match results
     match_results_data = []
     for m in sorted(matchups, key=lambda x: x.hole_start or 1):
-        if m.format in ['match_play', 'shamble']:
+        if m.scoring_type == 'match_play':
             ms = calculate_match_status(m.id)
             if 'error' not in ms:
                 diff = ms['team_a_wins'] - ms['team_b_wins']
@@ -420,7 +420,8 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         "use_handicaps": use_handicaps,
         "scorecard": scorecard,
         "match_results": match_results_data,
-        "format": matchups[0].format if matchups else 'match_play'
+        "format": matchups[0].format if matchups else 'individual',
+        "scoring_type": matchups[0].scoring_type if matchups else 'match_play'
     }), 200
 
 
