@@ -9,7 +9,7 @@ def create_app():
     # Set the static folder to the built frontend directory
     # We use a path relative to this file
     dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
-    app = Flask(__name__, static_folder=dist_path, static_url_path='/')
+    app = Flask(__name__, static_folder=dist_path)
     app.config.from_object(Config)
     
     db.init_app(app)
@@ -68,7 +68,7 @@ def create_app():
     # Catch-all route to serve the frontend app
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
-    def serve(path):
+    def serve_frontend(path):
         if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
             return send_from_directory(app.static_folder, path)
         else:
