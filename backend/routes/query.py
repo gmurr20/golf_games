@@ -184,6 +184,7 @@ def get_leaderboard():
                     "scoring_type": m.scoring_type,
                     "players": players,
                     "competition_name": comp.name,
+                    "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown Course",
                     "points_a": res.get('points_a', 0),
                     "points_b": res.get('points_b', 0),
                     "hole_start": m.hole_start or 1,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MapPin, Clock } from 'lucide-react';
 import backend from '../api/backend';
 import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './Leaderboard.css';
@@ -129,8 +130,11 @@ function MatchCard({ m, i, navigate }) {
         >
             <div className="match-card-context">
                 <div className="match-location">
-                    <span className="match-course">{m.course_name}</span>
+                    <span className="match-course">
+                        <MapPin size={12} strokeWidth={2.5} /> {m.course_name}
+                    </span>
                     <span className="match-time">
+                        <Clock size={12} strokeWidth={2.5} style={{ marginRight: '4px' }} />
                         {formatTeeTime(m.tee_time)} • <span className="match-range-text">{getHoleRangeLabel()}</span>
                     </span>
                 </div>

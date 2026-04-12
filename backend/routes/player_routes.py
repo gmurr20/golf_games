@@ -209,8 +209,9 @@ def get_player_rounds(player_id):
             "matchups": matchup_summaries,
         })
 
-    # Sort by tee_time ascending (nulls last)
-    rounds.sort(key=lambda r: r["tee_time"] or "9999")
+    # Sort by status (in progress, upcoming, completed) then tee_time ascending
+    status_priority = {"in_progress": 0, "upcoming": 1, "completed": 2}
+    rounds.sort(key=lambda r: (status_priority.get(r["status"], 3), r["tee_time"] or "9999"))
 
     return jsonify(rounds), 200
 

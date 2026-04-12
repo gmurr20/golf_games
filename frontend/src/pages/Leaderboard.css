@@ -149,12 +149,18 @@
     color: var(--color-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
 }
 
 .match-time {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--color-text-light);
+    display: flex;
+    align-items: center;
 }
 
 .match-range-text {
