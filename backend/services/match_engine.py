@@ -247,6 +247,15 @@ def calculate_overall_winner(matchup_id: int) -> dict:
             
         diff = ms["team_a_wins"] - ms["team_b_wins"]
         
+        # Only award points if the match is completed (mathematically or finished)
+        if not ms.get("is_completed"):
+            return {
+                "winner": None,
+                "summary": ms.get("status_string", "Upcoming"),
+                "points_a": 0.0,
+                "points_b": 0.0
+            }
+
         # Calculate points
         if diff > 0:
             pts_a, pts_b = matchup.points_for_win, 0.0
@@ -297,6 +306,7 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     team_a_total = 0
     team_b_total = 0
     
+    holes_played = 0
     for h in holes:
         a_scores = []
         b_scores = []
@@ -309,8 +319,21 @@ def calculate_overall_winner(matchup_id: int) -> dict:
                 else:
                     b_scores.append(net_score)
         
-        if a_scores: team_a_total += min(a_scores)
-        if b_scores: team_b_total += min(b_scores)
+        if a_scores and b_scores: 
+            team_a_total += min(a_scores)
+            team_b_total += min(b_scores)
+            holes_played += 1
+            
+    total_match_holes = (matchup.hole_end or 18) - (matchup.hole_start or 1) + 1
+    if holes_played < total_match_holes:
+        return {
+            "winner": None,
+            "summary": "In Progress" if holes_played > 0 else "Upcoming",
+            "points_a": 0.0,
+            "points_b": 0.0,
+            "score_a": team_a_total,
+            "score_b": team_b_total
+        }
             
     if team_a_total < team_b_total:
         winner = 'A'

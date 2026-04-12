@@ -86,9 +86,17 @@ export default function Leaderboard() {
                     {matches.filter(m => m.status === 'completed').length === 0 ? (
                         <div className="list-empty">No final results yet.</div>
                     ) : (
-                        matches.filter(m => m.status === 'completed').map((m, i) => (
-                            <MatchCard key={m.id} m={m} i={i} navigate={navigate} />
-                        ))
+                        matches
+                            .filter(m => m.status === 'completed')
+                            .sort((a, b) => {
+                                const dateA = a.tee_time ? new Date(a.tee_time) : new Date(0);
+                                const dateB = b.tee_time ? new Date(b.tee_time) : new Date(0);
+                                if (dateB - dateA !== 0) return dateB - dateA;
+                                return (b.hole_start || 0) - (a.hole_start || 0);
+                            })
+                            .map((m, i) => (
+                                <MatchCard key={m.id} m={m} i={i} navigate={navigate} />
+                            ))
                     )}
                 </div>
             </section>
@@ -115,8 +123,7 @@ function MatchCard({ m, i, navigate }) {
         return `Holes ${m.hole_start}-${m.hole_end}`;
     };
 
-    const winner = m.points_a > m.points_b ? 'A' : m.points_b > m.points_a ? 'B' : 'Push';
-    const statusClass = winner === 'A' ? 'status-a' : winner === 'B' ? 'status-b' : 'status-push';
+    const statusClass = m.leading_team === 'A' ? 'status-a' : m.leading_team === 'B' ? 'status-b' : 'status-push';
 
     return (
         <div
