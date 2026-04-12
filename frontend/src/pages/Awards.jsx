@@ -57,8 +57,8 @@ export default function Awards() {
     return (
         <div className="awards-container animate-slide-up">
             <header className="awards-header">
-                <h1>The Hall of Fame</h1>
-                <p>{competition.name} Awards & Accolades</p>
+                <span className="awards-subtitle">{competition.name}</span>
+                <h1>Individual Awards</h1>
             </header>
 
             {/* Accolades Section */}

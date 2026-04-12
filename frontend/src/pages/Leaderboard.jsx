@@ -45,17 +45,17 @@ export default function Leaderboard() {
     return (
         <div className="leaderboard-container animate-slide-up">
             <header className="leaderboard-header">
+                <span className="leaderboard-subtitle">Live Standings</span>
                 <h1>{competition.name}</h1>
-                <p>Live Standings & Match Updates</p>
             </header>
 
             {/* Team Scoreboard */}
             <div className="team-scoreboard animate-slide-up">
-                <div className="team-score-card">
+                <div className="team-score-card team-a">
                     <span className="team-name">{competition.team_a_name}</span>
                     <span className="team-score team-a">{competition.team_a_points}</span>
                 </div>
-                <div className="team-score-card">
+                <div className="team-score-card team-b">
                     <span className="team-name">{competition.team_b_name}</span>
                     <span className="team-score team-b">{competition.team_b_points}</span>
                 </div>
