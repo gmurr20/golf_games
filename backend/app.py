@@ -20,6 +20,14 @@ def create_app():
         # Import models here to ensure they are registered with db before create_all()
         from models import models
         db.create_all()
+        
+        # AUTOMATED MIGRATIONS: Ensure production DB schema is updated on startup
+        try:
+            from flask_migrate import upgrade
+            upgrade()
+            print("Successfully applied database migrations.")
+        except Exception as e:
+            print(f"Migration error: {e}")
     
     register_routes(app)
 
