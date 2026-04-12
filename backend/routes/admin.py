@@ -210,6 +210,7 @@ def upload_scorecard():
         # for compatibility with the rest of the application.
         expanded_tees = []
         hole_defaults = {h['hole_number']: h for h in parsed.get('hole_defaults', [])}
+        warnings = []
         
         for tee in parsed.get('tees', []):
             holes = []
@@ -229,19 +230,36 @@ def upload_scorecard():
                     "handicap_index": override.get('handicap_index', default.get('handicap_index', i))
                 })
             
+            r = tee.get('rating')
+            s = tee.get('slope')
+            rf = tee.get('rating_female')
+            sf = tee.get('slope_female')
+
+            # Fallback logic: Ensure both gender ratings are populated if at least one is present
+            if r is None and rf is not None: r = rf
+            if s is None and sf is not None: s = sf
+            if rf is None and r is not None: rf = r
+            if sf is None and s is not None: sf = s
+
+            # If STILL None, we use 72/113 and flag it
+            if r is None:
+                warnings.append(f"Tee '{tee.get('tee_name')}' missing all ratings, defaulted to 72.0/113.")
+
             expanded_tees.append({
                 "tee_name": tee.get('tee_name'),
-                "rating": tee.get('rating'),
-                "slope": tee.get('slope'),
-                "rating_female": tee.get('rating_female'),
-                "slope_female": tee.get('slope_female'),
+                "rating": r if r is not None else 72.0,
+                "slope": s if s is not None else 113,
+                "rating_female": rf if rf is not None else 72.0,
+                "slope_female": sf if sf is not None else 113,
                 "holes": holes
             })
             
         return jsonify({
             "course_name": parsed.get('course_name'),
-            "tees": expanded_tees
+            "tees": expanded_tees,
+            "warnings": warnings
         }), 200
+
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -256,15 +274,27 @@ def create_course():
     
     if 'tees' in data:
         for t_data in data['tees']:
+            r = t_data.get('rating')
+            s = t_data.get('slope')
+            rf = t_data.get('rating_female')
+            sf = t_data.get('slope_female')
+
+            # Fallback logic: Ensure both gender ratings are populated if at least one is present
+            if r is None and rf is not None: r = rf
+            if s is None and sf is not None: s = sf
+            if rf is None and r is not None: rf = r
+            if sf is None and s is not None: sf = s
+
             tee = Tee(
                 course_id=course.id, 
                 name=t_data.get('name', 'Main'), 
-                rating=t_data.get('rating', 72), 
-                slope=t_data.get('slope', 113),
-                rating_female=t_data.get('rating_female'),
-                slope_female=t_data.get('slope_female'),
+                rating=r if r is not None else 72.0, 
+                slope=s if s is not None else 113,
+                rating_female=rf,
+                slope_female=sf,
                 par=t_data.get('par', 72)
             )
+
             db.session.add(tee)
             db.session.flush()
             
@@ -332,10 +362,23 @@ def update_tee(id):
     tee = Tee.query.get_or_404(id)
     data = request.json
     if 'name' in data: tee.name = data['name']
-    if 'rating' in data: tee.rating = data['rating']
-    if 'slope' in data: tee.slope = data['slope']
-    if 'rating_female' in data: tee.rating_female = data['rating_female']
-    if 'slope_female' in data: tee.slope_female = data['slope_female']
+    if 'rating' in data or 'rating_female' in data:
+        r = data.get('rating', tee.rating)
+        rf = data.get('rating_female', tee.rating_female)
+        # If one is updated to non-null, and the other is null, sync them
+        if r is None and rf is not None: r = rf
+        if rf is None and r is not None: rf = r
+        tee.rating = r if r is not None else 72.0
+        tee.rating_female = rf
+
+    if 'slope' in data or 'slope_female' in data:
+        s = data.get('slope', tee.slope)
+        sf = data.get('slope_female', tee.slope_female)
+        if s is None and sf is not None: s = sf
+        if sf is None and s is not None: sf = s
+        tee.slope = s if s is not None else 113
+        tee.slope_female = sf
+
     if 'par' in data: tee.par = data['par']
     
     if 'holes' in data:

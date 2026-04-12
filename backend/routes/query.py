@@ -225,15 +225,15 @@ def get_leaderboard():
     
     # Birdie King (Most natural birdies+)
     birdie_king = max(sorted_stats, key=lambda x: x['birdies']) if sorted_stats else None
-    birdie_king_tie = len([x for x in sorted_stats if x['birdies'] == birdie_king['birdies']]) > 1 if birdie_king else False
+    birdie_king_tie = (len([x for x in sorted_stats if x['birdies'] == birdie_king['birdies']]) > 1) if birdie_king else False
 
     # Net Birdie King
     net_birdie_king = max(sorted_stats, key=lambda x: x['net_birdies']) if sorted_stats else None
-    net_birdie_king_tie = len([x for x in sorted_stats if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1 if net_birdie_king else False
+    net_birdie_king_tie = (len([x for x in sorted_stats if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1) if net_birdie_king else False
 
     # Sandbagger (Lowest total net to par)
     sandbagger = min(sorted_stats, key=lambda x: x['net_rel_num']) if sorted_stats else None
-    sandbagger_tie = len([x for x in sorted_stats if x['net_rel_num'] == sandbagger['net_rel_num']]) > 1 if sandbagger else False
+    sandbagger_tie = (len([x for x in sorted_stats if x['net_rel_num'] == sandbagger['net_rel_num']]) > 1) if sandbagger else False
 
     # Most Honest (Closest to shooting +4 net per round)
     # diff = abs(net_to_par - (holes / 18 * 4))
@@ -241,21 +241,21 @@ def get_leaderboard():
         target = (x['holes'] / 18.0) * 4.0
         return abs(x['net_rel_num'] - target)
     most_honest = min(sorted_stats, key=honest_diff) if sorted_stats else None
-    most_honest_tie = len([x for x in sorted_stats if honest_diff(x) == honest_diff(most_honest)]) > 1 if most_honest else False
+    most_honest_tie = (len([x for x in sorted_stats if honest_diff(x) == honest_diff(most_honest)]) > 1) if most_honest else False
 
     # Worst Hole (Triple or higher)
     worst_hole = max(sorted_stats, key=lambda x: x['worst_hole_rel']) if sorted_stats else None
-    worst_hole_tie = len([x for x in sorted_stats if x['worst_hole_rel'] == worst_hole['worst_hole_rel']]) > 1 if worst_hole else False
+    worst_hole_tie = (len([x for x in sorted_stats if x['worst_hole_rel'] == worst_hole['worst_hole_rel']]) > 1) if worst_hole else False
 
     # Filter rounds_data to only include "full enough" rounds if possible, or just all
     # Include any round with at least 9 holes finished
     valid_rounds = [r for r in rounds_data if r['holes'] >= 9]
 
     best_round = min(valid_rounds, key=lambda x: x['net_rel']) if valid_rounds else None
-    best_round_tie = len([x for x in valid_rounds if x['net_rel'] == best_round['net_rel']]) > 1 if best_round else False
+    best_round_tie = (len([x for x in valid_rounds if x['net_rel'] == best_round['net_rel']]) > 1) if best_round else False
 
     worst_round = max(valid_rounds, key=lambda x: x['net_rel']) if valid_rounds else None
-    worst_round_tie = len([x for x in valid_rounds if x['net_rel'] == worst_round['net_rel']]) > 1 if worst_round else False
+    worst_round_tie = (len([x for x in valid_rounds if x['net_rel'] == worst_round['net_rel']]) > 1) if worst_round else False
 
     def fmt_rel(val):
         return f"+{val}" if val > 0 else ("E" if val == 0 else str(val))
@@ -264,40 +264,40 @@ def get_leaderboard():
         "mvp": {
             "player_id": mvp['player_id'] if mvp else None,
             "name": mvp['name'] if mvp else "N/A",
-            "value": f"{mvp['points_earned']} PTS",
-            "subtext": f"{mvp['gross_to_par']} Gross / {mvp['birdies']} Birdies",
+            "value": f"{mvp['points_earned']} PTS" if mvp else "0 PTS",
+            "subtext": f"{mvp['gross_to_par']} Gross / {mvp['birdies']} Birdies" if mvp else "No stats yet",
             "is_tie": False 
         },
         "birdie_king": {
             "player_id": birdie_king['player_id'] if birdie_king else None,
             "name": birdie_king['name'] if birdie_king else "N/A",
-            "value": f"{birdie_king['birdies']} Birdies",
+            "value": f"{birdie_king['birdies']} Birdies" if birdie_king else "0 Birdies",
             "is_tie": birdie_king_tie
         },
         "net_birdie_king": {
             "player_id": net_birdie_king['player_id'] if net_birdie_king else None,
             "name": net_birdie_king['name'] if net_birdie_king else "N/A",
-            "value": f"{net_birdie_king['net_birdies']} Net Birdies",
+            "value": f"{net_birdie_king['net_birdies']} Net Birdies" if net_birdie_king else "0 Birdies",
             "is_tie": net_birdie_king_tie
         },
         "sandbagger": {
             "player_id": sandbagger['player_id'] if sandbagger else None,
             "name": sandbagger['name'] if sandbagger else "N/A",
-            "value": sandbagger['net_to_par'],
+            "value": sandbagger['net_to_par'] if sandbagger else "E",
             "subtext": "Lowest Total Net",
             "is_tie": sandbagger_tie
         },
         "most_honest": {
             "player_id": most_honest['player_id'] if most_honest else None,
             "name": most_honest['name'] if most_honest else "N/A",
-            "value": most_honest['net_to_par'],
-            "subtext": f"Target: {fmt_rel(int((most_honest['holes']/18.0)*4))}",
+            "value": most_honest['net_to_par'] if most_honest else "E",
+            "subtext": f"Target: {fmt_rel(int((most_honest['holes']/18.0)*4))}" if most_honest else "Target: +4",
             "is_tie": most_honest_tie
         },
         "worst_hole": {
             "player_id": worst_hole['player_id'] if worst_hole else None,
             "name": worst_hole['name'] if worst_hole else "N/A",
-            "value": fmt_rel(worst_hole['worst_hole_rel']),
+            "value": fmt_rel(worst_hole['worst_hole_rel']) if worst_hole else "E",
             "is_tie": worst_hole_tie if worst_hole and worst_hole['worst_hole_rel'] >= 3 else False,
             "hidden": worst_hole['worst_hole_rel'] < 3 if worst_hole else True
         },
@@ -307,8 +307,8 @@ def get_leaderboard():
             "tee_time": best_round['tee_time'] if best_round else None,
             "player_id": best_round['player_id'] if best_round else None,
             "name": best_round['name'] if best_round else "N/A",
-            "value": fmt_rel(best_round['net_rel']),
-            "subtext": best_round['tournament_name'] if best_round else "",
+            "value": fmt_rel(best_round['net_rel']) if best_round else "E",
+            "subtext": best_round['tournament_name'] if best_round else "No rounds finished",
             "is_tie": best_round_tie
         },
         "worst_round": {
@@ -317,8 +317,8 @@ def get_leaderboard():
             "tee_time": worst_round['tee_time'] if worst_round else None,
             "player_id": worst_round['player_id'] if worst_round else None,
             "name": worst_round['name'] if worst_round else "N/A",
-            "value": fmt_rel(worst_round['net_rel']),
-            "subtext": worst_round['tournament_name'] if worst_round else "",
+            "value": fmt_rel(worst_round['net_rel']) if worst_round else "E",
+            "subtext": worst_round['tournament_name'] if worst_round else "No rounds finished",
             "is_tie": worst_round_tie
         }
     }

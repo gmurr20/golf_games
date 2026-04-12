@@ -263,13 +263,21 @@ function Dashboard() {
                     holes: tee.holes
                 }))
             });
-            setStatus(`Success! AI Documented ${parsed.course_name} with ${parsed.tees.length} tees.`);
+            
+            if (parsed.warnings && parsed.warnings.length > 0) {
+                const warnMsg = `Success, but with warnings:\n\n${parsed.warnings.join('\n')}\n\nPlease verify these ratings manually in the Courses tab.`;
+                window.alert(warnMsg);
+                setStatus(warnMsg);
+            } else {
+                setStatus(`Success! AI Documented ${parsed.course_name} with ${parsed.tees.length} tees.`);
+            }
             fetchCourses();
         } catch(error) {
             console.error(error);
             setStatus('Failed to parse image. Is Gemini API configured properly?');
         }
     };
+
     
 
 
