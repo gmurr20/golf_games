@@ -38,7 +38,7 @@ def get_leaderboard():
     player_stats = defaultdict(lambda: {
         'birdies': 0, 'eagles': 0, 'net_birdies': 0, 'strokes': 0, 'holes': 0, 
         'wins': 0, 'losses': 0, 'ties': 0, 'points_earned': 0.0, 
-        'name': '', 'team': '', 'team_display_name': '',
+        'name': '', 'team': '', 'team_display_name': '', 'profile_picture': None,
         'total_par': 0, 'total_net_strokes': 0,
         'worst_hole_rel': -99, # Max (raw - par)
     })
@@ -78,6 +78,7 @@ def get_leaderboard():
                     p = Player.query.get(pid)
                     if p:
                         p_stats['name'] = p.name
+                        p_stats['profile_picture'] = p.profile_picture
                         team_str = p.team or ''
                         if team_str == comp.team_a_name:
                             p_stats['team'] = 'A'
@@ -161,6 +162,7 @@ def get_leaderboard():
                     players.append({
                         "id": p.id,
                         "name": p.name,
+                        "profile_picture": p.profile_picture,
                         "team": mp.team,
                         "team_name": (comp.team_a_name or "Team A") if mp.team == 'A' else (comp.team_b_name or "Team B"),
                         "handicap_index": p.handicap_index,
@@ -264,6 +266,7 @@ def get_leaderboard():
         "mvp": {
             "player_id": mvp['player_id'] if mvp else None,
             "name": mvp['name'] if mvp else "N/A",
+            "profile_picture": mvp.get('profile_picture') if mvp else None,
             "value": f"{mvp['points_earned']} PTS" if mvp else "0 PTS",
             "subtext": f"{mvp['gross_to_par']} Gross / {mvp['birdies']} Birdies" if mvp else "No stats yet",
             "is_tie": False 
@@ -271,18 +274,21 @@ def get_leaderboard():
         "birdie_king": {
             "player_id": birdie_king['player_id'] if birdie_king else None,
             "name": birdie_king['name'] if birdie_king else "N/A",
+            "profile_picture": birdie_king.get('profile_picture') if birdie_king else None,
             "value": f"{birdie_king['birdies']} Birdies" if birdie_king else "0 Birdies",
             "is_tie": birdie_king_tie
         },
         "net_birdie_king": {
             "player_id": net_birdie_king['player_id'] if net_birdie_king else None,
             "name": net_birdie_king['name'] if net_birdie_king else "N/A",
+            "profile_picture": net_birdie_king.get('profile_picture') if net_birdie_king else None,
             "value": f"{net_birdie_king['net_birdies']} Net Birdies" if net_birdie_king else "0 Birdies",
             "is_tie": net_birdie_king_tie
         },
         "sandbagger": {
             "player_id": sandbagger['player_id'] if sandbagger else None,
             "name": sandbagger['name'] if sandbagger else "N/A",
+            "profile_picture": sandbagger.get('profile_picture') if sandbagger else None,
             "value": sandbagger['net_to_par'] if sandbagger else "E",
             "subtext": "Lowest Total Net",
             "is_tie": sandbagger_tie
@@ -290,6 +296,7 @@ def get_leaderboard():
         "most_honest": {
             "player_id": most_honest['player_id'] if most_honest else None,
             "name": most_honest['name'] if most_honest else "N/A",
+            "profile_picture": most_honest.get('profile_picture') if most_honest else None,
             "value": most_honest['net_to_par'] if most_honest else "E",
             "subtext": f"Target: {fmt_rel(int((most_honest['holes']/18.0)*4))}" if most_honest else "Target: +4",
             "is_tie": most_honest_tie
@@ -317,6 +324,7 @@ def get_leaderboard():
             "tee_time": worst_round['tee_time'] if worst_round else None,
             "player_id": worst_round['player_id'] if worst_round else None,
             "name": worst_round['name'] if worst_round else "N/A",
+            "profile_picture": player_stats[worst_round['player_id']].get('profile_picture') if worst_round else None,
             "value": fmt_rel(worst_round['net_rel']) if worst_round else "E",
             "subtext": worst_round['tournament_name'] if worst_round else "No rounds finished",
             "is_tie": worst_round_tie

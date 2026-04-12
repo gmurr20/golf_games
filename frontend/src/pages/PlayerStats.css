@@ -51,8 +51,9 @@
 
 .player-main-info {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--spacing-6);
     margin-bottom: var(--spacing-6);
 }
 
@@ -73,6 +74,7 @@
 .player-team-label.team-b { color: var(--color-accent-win); }
 
 .player-handicap-badge {
+    margin-left: auto;
     text-align: right;
 }
 
@@ -268,12 +270,15 @@
 
 @media (max-width: 480px) {
     .player-main-info {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         gap: var(--spacing-4);
     }
+    .player-name-section h2 {
+        font-size: 1.2rem;
+    }
     .player-handicap-badge {
-        text-align: left;
+        text-align: right;
     }
     .score-block:first-child {
         display: none; /* Hide gross on small mobile history to save space */

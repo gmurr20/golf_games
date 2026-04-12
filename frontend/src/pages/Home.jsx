@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import backend from '../api/backend';
+import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './Home.css';
 
 const STORAGE_PLAYER_ID = 'golf_player_id';
@@ -92,9 +93,6 @@ export default function Home() {
         navigate(`/play/${round.tournament_id}/${round.tee_id}?${params.toString()}`);
     };
 
-    const getInitials = (name) => {
-        return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    };
 
     const formatTeeTime = (isoStr) => {
         if (!isoStr) return null;
@@ -155,7 +153,7 @@ export default function Home() {
                                 style={{ animationDelay: `${i * 0.05}s` }}
                                 onClick={() => handleSelectPlayer(p)}
                             >
-                                <div className="player-avatar">{getInitials(p.name)}</div>
+                                <PlayerAvatar name={p.name} image={p.profile_picture} size="md" />
                                 <span className="player-pick-name">{p.name}</span>
                                 <span className="player-pick-hdcp">HCP {p.handicap_index}</span>
                             </div>

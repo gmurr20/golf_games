@@ -16,46 +16,48 @@ def create_app():
     Migrate(app, db)
     
     # Initialize Database and Migrations
-    with app.app_context():
-        from flask_migrate import upgrade, stamp
-        from sqlalchemy import inspect
-
-        # Check if the database has any tables
-        inspector = inspect(db.engine)
-        try:
-            tables = inspector.get_table_names()
-        except Exception:
-            tables = []
-
-        if not tables:
-            # Case 1: Brand new database
-            # Running upgrade() will create all tables from scratch via migrations
-            # and properly initialize the alembic_version table.
+    # We skip automatic upgrade during migrations to avoid connection conflicts
+    if not os.environ.get('FLASK_MIGRATING'):
+        with app.app_context():
+            from flask_migrate import upgrade, stamp
+            from sqlalchemy import inspect
+    
+            # Check if the database has any tables
+            inspector = inspect(db.engine)
             try:
-                upgrade()
-                print("Fresh database initialized via migrations.")
-            except Exception as e:
-                print(f"Error initializing fresh database: {e}")
-        elif 'alembic_version' not in tables:
-            # Case 2: Existing database created with create_all() but no migration history
-            # This is likely the "stuck" state in production.
-            # We stamp the database with the current migration history so it can move forward.
-            try:
-                # We stamp as 'head' if we assume the tables match models, 
-                # OR we just try upgrade and see if it can resolve the differences.
-                stamp() 
-                upgrade()
-                print("Existing untracked database has been stamped and upgraded.")
-            except Exception as e:
-                print(f"Error syncing untracked database: {e}")
-        else:
-            # Case 3: Standard migration-tracked database
-            # Just run upgrade() to apply any new changes (like the gender column).
-            try:
-                upgrade()
-                print("Database schema successfully updated via migrations.")
-            except Exception as e:
-                print(f"Standard migration update failed: {e}")
+                tables = inspector.get_table_names()
+            except Exception:
+                tables = []
+    
+            if not tables:
+                # Case 1: Brand new database
+                # Running upgrade() will create all tables from scratch via migrations
+                # and properly initialize the alembic_version table.
+                try:
+                    upgrade()
+                    print("Fresh database initialized via migrations.")
+                except Exception as e:
+                    print(f"Error initializing fresh database: {e}")
+            elif 'alembic_version' not in tables:
+                # Case 2: Existing database created with create_all() but no migration history
+                # This is likely the "stuck" state in production.
+                # We stamp the database with the current migration history so it can move forward.
+                try:
+                    # We stamp as 'head' if we assume the tables match models, 
+                    # OR we just try upgrade and see if it can resolve the differences.
+                    stamp() 
+                    upgrade()
+                    print("Existing untracked database has been stamped and upgraded.")
+                except Exception as e:
+                    print(f"Error syncing untracked database: {e}")
+            else:
+                # Case 3: Standard migration-tracked database
+                # Just run upgrade() to apply any new changes (like the gender column).
+                try:
+                    upgrade()
+                    print("Database schema successfully updated via migrations.")
+                except Exception as e:
+                    print(f"Standard migration update failed: {e}")
 
     register_routes(app)
 

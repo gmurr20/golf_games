@@ -69,7 +69,8 @@ def create_player():
         name=data['name'], 
         handicap_index=data['handicap_index'], 
         team=data.get('team'),
-        gender=data.get('gender', 'male')
+        gender=data.get('gender', 'male'),
+        profile_picture=data.get('profile_picture')
     )
     db.session.add(player)
     db.session.commit()
@@ -82,7 +83,7 @@ def get_players():
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
     players = Player.query.filter_by(competition_id=comp.id).all()
-    return jsonify([{"id": p.id, "name": p.name, "handicap_index": p.handicap_index, "team": p.team, "gender": p.gender} for p in players]), 200
+    return jsonify([{"id": p.id, "name": p.name, "handicap_index": p.handicap_index, "team": p.team, "gender": p.gender, "profile_picture": p.profile_picture} for p in players]), 200
 
 @admin_bp.route('/players/<int:id>', methods=['PUT', 'DELETE'])
 def manage_player(id):
@@ -110,6 +111,7 @@ def manage_player(id):
         if 'handicap_index' in data: player.handicap_index = data['handicap_index']
         if 'team' in data: player.team = data['team']
         if 'gender' in data: player.gender = data['gender']
+        if 'profile_picture' in data: player.profile_picture = data['profile_picture']
         db.session.commit()
         return jsonify({"success": True}), 200
 
@@ -536,4 +538,24 @@ def delete_matchup(id):
     db.session.delete(matchup)
     db.session.commit()
     return jsonify({"success": True}), 200
+
+@admin_bp.route('/players/<int:player_id>/image', methods=['POST'])
+def upload_player_image(player_id):
+    admin_key = request.headers.get('admin-key')
+    comp = Competition.query.filter_by(admin_key=admin_key).first()
+    if not comp: return jsonify({"error": "Unauthorized"}), 403
+    
+    player = Player.query.filter_by(id=player_id, competition_id=comp.id).first()
+    if not player: return jsonify({"error": "Player not found"}), 404
+    
+    data = request.json
+    image_data = data.get('image') # Base64 string
+    
+    if not image_data:
+        return jsonify({"error": "No image data provided"}), 400
+        
+    player.profile_picture = image_data
+    db.session.commit()
+    
+    return jsonify({"success": True, "profile_picture": player.profile_picture}), 200
 

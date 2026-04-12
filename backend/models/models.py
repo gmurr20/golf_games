@@ -17,6 +17,7 @@ class Player(db.Model):
     handicap_index = db.Column(db.Float, nullable=False, default=0.0)
     team = db.Column(db.String(50), nullable=True)
     gender = db.Column(db.String(10), nullable=False, default='male')
+    profile_picture = db.Column(db.Text, nullable=True) # Base64 encoded image string
 
     competition = db.relationship('Competition', backref=db.backref('players', cascade="all, delete-orphan", lazy=True))
 

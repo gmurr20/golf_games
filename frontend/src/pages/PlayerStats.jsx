@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import backend from '../api/backend';
+import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './PlayerStats.css';
 
 export default function PlayerStats() {
@@ -45,7 +46,7 @@ export default function PlayerStats() {
     }
 
     const { 
-        name, handicap_index, team, team_display_name,
+        name, profile_picture, handicap_index, team, team_display_name,
         gross_birdies_plus, net_birdies_plus,
         wins, losses, ties, total_points,
         rounds, matchups 
@@ -61,6 +62,7 @@ export default function PlayerStats() {
             {/* Performance Toplines */}
             <div className="player-info-card animate-slide-up">
                 <div className="player-main-info">
+                    <PlayerAvatar name={name} image={profile_picture} size="lg" />
                     <div className="player-name-section">
                         <h2>{name}</h2>
                         <span className={`player-team-label team-${team?.toLowerCase()}`}>

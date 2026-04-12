@@ -3,14 +3,16 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import CoursesTab from '../components/CoursesTab';
 import MatchupsTab from '../components/MatchupsTab';
+import PlayerAvatar from '../components/ui/PlayerAvatar';
 import backend, { setAdminKey } from '../api/backend';
+import './AdminSetup.css';
 
 export default function AdminSetup() {
     const [dashboardMode, setDashboardMode] = useState(false);
     const [password, setPassword] = useState('');
     const [status, setStatus] = useState('');
     const [loading, setLoading] = useState(false);
-    
+
     useEffect(() => {
         const stored = localStorage.getItem('golf_admin_key');
         if (stored) {
@@ -43,45 +45,31 @@ export default function AdminSetup() {
 
     if (!dashboardMode) {
         return (
-            <div style={{ 
-                padding: 'var(--spacing-4)', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                minHeight: '60vh' 
-            }}>
-                <Card className="animate-slide-up" style={{ width: '100%', maxWidth: '380px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔒</div>
+            <div className="admin-login-container">
+                <Card className="login-card animate-slide-up">
+                    <div className="login-icon">🔒</div>
                     <h2 style={{ margin: '0 0 0.25rem 0', color: 'var(--color-text)' }}>Admin</h2>
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '1.5rem' }}>Enter the password to continue</p>
-                    <form onSubmit={handleLogin} style={{ display: 'grid', gap: 'var(--spacing-3)' }}>
-                        <input 
-                            type="password" 
-                            required 
-                            value={password} 
+                    <form onSubmit={handleLogin} className="login-form">
+                        <input
+                            type="password"
+                            required
+                            value={password}
                             onChange={e => setPassword(e.target.value)}
                             placeholder="Password"
                             autoFocus
-                            style={{ 
-                                width: '100%', 
-                                padding: 'var(--spacing-3)', 
-                                borderRadius: 'var(--radius-sm)',
-                                border: '1px solid var(--color-border)',
-                                fontSize: '1rem',
-                                textAlign: 'center'
-                            }} 
+                            className="login-input"
                         />
                         <Button type="submit" disabled={loading}>
                             {loading ? 'Unlocking...' : 'Unlock'}
                         </Button>
                     </form>
-                    {status && <div style={{marginTop: '1rem', color: 'var(--color-accent-lose)', fontSize: '0.85rem'}}>{status}</div>}
+                    {status && <div style={{ marginTop: '1rem', color: 'var(--color-accent-lose)', fontSize: '0.85rem' }}>{status}</div>}
                 </Card>
             </div>
         );
     }
-    
+
     return <Dashboard />;
 }
 
@@ -89,30 +77,33 @@ function Dashboard() {
     const [tab, setTab] = useState('matchups');
     const [status, setStatus] = useState('');
     const fileRef = useRef(null);
-    
+    const photoRef = useRef(null);
+    const [uploadingPlayerId, setUploadingPlayerId] = useState(null);
+
     // Core Data
     const [players, setPlayers] = useState([]);
     const [courses, setCourses] = useState([]);
     const [matchups, setMatchups] = useState([]);
-    
+
     // Global Team Settings
     const [teamAName, setTeamAName] = useState('Team A');
     const [teamBName, setTeamBName] = useState('Team B');
     const [isEditingTeams, setIsEditingTeams] = useState(false);
-    
+
     // Player Form State
     const [editPlayerId, setEditPlayerId] = useState(null);
     const [pName, setPName] = useState('');
     const [pIndex, setPIndex] = useState('');
     const [pTeam, setPTeam] = useState('');
     const [pGender, setPGender] = useState('male');
+    const [pPhoto, setPPhoto] = useState(null);
 
     const fetchConfig = async () => {
         try {
             const res = await backend.get('/competitions/settings');
             setTeamAName(res.data.team_a_name);
             setTeamBName(res.data.team_b_name);
-        } catch(e) { }
+        } catch (e) { }
     };
 
     const fetchPlayers = async () => {
@@ -123,13 +114,13 @@ function Dashboard() {
             console.error("No active players yet.");
         }
     };
-    
+
     const fetchCourses = async () => {
         try {
             const res = await backend.get('/courses');
             setCourses(res.data);
         } catch (e) {
-             console.error("No active courses yet.");
+            console.error("No active courses yet.");
         }
     };
 
@@ -179,10 +170,10 @@ function Dashboard() {
         const playerIdStr = e.dataTransfer.getData('playerId');
         if (!playerIdStr) return;
         const playerId = parseInt(playerIdStr);
-        
+
         // Optimistic UI Update so it snaps instantly
         setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, team: targetTeam } : p));
-        
+
         // Async Backend Call
         try {
             await backend.put(`/players/${playerId}`, { team: targetTeam });
@@ -198,23 +189,25 @@ function Dashboard() {
         try {
             if (editPlayerId) {
                 await backend.put(`/players/${editPlayerId}`, {
-                    name: pName, 
-                    handicap_index: parseFloat(pIndex), 
+                    name: pName,
+                    handicap_index: parseFloat(pIndex),
                     team: pTeam,
-                    gender: pGender
+                    gender: pGender,
+                    profile_picture: pPhoto
                 });
                 setStatus(`Updated Player: ${pName}`);
             } else {
                 await backend.post('/players', {
-                    name: pName, 
-                    handicap_index: parseFloat(pIndex), 
+                    name: pName,
+                    handicap_index: parseFloat(pIndex),
                     team: pTeam,
-                    gender: pGender
+                    gender: pGender,
+                    profile_picture: pPhoto
                 });
                 setStatus(`Added Player: ${pName}`);
             }
             setEditPlayerId(null);
-            setPName(''); setPIndex(''); setPTeam('');
+            setPName(''); setPIndex(''); setPTeam(''); setPPhoto(null);
             fetchPlayers();
         } catch (e) {
             setStatus('Error saving player.');
@@ -227,6 +220,7 @@ function Dashboard() {
         setPIndex(p.handicap_index);
         setPTeam(p.team || '');
         setPGender(p.gender || 'male');
+        setPPhoto(p.profile_picture || null);
     };
 
     const handleDeleteClick = async (id) => {
@@ -236,6 +230,47 @@ function Dashboard() {
         fetchPlayers();
     };
 
+    const handlePhotoChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setStatus('Processing photo...');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = 400;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                let srcX = 0, srcY = 0, srcW = img.width, srcH = img.height;
+                if (srcW > srcH) {
+                    srcX = (srcW - srcH) / 2;
+                    srcW = srcH;
+                } else {
+                    srcY = (srcH - srcW) / 2;
+                    srcH = srcW;
+                }
+
+                ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, size, size);
+                const base64 = canvas.toDataURL('image/jpeg', 0.85);
+                setPPhoto(base64);
+                setStatus('Photo ready to save.');
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handlePhotoClick = (playerId) => {
+        setUploadingPlayerId(playerId);
+        photoRef.current.click();
+    };
+
+    // (Removed old standalone photo handling logic from here, now in handlePhotoChange)
+
     // AI PROCESSOR
     const handleUploadScorecard = async (e) => {
         const file = e.target.files[0];
@@ -243,14 +278,14 @@ function Dashboard() {
         setStatus('Processing via AI... this can take up to a minute.');
         const formData = new FormData();
         formData.append('image', file);
-        
+
         try {
             const res = await backend.post('/courses/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             const parsed = res.data;
             setStatus(`AI Parsed: ${parsed.course_name}. Saving directly to PostgreSQL...`);
-            
+
             await backend.post('/courses', {
                 name: parsed.course_name,
                 tees: parsed.tees.map(tee => ({
@@ -263,7 +298,7 @@ function Dashboard() {
                     holes: tee.holes
                 }))
             });
-            
+
             if (parsed.warnings && parsed.warnings.length > 0) {
                 const warnMsg = `Success, but with warnings:\n\n${parsed.warnings.join('\n')}\n\nPlease verify these ratings manually in the Courses tab.`;
                 window.alert(warnMsg);
@@ -272,13 +307,13 @@ function Dashboard() {
                 setStatus(`Success! AI Documented ${parsed.course_name} with ${parsed.tees.length} tees.`);
             }
             fetchCourses();
-        } catch(error) {
+        } catch (error) {
             console.error(error);
             setStatus('Failed to parse image. Is Gemini API configured properly?');
         }
     };
 
-    
+
 
 
     const handleLogout = () => {
@@ -293,12 +328,12 @@ function Dashboard() {
     const arrUnassigned = players.filter(p => p.team !== teamAName && p.team !== teamBName);
 
     const PlayerList = ({ title, list, dropTarget }) => (
-        <div 
+        <div
             style={{
-                marginBottom: '1.5rem', 
-                minHeight: '100px', 
-                padding: '0.75rem', 
-                backgroundColor: 'rgba(0,0,0,0.02)', 
+                marginBottom: '1.5rem',
+                minHeight: '100px',
+                padding: '0.75rem',
+                backgroundColor: 'rgba(0,0,0,0.02)',
                 border: '2px dashed transparent',
                 borderRadius: '12px'
             }}
@@ -306,23 +341,23 @@ function Dashboard() {
             onDragOver={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; handleDragOver(e); }}
             onDragLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; }}
         >
-            <h4 style={{marginBottom: '0.75rem', color: 'var(--color-primary)', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.35rem'}}>
+            <h4 style={{ marginBottom: '0.75rem', color: 'var(--color-primary)', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.35rem' }}>
                 {title} ({list.length})
             </h4>
-            <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {list.map(p => (
-                    <li 
-                        key={p.id} 
-                        draggable 
+                    <li
+                        key={p.id}
+                        draggable
                         onDragStart={(e) => handleDragStart(e, p)}
                         onDragEnd={handleDragEnd}
                         style={{
-                            display:'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            padding: '0.5rem 0.75rem', 
-                            backgroundColor: 'var(--color-surface)', 
-                            borderRadius: '8px', 
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: 'var(--color-surface)',
+                            borderRadius: '8px',
                             marginBottom: '0.5rem',
                             cursor: 'grab',
                             boxShadow: 'var(--shadow-sm)',
@@ -332,7 +367,7 @@ function Dashboard() {
                         onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
                             <div style={{
                                 minWidth: '52px',
                                 height: '36px',
@@ -351,105 +386,146 @@ function Dashboard() {
                             }}>
                                 {p.handicap_index}
                             </div>
-                            <strong style={{fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-text)'}}>{p.name}</strong>
+                            <PlayerAvatar name={p.name} image={p.profile_picture} size="sm" />
+                            <strong style={{ fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-text)' }}>{p.name}</strong>
                         </div>
-                        <div style={{display:'flex', gap: '0.5rem', flexShrink: 0}}>
-                            <Button variant="outline" style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem'}} onClick={() => handleEditClick(p)}>✏️</Button>
-                            <Button variant="outline" style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderColor: 'var(--color-accent-lose)', color: 'var(--color-accent-lose)'}} onClick={() => handleDeleteClick(p.id)}>X</Button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                            <Button variant="outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleEditClick(p)}>✏️</Button>
+                            <Button variant="outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderColor: 'var(--color-accent-lose)', color: 'var(--color-accent-lose)' }} onClick={() => handleDeleteClick(p.id)}>X</Button>
                         </div>
                     </li>
                 ))}
-                {list.length === 0 && <p style={{fontSize: '0.8rem', color: 'var(--color-text-light)', fontStyle:'italic', textAlign: 'center', padding: '1rem 0'}}>Drag players here...</p>}
+                {list.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--color-text-light)', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0' }}>Drag players here...</p>}
             </ul>
         </div>
     );
 
     return (
         <div className="admin-dashboard-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
-                <h1 style={{ margin: 0 }}>Dashboard</h1>
+            <header className="admin-header">
+                <div className="admin-header-title-group">
+                    <span className="admin-subtitle">Control Center</span>
+                    <h1>Contest Creator</h1>
+                </div>
                 <Button variant="outline" onClick={handleLogout} style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}>Log Out</Button>
+            </header>
+
+            <div className="admin-tabs-wrapper">
+                <div className="admin-tabs">
+                    <button 
+                        className={`tab-btn ${tab === 'players' ? 'active' : ''}`}
+                        onClick={() => setTab('players')}
+                    >
+                        Players
+                    </button>
+                    <button 
+                        className={`tab-btn ${tab === 'courses' ? 'active' : ''}`}
+                        onClick={() => setTab('courses')}
+                    >
+                        Courses
+                    </button>
+                    <button 
+                        className={`tab-btn ${tab === 'matchups' ? 'active' : ''}`}
+                        onClick={() => setTab('matchups')}
+                    >
+                        Matchups
+                    </button>
+                </div>
             </div>
-            
-            <div style={{display: 'flex', gap: '8px', marginBottom: 'var(--spacing-4)', overflowX: 'auto'}}>
-                <Button variant={tab === 'players' ? 'primary' : 'outline'} onClick={() => setTab('players')}>Players</Button>
-                <Button variant={tab === 'courses' ? 'primary' : 'outline'} onClick={() => setTab('courses')}>Courses</Button>
-                <Button variant={tab === 'matchups' ? 'primary' : 'outline'} onClick={() => setTab('matchups')}>Matchups</Button>
-            </div>
-            
-            {status && <div style={{padding: '12px', background: 'white', borderRadius: '8px', marginBottom: '16px', color: 'var(--color-primary-dark)', borderLeft: '4px solid var(--color-primary)'}}>{status}</div>}
+
+            {status && <div className="status-banner"><span>✨</span> {status}</div>}
 
             {tab === 'players' && (
                 <Card className="animate-slide-up">
-                    <h3 style={{color: editPlayerId ? 'var(--color-accent-win)' : 'var(--color-text)'}}>
+                    <h3 style={{ color: editPlayerId ? 'var(--color-accent-win)' : 'var(--color-text)', marginBottom: 'var(--spacing-4)' }}>
                         {editPlayerId ? '✏️ Editing Player' : '➕ Add Player'}
                     </h3>
-                    <form onSubmit={handleAddOrEditPlayer} style={{ display: 'grid', gap: '1rem', marginTop: '1rem', marginBottom: '2rem' }}>
-                        <input type="text" placeholder="Name" value={pName} onChange={e=>setPName(e.target.value)} style={{padding: '8px', borderRadius: 'var(--radius-sm)'}} required/>
-                        <div style={{display: 'flex', gap: '1rem'}}>
-                            <input type="number" step="0.1" placeholder="Handicap Index" value={pIndex} onChange={e=>setPIndex(e.target.value)} style={{padding: '8px', borderRadius: 'var(--radius-sm)', flex: 1}} required/>
-                            <select value={pTeam} onChange={e=>setPTeam(e.target.value)} style={{padding: '8px', borderRadius: 'var(--radius-sm)', flex: 1}}>
+                    <form onSubmit={handleAddOrEditPlayer} className="player-form">
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => photoRef.current.click()}>
+                                <PlayerAvatar name={pName || '?'} image={pPhoto} size="lg" />
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    background: 'var(--color-primary)',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.7rem',
+                                    border: '2px solid white'
+                                }}>
+                                    📷
+                                </div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <input type="text" placeholder="Name" value={pName} onChange={e => setPName(e.target.value)} className="form-input" style={{ marginBottom: '0.5rem' }} required />
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <Button type="button" variant="outline" style={{ fontSize: '0.7rem', padding: '4px 8px' }} onClick={() => photoRef.current.click()}>
+                                        {pPhoto ? 'Change Photo' : 'Add Photo'}
+                                    </Button>
+                                    {pPhoto && (
+                                        <Button type="button" variant="outline" style={{ fontSize: '0.7rem', padding: '4px 8px', borderColor: 'var(--color-accent-lose)', color: 'var(--color-accent-lose)' }} onClick={() => setPPhoto(null)}>
+                                            Remove
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <input type="number" step="0.1" placeholder="Handicap Index" value={pIndex} onChange={e => setPIndex(e.target.value)} className="form-input" required />
+                            <select value={pTeam} onChange={e => setPTeam(e.target.value)} className="form-select">
                                 <option value="">No Team</option>
                                 <option value={teamAName}>{teamAName}</option>
                                 <option value={teamBName}>{teamBName}</option>
                             </select>
                         </div>
-                        <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-                            <div style={{flex: 1, display: 'flex', gap: '4px', background: 'var(--color-bg)', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)'}}>
-                                <button 
+                        <div className="form-row">
+                            <div className="gender-toggle">
+                                <button
                                     type="button"
                                     onClick={() => setPGender('male')}
-                                    style={{
-                                        flex: 1, padding: '6px', fontSize: '0.8rem', borderRadius: '4px', border: 'none',
-                                        backgroundColor: pGender === 'male' ? 'white' : 'transparent',
-                                        color: pGender === 'male' ? 'var(--color-primary)' : 'var(--color-text-light)',
-                                        boxShadow: pGender === 'male' ? 'var(--shadow-sm)' : 'none',
-                                        fontWeight: pGender === 'male' ? 600 : 400,
-                                        cursor: 'pointer', transition: 'all 0.2s'
-                                    }}
+                                    className={`gender-btn ${pGender === 'male' ? 'active' : ''}`}
                                 >
                                     ♂ Male
                                 </button>
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setPGender('female')}
-                                    style={{
-                                        flex: 1, padding: '6px', fontSize: '0.8rem', borderRadius: '4px', border: 'none',
-                                        backgroundColor: pGender === 'female' ? 'white' : 'transparent',
-                                        color: pGender === 'female' ? 'var(--color-primary)' : 'var(--color-text-light)',
-                                        boxShadow: pGender === 'female' ? 'var(--shadow-sm)' : 'none',
-                                        fontWeight: pGender === 'female' ? 600 : 400,
-                                        cursor: 'pointer', transition: 'all 0.2s'
-                                    }}
+                                    className={`gender-btn ${pGender === 'female' ? 'active' : ''}`}
                                 >
                                     ♀ Female
                                 </button>
                             </div>
-                            <div style={{flex: 1}}></div>
+                            <div style={{ flex: 1 }}></div>
                         </div>
 
-                        <div style={{display: 'flex', gap: '0.5rem'}}>
-                            <Button type="submit" style={{flex: 1}}>{editPlayerId ? 'Save Changes' : 'Create Player'}</Button>
-                            {editPlayerId && <Button variant="outline" onClick={()=>{setEditPlayerId(null); setPName(''); setPIndex(''); setPTeam('');}}>Cancel</Button>}
+                        <div className="form-row">
+                            <Button type="submit" style={{ flex: 1 }}>{editPlayerId ? 'Save Changes' : 'Create Player'}</Button>
+                            {editPlayerId && <Button variant="outline" onClick={() => { setEditPlayerId(null); setPName(''); setPIndex(''); setPTeam(''); setPPhoto(null); }}>Cancel</Button>}
                         </div>
                     </form>
-                    
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-                        <h3 style={{margin: 0}}>Roster Builder</h3>
-                        <Button variant="outline" style={{fontSize: '0.75rem', padding: '0.25rem 0.5rem'}} onClick={() => setIsEditingTeams(!isEditingTeams)}>
+
+                    <div className="roster-header">
+                        <h3>Roster Builder</h3>
+                        <Button variant="outline" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => setIsEditingTeams(!isEditingTeams)}>
                             {isEditingTeams ? 'Cancel Config' : '⚙️ Rename Teams'}
                         </Button>
                     </div>
 
                     {isEditingTeams && (
-                        <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.02)', padding: '1rem', borderRadius: '8px'}}>
-                            <input type="text" value={teamAName} onChange={e=>setTeamAName(e.target.value)} style={{padding: '8px', flex: 1, borderRadius: '4px'}} placeholder="Team 1 Name"/>
-                            <input type="text" value={teamBName} onChange={e=>setTeamBName(e.target.value)} style={{padding: '8px', flex: 1, borderRadius: '4px'}} placeholder="Team 2 Name"/>
+                        <div className="team-config-box">
+                            <input type="text" value={teamAName} onChange={e => setTeamAName(e.target.value)} className="form-input" placeholder="Team 1 Name" />
+                            <input type="text" value={teamBName} onChange={e => setTeamBName(e.target.value)} className="form-input" placeholder="Team 2 Name" />
                             <Button onClick={saveTeamConfig}>Save</Button>
                         </div>
                     )}
 
-                    <div style={{marginTop: '1rem', display: 'flex', flexDirection: 'column'}}>
+                    <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column' }}>
                         <PlayerList title={teamAName} list={arrTeamA} dropTarget={teamAName} />
                         <PlayerList title={teamBName} list={arrTeamB} dropTarget={teamBName} />
                         <PlayerList title="Unassigned (Drag Bucket)" list={arrUnassigned} dropTarget={null} />
@@ -458,15 +534,15 @@ function Dashboard() {
             )}
 
             {tab === 'courses' && (
-                <CoursesTab 
-                    courses={courses} 
-                    fetchCourses={fetchCourses} 
-                    fileRef={fileRef} 
-                    handleUploadScorecard={handleUploadScorecard} 
-                    setStatus={setStatus} 
+                <CoursesTab
+                    courses={courses}
+                    fetchCourses={fetchCourses}
+                    fileRef={fileRef}
+                    handleUploadScorecard={handleUploadScorecard}
+                    setStatus={setStatus}
                 />
             )}
-            
+
             {tab === 'matchups' && (
                 <MatchupsTab
                     courses={courses}
@@ -478,6 +554,14 @@ function Dashboard() {
                     teamBName={teamBName}
                 />
             )}
+
+            <input
+                type="file"
+                ref={photoRef}
+                style={{ display: 'none' }}
+                accept="image/*"
+                onChange={handlePhotoChange}
+            />
         </div>
     );
 }

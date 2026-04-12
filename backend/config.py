@@ -4,7 +4,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///app.db")
+    # Use absolute path for SQLite to avoid CWD issues
+    _basedir = os.path.abspath(os.path.dirname(__file__))
+    _db_path = os.path.join(_basedir, 'instance', 'app.db')
+    
+    # Ensure instance folder exists
+    if not os.path.exists(os.path.dirname(_db_path)):
+        os.makedirs(os.path.dirname(_db_path), exist_ok=True)
+
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", f"sqlite:///{_db_path}")
     if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
     

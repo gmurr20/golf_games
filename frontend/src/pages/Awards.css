@@ -95,6 +95,14 @@
     gap: 6px;
 }
 
+.award-winner-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+}
+
 .award-tie-badge {
     font-size: 0.5rem;
     font-weight: 900;

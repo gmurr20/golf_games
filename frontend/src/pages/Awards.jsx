@@ -14,6 +14,7 @@ import {
     Medal
 } from 'lucide-react';
 import backend from '../api/backend';
+import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './Awards.css';
 
 export default function Awards() {
@@ -132,6 +133,7 @@ export default function Awards() {
                             >
                                 <div className="stat-player-info">
                                     <span className="stat-rank">#{i + 1}</span>
+                                    <PlayerAvatar name={s.name} image={s.profile_picture} size="sm" />
                                     <div className="stat-name-group">
                                         <span className="stat-name">{s.name}</span>
                                         <span className={`stat-team-badge team-${s.team.toLowerCase()}`}>
@@ -196,9 +198,12 @@ function AwardCard({ title, award, icon, className }) {
             </div>
             <div className="award-content">
                 <h3 className="award-title">{title}</h3>
-                <div className="award-winner">
-                    {award.name}
-                    {award.is_tie && <span className="award-tie-badge">Tie</span>}
+                <div className="award-winner-group">
+                    <PlayerAvatar name={award.name} image={award.profile_picture} size="sm" />
+                    <div className="award-winner">
+                        {award.name}
+                        {award.is_tie && <span className="award-tie-badge">Tie</span>}
+                    </div>
                 </div>
                 <div className="award-values">
                     <span className="award-main-value">{award.value}</span>

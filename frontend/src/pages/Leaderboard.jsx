@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import backend from '../api/backend';
+import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './Leaderboard.css';
 
 export default function Leaderboard() {
@@ -140,6 +141,7 @@ function MatchCard({ m, i, navigate }) {
                 <div className="match-team side-a">
                     {teamA.map(p => (
                         <div key={p.id} className="player-minimal">
+                            <PlayerAvatar name={p.name} image={p.profile_picture} size="xs" />
                             <span className="player-name">{p.name}</span>
                             <span className="player-to-par-subtle">{p.to_par}</span>
                         </div>
@@ -162,6 +164,7 @@ function MatchCard({ m, i, navigate }) {
                         <div key={p.id} className="player-minimal">
                             <span className="player-to-par-subtle">{p.to_par}</span>
                             <span className="player-name">{p.name}</span>
+                            <PlayerAvatar name={p.name} image={p.profile_picture} size="xs" />
                         </div>
                     ))}
                 </div>

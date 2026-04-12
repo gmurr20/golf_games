@@ -21,7 +21,7 @@ def list_players():
     else:
         players = Player.query.all()
     return jsonify([
-        {"id": p.id, "name": p.name, "team": p.team, "handicap_index": p.handicap_index}
+        {"id": p.id, "name": p.name, "team": p.team, "handicap_index": p.handicap_index, "profile_picture": p.profile_picture}
         for p in players
     ]), 200
 
@@ -470,6 +470,7 @@ def get_player_stats(player_id):
     stats = {
         "player_id": player.id,
         "name": player.name,
+        "profile_picture": player.profile_picture,
         "handicap_index": player.handicap_index,
         "team": team_letter,
         "team_display_name": team_display,
