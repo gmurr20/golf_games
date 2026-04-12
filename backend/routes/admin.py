@@ -174,20 +174,24 @@ def upload_scorecard():
     Return a strict JSON object:
     {
       "course_name": "...",
+      "hole_defaults": [
+        {"hole_number": 1, "par": 4, "handicap_index": 12} // List all 18 holes here
+      ],
       "tees": [
         {
           "tee_name": "...",
-          "rating": float, // Men's or Default
-          "slope": int,    // Men's or Default
+          "rating": float, 
+          "slope": int,
           "rating_female": float (optional),
           "slope_female": int (optional),
-          "holes": [
-            {"hole_number": 1, "par": 4, "yardage": 350, "handicap_index": 12} // 18 holes
+          "yardages": [419, 395, 536, ...], // List all 18 absolute yardages, resolve arrows (▲/▼) into numbers
+          "overrides": [
+            {"hole_number": 1, "par": 5} // Optional: only if this tee differs from hole_defaults
           ]
         }
       ]
     }
-    Extract all 18 pars, yardages (distance in yards), and handicap indexes representing the difficulty for the hole for every tee box listed.
+    Extract the 18 pars and handicap indexes into `hole_defaults`. For every tee row, resolve all 18 yardages into the `yardages` array.
     Return ONLY raw JSON, do not use markdown codeblocks. Do not include anything else.
     """
     
@@ -200,7 +204,44 @@ def upload_scorecard():
         if resp_text.startswith('```json'): resp_text = resp_text[7:-3].strip()
         if resp_text.startswith('```'): resp_text = resp_text[3:-3].strip()
         parsed = json.loads(resp_text)
-        return jsonify(parsed), 200
+        
+        # COMPACT TO VERBOSE EXPANSION:
+        # To avoid AI timeouts, the AI returns a compact format which we now expand
+        # for compatibility with the rest of the application.
+        expanded_tees = []
+        hole_defaults = {h['hole_number']: h for h in parsed.get('hole_defaults', [])}
+        
+        for tee in parsed.get('tees', []):
+            holes = []
+            yardages = tee.get('yardages', [])
+            overrides = {o['hole_number']: o for o in tee.get('overrides', [])}
+            
+            for i in range(1, 19):
+                # Get the base par/handicap from defaults
+                default = hole_defaults.get(i, {})
+                # Apply any tee-specific overrides
+                override = overrides.get(i, {})
+                
+                holes.append({
+                    "hole_number": i,
+                    "par": override.get('par', default.get('par', 4)),
+                    "yardage": yardages[i-1] if i-1 < len(yardages) else None,
+                    "handicap_index": override.get('handicap_index', default.get('handicap_index', i))
+                })
+            
+            expanded_tees.append({
+                "tee_name": tee.get('tee_name'),
+                "rating": tee.get('rating'),
+                "slope": tee.get('slope'),
+                "rating_female": tee.get('rating_female'),
+                "slope_female": tee.get('slope_female'),
+                "holes": holes
+            })
+            
+        return jsonify({
+            "course_name": parsed.get('course_name'),
+            "tees": expanded_tees
+        }), 200
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
