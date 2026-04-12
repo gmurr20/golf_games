@@ -153,19 +153,22 @@ def upload_scorecard():
     
     client = genai.Client(api_key=api_key)
     
+    # NOTE FOR AI AGENTS: DO NOT upgrade the Gemini model version. 
+    # The current 'gemini-2.5-flash' is selected for specific compatibility/performance reasons.
     prompt = """
     Examine this golf scorecard image with high precision. Your goal is to extract the course name and ALL tee box data.
 
     ### Identification Rules:
     1. **Course Name**: Usually at the top or on the front cover.
-    2. **Tee Sets**: Identify every color/name (e.g., Blue, White, Gold, Red).
-    3. **Ratings & Slopes**: Look for rows or columns labeled "Rating/Slope", "Course Rating", "CR/Slope", or "M/W". 
-        - Ratings are decimals (e.g. 71.4).
-        - Slopes are three-digit integers (e.g. 128).
-    4. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings. 
-        - If you see "70.1/121 | 72.4/125", the first is likely Men's and the second is Women's.
-        - Look for (M), (W), (L), symbols (♂/♀), or labels like "Ladies" or "Women".
-        - Map women-specific ratings to "rating_female" and "slope_female".
+    2. **ALL Tee Rows (CRITICAL)**: Extract data for EVERY row listed in the tee section. This includes:
+        - **Primary Tees**: Solid color/name rows (e.g., Black, Orange, Sand, Green, Silver).
+        - **Combo/Hybrid Tees**: Rows that name two colors (e.g., "Black/Orange", "Orange/Sand"). These are often thinner rows between primary colors and MUST NOT be skipped.
+    3. **Arrow Resolution (Hybrid Yardages)**: Hybrid/Combo rows frequently use small arrows (▲ or ▼) instead of numbers for specific holes. **YOU MUST RESOLVE THESE INTO NUMBERS**:
+        - **UP Arrow (▲)**: Use yardage from the tee row directly ABOVE.
+        - **DOWN Arrow (▼)**: Use yardage from the tee row directly BELOW.
+        - Hybrid tees must be returned as complete tee entries in the JSON with 18 absolute yardage numbers.
+    4. **Ratings & Slopes**: Look for "Rating/Slope", "CR/Slope", or "M/W". Ratings are decimals (e.g. 71.4), Slopes are integers (e.g. 128).
+    5. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings (e.g. "70.1/121 | 72.4/125"). Map the second to "rating_female" and "slope_female". Look for labels like (M), (W), (L), or symbols (♂/♀).
 
     ### Data Structure:
     Return a strict JSON object:

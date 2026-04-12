@@ -240,7 +240,7 @@ function Dashboard() {
     const handleUploadScorecard = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setStatus('Processing via AI... this may take 15 seconds.');
+        setStatus('Processing via AI... this can take up to a minute.');
         const formData = new FormData();
         formData.append('image', file);
         
