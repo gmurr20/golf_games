@@ -19,6 +19,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     function createEmptyTee() {
         return {
             name: '', rating: 72.0, slope: 113,
+            rating_female: '', slope_female: '',
             holes: Array.from({ length: 18 }, (_, i) => ({
                 hole_number: i + 1, par: 4, yardage: '', handicap_index: i + 1
             }))
@@ -34,7 +35,14 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
 
     const startEdit = () => {
         const tee = selectedCourse.tees[selectedTeeIdx];
-        setEditTee({ name: tee.name, rating: tee.rating, slope: tee.slope, par: tee.par });
+        setEditTee({ 
+            name: tee.name, 
+            rating: tee.rating, 
+            slope: tee.slope, 
+            rating_female: tee.rating_female || '', 
+            slope_female: tee.slope_female || '',
+            par: tee.par 
+        });
         setEditHoles(tee.holes.map(h => ({ ...h })));
         setEditMode(true);
     };
@@ -52,6 +60,10 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
             const totalPar = editHoles.reduce((sum, h) => sum + Number(h.par), 0);
             await backend.put(`/tees/${tee.id}`, {
                 ...editTee,
+                rating: Number(editTee.rating),
+                slope: Number(editTee.slope),
+                rating_female: editTee.rating_female ? Number(editTee.rating_female) : null,
+                slope_female: editTee.slope_female ? Number(editTee.slope_female) : null,
                 par: totalPar,
                 holes: editHoles.map(h => ({
                     id: h.id,
@@ -93,6 +105,8 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                     name: t.name || 'Default',
                     rating: Number(t.rating),
                     slope: Number(t.slope),
+                    rating_female: t.rating_female ? Number(t.rating_female) : null,
+                    slope_female: t.slope_female ? Number(t.slope_female) : null,
                     par: t.holes.reduce((sum, h) => sum + Number(h.par), 0),
                     holes: t.holes.map(h => ({
                         hole_number: h.hole_number,
@@ -296,6 +310,16 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                                         <input type="number" value={tee.slope}
                                             onChange={e => updateNewTeeMeta(teeIdx, 'slope', e.target.value)} />
                                     </div>
+                                    <div className="tee-meta-field">
+                                        <label>Women's Rating</label>
+                                        <input type="number" step="0.1" value={tee.rating_female}
+                                            onChange={e => updateNewTeeMeta(teeIdx, 'rating_female', e.target.value)} placeholder="Optional" />
+                                    </div>
+                                    <div className="tee-meta-field">
+                                        <label>Women's Slope</label>
+                                        <input type="number" value={tee.slope_female}
+                                            onChange={e => updateNewTeeMeta(teeIdx, 'slope_female', e.target.value)} placeholder="Optional" />
+                                    </div>
                                 </div>
                                 <ScorecardTable
                                     holes={tee.holes}
@@ -381,11 +405,23 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                                             <input type="number" value={editTee.slope}
                                                 onChange={e => setEditTee(prev => ({ ...prev, slope: parseInt(e.target.value) }))} />
                                         </div>
+                                        <div className="tee-meta-field">
+                                            <label>Women's Rating</label>
+                                            <input type="number" step="0.1" value={editTee.rating_female}
+                                                onChange={e => setEditTee(prev => ({ ...prev, rating_female: e.target.value }))} placeholder="Optional" />
+                                        </div>
+                                        <div className="tee-meta-field">
+                                            <label>Women's Slope</label>
+                                            <input type="number" value={editTee.slope_female}
+                                                onChange={e => setEditTee(prev => ({ ...prev, slope_female: e.target.value }))} placeholder="Optional" />
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="tee-meta-pills">
-                                        <span className="tee-pill">Rating: {activeTee.rating}</span>
-                                        <span className="tee-pill">Slope: {activeTee.slope}</span>
+                                        <span className="tee-pill">Men: {activeTee.rating}/{activeTee.slope}</span>
+                                        {activeTee.rating_female && (
+                                            <span className="tee-pill">Women: {activeTee.rating_female}/{activeTee.slope_female}</span>
+                                        )}
                                         <span className="tee-pill tee-pill-par">Par {activeTee.par}</span>
                                     </div>
                                 )}

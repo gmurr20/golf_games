@@ -16,6 +16,7 @@ class Player(db.Model):
     name = db.Column(db.String(100), nullable=False)
     handicap_index = db.Column(db.Float, nullable=False, default=0.0)
     team = db.Column(db.String(50), nullable=True)
+    gender = db.Column(db.String(10), nullable=False, default='male')
 
     competition = db.relationship('Competition', backref=db.backref('players', cascade="all, delete-orphan", lazy=True))
 
@@ -29,8 +30,10 @@ class Tee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)  # e.g., 'Blue', 'White'
-    rating = db.Column(db.Float, nullable=False)
-    slope = db.Column(db.Integer, nullable=False)
+    rating = db.Column(db.Float, nullable=False) # Default/Male
+    slope = db.Column(db.Integer, nullable=False) # Default/Male
+    rating_female = db.Column(db.Float, nullable=True)
+    slope_female = db.Column(db.Integer, nullable=True)
     par = db.Column(db.Integer, nullable=False)
 
     course = db.relationship('Course', backref=db.backref('tees', cascade="all, delete-orphan", lazy=True))

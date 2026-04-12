@@ -105,6 +105,7 @@ function Dashboard() {
     const [pName, setPName] = useState('');
     const [pIndex, setPIndex] = useState('');
     const [pTeam, setPTeam] = useState('');
+    const [pGender, setPGender] = useState('male');
 
     const fetchConfig = async () => {
         try {
@@ -196,10 +197,20 @@ function Dashboard() {
         e.preventDefault();
         try {
             if (editPlayerId) {
-                await backend.put(`/players/${editPlayerId}`, {name: pName, handicap_index: parseFloat(pIndex), team: pTeam});
+                await backend.put(`/players/${editPlayerId}`, {
+                    name: pName, 
+                    handicap_index: parseFloat(pIndex), 
+                    team: pTeam,
+                    gender: pGender
+                });
                 setStatus(`Updated Player: ${pName}`);
             } else {
-                await backend.post('/players', {name: pName, handicap_index: parseFloat(pIndex), team: pTeam});
+                await backend.post('/players', {
+                    name: pName, 
+                    handicap_index: parseFloat(pIndex), 
+                    team: pTeam,
+                    gender: pGender
+                });
                 setStatus(`Added Player: ${pName}`);
             }
             setEditPlayerId(null);
@@ -215,6 +226,7 @@ function Dashboard() {
         setPName(p.name);
         setPIndex(p.handicap_index);
         setPTeam(p.team || '');
+        setPGender(p.gender || 'male');
     };
 
     const handleDeleteClick = async (id) => {
@@ -245,6 +257,8 @@ function Dashboard() {
                     name: tee.tee_name,
                     rating: tee.rating,
                     slope: tee.slope,
+                    rating_female: tee.rating_female,
+                    slope_female: tee.slope_female,
                     par: tee.holes.reduce((a, b) => a + Number(b.par), 0),
                     holes: tee.holes
                 }))
@@ -372,6 +386,40 @@ function Dashboard() {
                                 <option value={teamBName}>{teamBName}</option>
                             </select>
                         </div>
+                        <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                            <div style={{flex: 1, display: 'flex', gap: '4px', background: 'var(--color-bg)', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)'}}>
+                                <button 
+                                    type="button"
+                                    onClick={() => setPGender('male')}
+                                    style={{
+                                        flex: 1, padding: '6px', fontSize: '0.8rem', borderRadius: '4px', border: 'none',
+                                        backgroundColor: pGender === 'male' ? 'white' : 'transparent',
+                                        color: pGender === 'male' ? 'var(--color-primary)' : 'var(--color-text-light)',
+                                        boxShadow: pGender === 'male' ? 'var(--shadow-sm)' : 'none',
+                                        fontWeight: pGender === 'male' ? 600 : 400,
+                                        cursor: 'pointer', transition: 'all 0.2s'
+                                    }}
+                                >
+                                    ♂ Male
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => setPGender('female')}
+                                    style={{
+                                        flex: 1, padding: '6px', fontSize: '0.8rem', borderRadius: '4px', border: 'none',
+                                        backgroundColor: pGender === 'female' ? 'white' : 'transparent',
+                                        color: pGender === 'female' ? 'var(--color-primary)' : 'var(--color-text-light)',
+                                        boxShadow: pGender === 'female' ? 'var(--shadow-sm)' : 'none',
+                                        fontWeight: pGender === 'female' ? 600 : 400,
+                                        cursor: 'pointer', transition: 'all 0.2s'
+                                    }}
+                                >
+                                    ♀ Female
+                                </button>
+                            </div>
+                            <div style={{flex: 1}}></div>
+                        </div>
+
                         <div style={{display: 'flex', gap: '0.5rem'}}>
                             <Button type="submit" style={{flex: 1}}>{editPlayerId ? 'Save Changes' : 'Create Player'}</Button>
                             {editPlayerId && <Button variant="outline" onClick={()=>{setEditPlayerId(null); setPName(''); setPIndex(''); setPTeam('');}}>Cancel</Button>}

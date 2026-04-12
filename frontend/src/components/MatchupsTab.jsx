@@ -379,13 +379,21 @@ export default function MatchupsTab({
                                     <span className="draft-team-label">{teamAName}</span>
                                     <select value={teamA1} onChange={e => setTeamA1(e.target.value)} required className="draft-select">
                                         <option value="">Player 1...</option>
-                                        {arrTeamA.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrTeamA
+                                            .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrUnassigned
+                                            .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
                                     <select value={teamA2} onChange={e => setTeamA2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
                                         <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
-                                        {arrTeamA.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrTeamA
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrUnassigned
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
                                 </div>
                                 <div className="players-draft-vs">VS</div>
@@ -393,13 +401,21 @@ export default function MatchupsTab({
                                     <span className="draft-team-label">{teamBName}</span>
                                     <select value={teamB1} onChange={e => setTeamB1(e.target.value)} required className="draft-select">
                                         <option value="">Player 1...</option>
-                                        {arrTeamB.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrTeamB
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrUnassigned
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
                                     <select value={teamB2} onChange={e => setTeamB2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
                                         <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
-                                        {arrTeamB.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned.map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrTeamB
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        {arrUnassigned
+                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
+                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
                                     </select>
                                 </div>
                             </div>

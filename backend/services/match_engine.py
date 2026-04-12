@@ -44,11 +44,12 @@ def calculate_match_status(matchup_id: int) -> dict:
         allowance = 0.75 if shamble_type == "2-person" else 0.65
         
         # Course handicaps (Course Net - full allowance adjusted)
-        course_playing_handicaps = {
-            p.id: round_half_up(
-                calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par, rounded=False) * allowance
-            ) for p in players
-        }
+        course_playing_handicaps = {}
+        for p in players:
+            r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
+            s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
+            ch_u = calculate_course_handicap(p.handicap_index, s, r, tee.par, rounded=False)
+            course_playing_handicaps[p.id] = round_half_up(ch_u * allowance)
         
         # Match handicaps (Relative to low man in the matchup)
         match_playing_handicaps = calculate_playing_handicaps(course_playing_handicaps)
@@ -70,25 +71,26 @@ def calculate_match_status(matchup_id: int) -> dict:
         # - playing_handicaps (reduced Match CH for UI)
         # - pops_per_hole (match relative dots)
         # - stats_pops_per_hole (full allowance dots for Net calculation)
-        course_handicaps = {
-            p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par)
-            for p in players
-        }
+        course_handicaps = {}
+        for p in players:
+            r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
+            s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
+            course_handicaps[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
         playing_handicaps = match_playing_handicaps
         pops_per_hole = match_pops_per_hole
         stats_pops_per_hole = course_pops_per_hole # Used for net score calculation
     else:
         # Standard calculations
         # CH is used for Course Net
-        ch_dict = {
-            p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par)
-            for p in players
-        }
-        # PH (Relative) is used for Match Standings UI dots
-        ph_dict = calculate_playing_handicaps(ch_dict)
+        ch_dict = {}
+        for p in players:
+            r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
+            s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
+            ch_dict[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
         
+        # PH (Relative) is used for Match Standings UI dots
+        playing_handicaps = calculate_playing_handicaps(ch_dict)
         course_handicaps = ch_dict
-        playing_handicaps = ph_dict
         
         # Course Pops (Full CH) for stats/leaderboard
         stats_pops_per_hole = {
@@ -274,7 +276,11 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     players = Player.query.filter(Player.id.in_(team_a_pids + team_b_pids)).all()
     
     if matchup.use_handicaps:
-        course_handicaps = { p.id: calculate_course_handicap(p.handicap_index, tee.slope, tee.rating, tee.par) for p in players }
+        course_handicaps = {}
+        for p in players:
+            r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
+            s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
+            course_handicaps[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
         playing_handicaps = calculate_playing_handicaps(course_handicaps)
         all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
         pops_per_hole = { p.id: allocate_pops(playing_handicaps[p.id], all_holes) for p in players }

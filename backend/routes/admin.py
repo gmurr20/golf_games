@@ -64,7 +64,13 @@ def create_player():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
-    player = Player(competition_id=comp.id, name=data['name'], handicap_index=data['handicap_index'], team=data.get('team'))
+    player = Player(
+        competition_id=comp.id, 
+        name=data['name'], 
+        handicap_index=data['handicap_index'], 
+        team=data.get('team'),
+        gender=data.get('gender', 'male')
+    )
     db.session.add(player)
     db.session.commit()
     return jsonify({"id": player.id}), 201
@@ -76,7 +82,7 @@ def get_players():
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
     players = Player.query.filter_by(competition_id=comp.id).all()
-    return jsonify([{"id": p.id, "name": p.name, "handicap_index": p.handicap_index, "team": p.team} for p in players]), 200
+    return jsonify([{"id": p.id, "name": p.name, "handicap_index": p.handicap_index, "team": p.team, "gender": p.gender} for p in players]), 200
 
 @admin_bp.route('/players/<int:id>', methods=['PUT', 'DELETE'])
 def manage_player(id):
@@ -103,6 +109,7 @@ def manage_player(id):
         if 'name' in data: player.name = data['name']
         if 'handicap_index' in data: player.handicap_index = data['handicap_index']
         if 'team' in data: player.team = data['team']
+        if 'gender' in data: player.gender = data['gender']
         db.session.commit()
         return jsonify({"success": True}), 200
 
@@ -118,6 +125,7 @@ def get_courses():
             tees_out.append({
                 "id": t.id, "name": t.name, "par": t.par,
                 "rating": t.rating, "slope": t.slope,
+                "rating_female": t.rating_female, "slope_female": t.slope_female,
                 "holes": [{
                     "id": h.id, "hole_number": h.hole_number,
                     "par": h.par, "yardage": h.yardage,
@@ -146,20 +154,35 @@ def upload_scorecard():
     client = genai.Client(api_key=api_key)
     
     prompt = """
-    Examine this golf scorecard. 
-    Return a strict JSON object extracting ALL of the different tee boxes and their specific handicaps/pars/yardages. Include every tee color/level listed:
+    Examine this golf scorecard image with high precision. Your goal is to extract the course name and ALL tee box data.
+
+    ### Identification Rules:
+    1. **Course Name**: Usually at the top or on the front cover.
+    2. **Tee Sets**: Identify every color/name (e.g., Blue, White, Gold, Red).
+    3. **Ratings & Slopes**: Look for rows or columns labeled "Rating/Slope", "Course Rating", "CR/Slope", or "M/W". 
+        - Ratings are decimals (e.g. 71.4).
+        - Slopes are three-digit integers (e.g. 128).
+    4. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings. 
+        - If you see "70.1/121 | 72.4/125", the first is likely Men's and the second is Women's.
+        - Look for (M), (W), (L), symbols (♂/♀), or labels like "Ladies" or "Women".
+        - Map women-specific ratings to "rating_female" and "slope_female".
+
+    ### Data Structure:
+    Return a strict JSON object:
     {
-       "course_name": "Name of the course",
-       "tees": [
-           {
-               "tee_name": "Tee color/name (e.g. Blue)",
-               "rating": 72.0,
-               "slope": 125,
-               "holes": [
-                  {"hole_number": 1, "par": 4, "yardage": 385, "handicap_index": 12} // 18 holes
-               ]
-           }
-       ]
+      "course_name": "...",
+      "tees": [
+        {
+          "tee_name": "...",
+          "rating": float, // Men's or Default
+          "slope": int,    // Men's or Default
+          "rating_female": float (optional),
+          "slope_female": int (optional),
+          "holes": [
+            {"hole_number": 1, "par": 4, "yardage": 350, "handicap_index": 12} // 18 holes
+          ]
+        }
+      ]
     }
     Extract all 18 pars, yardages (distance in yards), and handicap indexes representing the difficulty for the hole for every tee box listed.
     Return ONLY raw JSON, do not use markdown codeblocks. Do not include anything else.
@@ -193,7 +216,9 @@ def create_course():
                 course_id=course.id, 
                 name=t_data.get('name', 'Main'), 
                 rating=t_data.get('rating', 72), 
-                slope=t_data.get('slope', 113), 
+                slope=t_data.get('slope', 113),
+                rating_female=t_data.get('rating_female'),
+                slope_female=t_data.get('slope_female'),
                 par=t_data.get('par', 72)
             )
             db.session.add(tee)
@@ -222,6 +247,7 @@ def get_course(id):
         tees_out.append({
             "id": t.id, "name": t.name, "par": t.par,
             "rating": t.rating, "slope": t.slope,
+            "rating_female": t.rating_female, "slope_female": t.slope_female,
             "holes": [{
                 "id": h.id, "hole_number": h.hole_number,
                 "par": h.par, "yardage": h.yardage,
@@ -264,6 +290,8 @@ def update_tee(id):
     if 'name' in data: tee.name = data['name']
     if 'rating' in data: tee.rating = data['rating']
     if 'slope' in data: tee.slope = data['slope']
+    if 'rating_female' in data: tee.rating_female = data['rating_female']
+    if 'slope_female' in data: tee.slope_female = data['slope_female']
     if 'par' in data: tee.par = data['par']
     
     if 'holes' in data:
