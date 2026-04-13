@@ -325,19 +325,29 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         for pid in hole_player_ids:
             pdata = players_data.get(pid, {})
             mp_entry = next((mp for mp in hole_mps if mp.player_id == pid), None)
-
-            # Get pops and handicaps from matchup stats
+            
+            # Use data directly from the match engine 
+            raw = None
+            net = None
             pops = 0
             if matchup.id in matchup_stats:
-                p_st = matchup_stats[matchup.id].get('player_stats', {}).get(pid, {})
-                pops = p_st.get('pops_per_hole', {}).get(h.hole_number, 0)
+                ms = matchup_stats[matchup.id]
+                # Find hole in ms scorecard
+                h_st = next((sh for sh in ms['scorecard'] if sh['hole_number'] == h.hole_number), None)
+                if h_st:
+                    p_st = h_st['players'].get(pid)
+                    if p_st:
+                        raw = p_st.get('raw')
+                        net = p_st.get('net')
+                        pops = p_st.get('pops', 0)
 
             hole_data["players"][str(pid)] = {
                 "name": pdata.get("name", "Unknown"),
                 "team": mp_entry.team if mp_entry else None,
                 "is_me": pid == player_id,
                 "pops": pops,
-                "score": scores_lookup.get((h.hole_number, pid)),
+                "score": raw,
+                "net": net
             }
 
         scorecard.append(hole_data)
@@ -408,6 +418,30 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             if hr is not None:
                 hole_data['match_result'] = hr
 
+    # Consolidate player totals across all matchups in this round
+    player_totals = {}
+    for pid, pdata in players_data.items():
+        grand_raw = 0
+        grand_net = 0
+        grand_par = 0
+        h_played = 0
+        for m_id, ms in matchup_stats.items():
+            st = ms.get('player_stats', {}).get(pid)
+            if st:
+                grand_raw += st.get('total_raw', 0)
+                grand_net += st.get('total_net', 0)
+                grand_par += st.get('total_par', 0)
+                h_played += st.get('holes_scored', 0)
+        
+        player_totals[str(pid)] = {
+            "total_raw": grand_raw,
+            "total_net": grand_net,
+            "total_par": grand_par,
+            "holes_played": h_played,
+            "to_par": grand_raw - grand_par if h_played > 0 else 0,
+            "net_to_par": grand_net - grand_par if h_played > 0 else 0
+        }
+
     use_handicaps = any(m.use_handicaps for m in matchups)
     return jsonify({
         "player_id": player_id,
@@ -420,6 +454,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         "tee_par": tee.par,
         "use_handicaps": use_handicaps,
         "scorecard": scorecard,
+        "player_totals": player_totals,
         "match_results": match_results_data,
         "format": matchups[0].format if matchups else 'individual',
         "scoring_type": matchups[0].scoring_type if matchups else 'match_play'

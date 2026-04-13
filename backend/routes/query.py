@@ -449,23 +449,34 @@ def get_public_scorecard(tournament_id, tee_id):
                 if h.hole_number < (m.hole_start or 1) or h.hole_number > (m.hole_end or 18):
                     continue
 
-                p = player_map.get(mp.player_id)
-                
-                # Get pops from matchup stats
+                # Use data directly from the match engine 
+                raw = None
+                net = None
                 pops = 0
                 handicap_index = 0
                 total_pops = 0
                 if m.id in matchup_stats:
-                    match_st = matchup_stats[m.id]
-                    p_st = match_st.get('player_stats', {}).get(mp.player_id, {})
-                    handicap_index = p_st.get('handicap_index', 0)
-                    total_pops = p_st.get('playing_handicap', 0)
-                    pops = p_st.get('pops_per_hole', {}).get(h.hole_number, 0)
+                    ms = matchup_stats[m.id]
+                    # Hole stats
+                    h_st = next((sh for sh in ms['scorecard'] if sh['hole_number'] == h.hole_number), None)
+                    if h_st:
+                        p_st_hole = h_st['players'].get(mp.player_id)
+                        if p_st_hole:
+                            raw = p_st_hole.get('raw')
+                            net = p_st_hole.get('net')
+                            pops = p_st_hole.get('pops', 0)
+                    
+                    # Player general stats
+                    p_st_gen = ms.get('player_stats', {}).get(mp.player_id, {})
+                    handicap_index = p_st_gen.get('handicap_index', 0)
+                    total_pops = p_st_gen.get('playing_handicap', 0)
 
+                p = player_map.get(mp.player_id)
                 hole_data["players"][str(mp.player_id)] = {
                     "name": p.name if p else "Unknown",
                     "team": mp.team,
-                    "score": scores_lookup.get((h.hole_number, mp.player_id)),
+                    "score": raw,
+                    "net": net,
                     "pops": pops,
                     "handicap_index": handicap_index,
                     "total_pops": total_pops
@@ -481,12 +492,37 @@ def get_public_scorecard(tournament_id, tee_id):
     if scores:
         current_hole = max(s.hole_number for s in scores)
     
+    # Consolidate player totals
+    player_totals = {}
+    for pid in player_ids:
+        grand_raw = 0
+        grand_net = 0
+        grand_par = 0
+        h_played = 0
+        for m_id, ms in matchup_stats.items():
+            st = ms.get('player_stats', {}).get(pid)
+            if st:
+                grand_raw += st.get('total_raw', 0)
+                grand_net += st.get('total_net', 0)
+                grand_par += st.get('total_par', 0)
+                h_played += st.get('holes_scored', 0)
+        
+        player_totals[str(pid)] = {
+            "total_raw": grand_raw,
+            "total_net": grand_net,
+            "total_par": grand_par,
+            "holes_played": h_played,
+            "to_par": grand_raw - grand_par if h_played > 0 else 0,
+            "net_to_par": grand_net - grand_par if h_played > 0 else 0
+        }
+
     return jsonify({
         "course_name": course.name if course else "Unknown",
         "tee_name": tee.name,
         "tee_time": matchups[0].tee_time.isoformat() if matchups[0].tee_time else None,
         "current_hole": current_hole,
         "scorecard": scorecard_data,
+        "player_totals": player_totals,
         "format": matchups[0].format if matchups else 'individual',
         "scoring_type": matchups[0].scoring_type if matchups else 'match_play'
     }), 200

@@ -146,18 +146,21 @@ def calculate_match_status(matchup_id: int) -> dict:
         for pid in team_a_pids + team_b_pids:
             raw_score = scores_by_hole_player.get(h.hole_number, {}).get(pid)
             if raw_score is not None:
-                # IMPORTANT: Use STATS_POPS (full allowance) for net score so leaderboard/stats are accurate
-                # even though the MATCH_POPS (relative) are shown as dots on the scorecard.
-                net_score = raw_score - stats_pops_per_hole[pid].get(h.hole_number, 0)
+                # 'net' is course-relative (Full CH) for leaderboard/stats
+                course_net = raw_score - stats_pops_per_hole[pid].get(h.hole_number, 0)
+                # 'match_net' is match-relative (Reduced PH) for winner determination
+                match_net = raw_score - pops_per_hole[pid].get(h.hole_number, 0)
+                
                 hole_data["players"][pid] = {
                     "raw": raw_score,
-                    "net": net_score,
+                    "net": course_net,
+                    "match_net": match_net,
                     "pops": pops_per_hole[pid].get(h.hole_number, 0)
                 }
                 if pid in team_a_pids:
-                    a_scores.append(net_score)
+                    a_scores.append(match_net)
                 else:
-                    b_scores.append(net_score)
+                    b_scores.append(match_net)
                     
         if a_scores and b_scores:
             match_status["holes_played"] += 1
@@ -232,6 +235,29 @@ def calculate_match_status(matchup_id: int) -> dict:
         else:
             match_status["display_value"] = f"{ad} UP"
             match_status["status_string"] = f"{team_b_name} is {ad} UP {thru_label}"
+
+    # Calculate player-level totals for the UI
+    for pid in team_a_pids + team_b_pids:
+        total_raw = 0
+        total_net = 0
+        total_par = 0
+        holes_scored = 0
+        for hd in match_status["scorecard"]:
+            p_hd = hd["players"].get(pid)
+            if p_hd and p_hd.get("raw") is not None:
+                total_raw += p_hd["raw"]
+                total_net += p_hd["net"]
+                total_par += hd["par"]
+                holes_scored += 1
+        
+        match_status["player_stats"][pid].update({
+            "total_raw": total_raw,
+            "total_net": total_net,
+            "total_par": total_par,
+            "holes_scored": holes_scored,
+            "to_par": total_raw - total_par if holes_scored > 0 else 0,
+            "net_to_par": total_net - total_par if holes_scored > 0 else 0
+        })
 
     return match_status
 

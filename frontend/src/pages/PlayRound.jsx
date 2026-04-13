@@ -281,41 +281,21 @@ export default function PlayRound() {
     };
 
     // Compute match status for display — scoped to current competition only
+    // Use match status from backend scorecard data
     const getMatchStatusDisplay = () => {
         if (!scorecard || !currentHoleData) return { text: '', className: 'status-even' };
 
         const currentMatchupId = currentHoleData.matchup_id;
-
-        let myWins = 0, oppWins = 0;
-        for (const h of scorecard.scorecard) {
-            // Only count holes in the same competition (matchup)
-            if (h.matchup_id !== currentMatchupId) continue;
-            if (h.hole_number >= currentHole) break;
-            const players = Object.entries(h.players);
-            const myTeam = scorecard.my_team;
-
-            let bestMy = Infinity, bestOpp = Infinity;
-            for (const [pid, pdata] of players) {
-                const raw = getScore(h.hole_number, pid);
-                if (raw == null) continue;
-                const net = raw - (pdata.pops || 0);
-                if (pdata.team === myTeam) {
-                    bestMy = Math.min(bestMy, net);
-                } else {
-                    bestOpp = Math.min(bestOpp, net);
-                }
-            }
-
-            if (bestMy < Infinity && bestOpp < Infinity) {
-                if (bestMy < bestOpp) myWins++;
-                else if (bestOpp < bestMy) oppWins++;
-            }
-        }
-
-        const diff = myWins - oppWins;
-        if (diff === 0) return { text: `All Square`, className: 'status-even' };
-        if (diff > 0) return { text: `${diff} UP`, className: 'status-up' };
-        return { text: `${Math.abs(diff)} DOWN`, className: 'status-down' };
+        const mr = scorecard.match_results?.find(m => m.matchup_id === currentMatchupId);
+        
+        if (!mr) return { text: 'All Square', className: 'status-even' };
+        
+        const text = mr.result_string;
+        let className = 'status-even';
+        if (text.includes('UP') || text.includes('Won')) className = 'status-up';
+        else if (text.includes('DN') || text.includes('Lost') || text.includes('DOWN')) className = 'status-down';
+        
+        return { text, className };
     };
 
     // Get golf-style CSS class for a score relative to par
@@ -330,17 +310,11 @@ export default function PlayRound() {
     };
 
     // Get total score for a player
+    // Get total score for a player from backend totals
     const getPlayerTotal = (pid) => {
-        let total = 0;
-        let count = 0;
-        for (const h of scorecard.scorecard) {
-            const s = getScore(h.hole_number, pid);
-            if (s != null) {
-                total += s;
-                count++;
-            }
-        }
-        return { total, count };
+        const pt = scorecard.player_totals?.[String(pid)];
+        if (!pt) return { total: 0, count: 0 };
+        return { total: pt.total_raw, count: pt.holes_played };
     };
 
     // Get total par

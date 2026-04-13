@@ -48,29 +48,27 @@ export default function ViewScorecard() {
 
     const { course_name, tee_name, tee_time, current_hole, scorecard } = data;
 
-    // Get all unique player IDs and their info
+    // Use player_totals directly from the backend
+    const playerTotals = data.player_totals || {};
+    
+    // Extract metadata from the first hole's player data
     const players = {};
-    scorecard.forEach(h => {
-        Object.entries(h.players).forEach(([pid, pdata]) => {
-            if (!players[pid]) {
-                players[pid] = { 
-                    name: pdata.name, 
-                    team: pdata.team, 
-                    total: 0, 
-                    parTotal: 0, 
-                    holesPlayed: 0,
-                    handicap_index: pdata.handicap_index,
-                    total_pops: pdata.total_pops
-                };
-            }
-            if (pdata.score != null) {
-                players[pid].total += pdata.score;
-                players[pid].parTotal += h.par;
-                players[pid].holesPlayed += 1;
-            }
+    if (scorecard.length > 0) {
+        Object.entries(scorecard[0].players).forEach(([pid, pdata]) => {
+            const pt = playerTotals[pid] || {};
+            players[pid] = {
+                name: pdata.name,
+                team: pdata.team,
+                total: pt.total_raw || 0,
+                parTotal: pt.total_par || 0,
+                holesPlayed: pt.holes_played || 0,
+                handicap_index: pdata.handicap_index,
+                total_pops: pdata.total_pops,
+                netTotal: pt.total_net || 0
+            };
         });
-    });
-
+    }
+    
     const sortedPlayerIds = Object.keys(players).sort((a,b) => players[a].team.localeCompare(players[b].team));
 
     const formatToPar = (score, par) => {
@@ -143,7 +141,7 @@ export default function ViewScorecard() {
                         let rowTotal = 0;
                         return (
                             <tr key={pid} className="sc-player-row">
-                                <td className="sc-player-name">
+                                 <td className="sc-player-name">
                                     <div className="sc-player-name-text">
                                         <span className="sc-name-full">{players[pid].name}</span>
                                         <span className="sc-name-initials">{getInitials(players[pid].name)}</span>
@@ -155,7 +153,6 @@ export default function ViewScorecard() {
                                 {holes.map(h => {
                                     const pdata = h.players[pid];
                                     const s = pdata?.score;
-                                    if (s) rowTotal += s;
                                     return (
                                         <td key={h.hole_number}>
                                             <span className={`sc-score-val ${getScoreClass(s, h.par)}`}>
@@ -169,7 +166,7 @@ export default function ViewScorecard() {
                                         </td>
                                     );
                                 })}
-                                <td className="sc-total">{rowTotal || '–'}</td>
+                                <td className="sc-total">{holes.reduce((sum, h) => sum + (h.players[pid]?.score || 0), 0) || '–'}</td>
                             </tr>
                         );
                     })}
