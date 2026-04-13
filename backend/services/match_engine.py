@@ -67,15 +67,11 @@ def calculate_match_status(matchup_id: int) -> dict:
         }
 
         # For the engine logic: 
-        # - course_handicaps (full WHS CH)
+        # - course_handicaps (adjusted Shamble CH)
         # - playing_handicaps (reduced Match CH for UI)
         # - pops_per_hole (match relative dots)
         # - stats_pops_per_hole (full allowance dots for Net calculation)
-        course_handicaps = {}
-        for p in players:
-            r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
-            s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
-            course_handicaps[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
+        course_handicaps = course_playing_handicaps
         playing_handicaps = match_playing_handicaps
         pops_per_hole = match_pops_per_hole # Match relative for winner logic
         stats_pops_per_hole = course_pops_per_hole # Course (allowance) pops for display/leaderboard
@@ -348,7 +344,19 @@ def calculate_overall_winner(matchup_id: int) -> dict:
         for p in players:
             r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
             s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
-            course_handicaps[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
+            
+            # WHS CH
+            ch_u = calculate_course_handicap(p.handicap_index, s, r, tee.par, rounded=False)
+            
+            # Application of Format Allowance (Shamble)
+            if matchup.format == 'shamble':
+                team_size = len(team_a_pids)
+                shamble_type = "4-person" if team_size >= 4 else "2-person"
+                allowance = 0.75 if shamble_type == "2-person" else 0.65
+                course_handicaps[p.id] = round_half_up(ch_u * allowance)
+            else:
+                course_handicaps[p.id] = round_half_up(ch_u)
+
         playing_handicaps = calculate_playing_handicaps(course_handicaps)
         all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
         pops_per_hole = { p.id: allocate_pops(playing_handicaps[p.id], all_holes) for p in players }
