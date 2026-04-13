@@ -129,7 +129,18 @@ def calculate_match_status(matchup_id: int) -> dict:
         }
     }
     
+    total_match_holes = hole_end - hole_start + 1
+    
     # Evaluate holes in order
+    decided_status = None
+    decided_diff = 0
+    decided_holes_remaining = 0
+    
+    # To handle out-of-order play correctly for "holes remaining", 
+    # we need to know which holes in the match range have scores in total.
+    # The 'remaining' holes at any point in the "thru" progression are 
+    # total_match_holes - (holes played so far).
+    
     for h in holes:
         hole_data = {
             "hole_number": h.hole_number,
@@ -175,12 +186,22 @@ def calculate_match_status(matchup_id: int) -> dict:
                 match_status["team_b_wins"] += 1
             else:
                 hole_data["winner"] = "Push"
+            
+            # Check if match is decided at this point
+            if matchup.scoring_type == 'match_play' and decided_status is None:
+                current_diff = match_status["team_a_wins"] - match_status["team_b_wins"]
+                current_holes_remaining = total_match_holes - match_status["holes_played"]
+                
+                if abs(current_diff) > current_holes_remaining:
+                    decided_diff = current_diff
+                    decided_holes_remaining = current_holes_remaining
+                    ad = abs(decided_diff)
+                    decided_status = f"{ad} & {decided_holes_remaining}" if decided_holes_remaining > 0 else f"{ad} UP"
                 
         match_status["scorecard"].append(hole_data)
         
     # Build status string and structured data
     diff = match_status["team_a_wins"] - match_status["team_b_wins"]
-    total_match_holes = hole_end - hole_start + 1
     holes_remaining = total_match_holes - match_status["holes_played"]
     
     is_match_play = matchup.scoring_type == 'match_play'
@@ -212,10 +233,10 @@ def calculate_match_status(matchup_id: int) -> dict:
             match_status["status_string"] = f"AS {thru_label}" if last_hole_played > 0 else "Upcoming"
     elif diff > 0:
         match_status["leading_team"] = "A"
-        if is_match_play and diff > holes_remaining:
-             val = f"{diff} & {holes_remaining}" if holes_remaining > 0 else f"{diff} UP"
-             match_status["display_value"] = val
-             match_status["status_string"] = f"{team_a_name} wins {val}"
+        if is_match_play and decided_status:
+             # Use the frozen decided status if it exists
+             match_status["display_value"] = decided_status
+             match_status["status_string"] = f"{team_a_name} wins {decided_status}"
         elif match_status["is_completed"]:
              match_status["display_value"] = f"{diff} UP"
              match_status["status_string"] = f"Final: {team_a_name} wins {diff} UP"
@@ -225,10 +246,9 @@ def calculate_match_status(matchup_id: int) -> dict:
     else:
         match_status["leading_team"] = "B"
         ad = abs(diff)
-        if is_match_play and ad > holes_remaining:
-            val = f"{ad} & {holes_remaining}" if holes_remaining > 0 else f"{ad} UP"
-            match_status["display_value"] = val
-            match_status["status_string"] = f"{team_b_name} wins {val}"
+        if is_match_play and decided_status:
+            match_status["display_value"] = decided_status
+            match_status["status_string"] = f"{team_b_name} wins {decided_status}"
         elif match_status["is_completed"]:
             match_status["display_value"] = f"{ad} UP"
             match_status["status_string"] = f"Final: {team_b_name} wins {ad} UP"
