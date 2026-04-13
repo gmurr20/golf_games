@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import backend from '../api/backend';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import './ViewScorecard.css';
+
 
 export default function LiveScorecard() {
     const { matchupId } = useParams();
@@ -82,10 +84,10 @@ export default function LiveScorecard() {
             </header>
 
             <Card className="animate-slide-up" style={{ padding: '0', overflow: 'hidden' }}>
-                <table className="golf-scorecard-table" style={{ minWidth: '100%', margin: '0' }}>
+                <table className="sc-table" style={{ minWidth: '100%', margin: '0' }}>
                     <thead>
-                        <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
-                            <th className="sc-label-cell">
+                        <tr className="sc-header-row">
+                            <th className="sc-label">
                                 <span className="sc-label-full">Hole</span>
                                 <span className="sc-label-initials">H</span>
                             </th>
@@ -93,8 +95,8 @@ export default function LiveScorecard() {
                                 <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
                             ))}
                         </tr>
-                        <tr>
-                            <td className="sc-label-cell">
+                        <tr className="sc-par-row">
+                            <td className="sc-label">
                                 <span className="sc-label-full">Par</span>
                                 <span className="sc-label-initials">P</span>
                             </td>
@@ -102,8 +104,8 @@ export default function LiveScorecard() {
                                 <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
                             ))}
                         </tr>
-                        <tr>
-                            <td className="sc-label-cell">
+                        <tr className="sc-yard-row">
+                            <td className="sc-label">
                                 <span className="sc-label-full">Yard</span>
                                 <span className="sc-label-initials">Y</span>
                             </td>
@@ -114,7 +116,7 @@ export default function LiveScorecard() {
                     </thead>
                     <tbody>
                         <tr className="sc-match-row">
-                            <td className="sc-label-cell">
+                            <td className="sc-label">
                                 <span className="sc-match-label-full">Match</span>
                                 <span className="sc-label-initials">M</span>
                             </td>

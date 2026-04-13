@@ -376,14 +376,20 @@ export default function PlayRound() {
                     <table className="golf-scorecard-table">
                         <thead>
                             <tr>
-                                <th className="sc-label-cell">{label}</th>
+                                <th className="sc-label-cell">
+                                    <span className="sc-label-full">{label}</span>
+                                    <span className="sc-label-initials">{label}</span>
+                                </th>
                                 {holes.map(h => (
                                     <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
                                 ))}
                                 <th className="sc-total-header">TOT</th>
                             </tr>
                             <tr className="sc-par-row">
-                                <td className="sc-label-cell">Par</td>
+                                <td className="sc-label-cell">
+                                    <span className="sc-label-full">Par</span>
+                                    <span className="sc-label-initials">P</span>
+                                </td>
                                 {holes.map(h => (
                                     <td key={h.hole_number} className="sc-par-cell">{h.par}</td>
                                 ))}
@@ -546,7 +552,10 @@ export default function PlayRound() {
                     <table className="golf-scorecard-table">
                         <thead>
                             <tr>
-                                <th className="sc-label-cell">Total</th>
+                                <th className="sc-label-cell">
+                                    <span className="sc-label-full">Total</span>
+                                    <span className="sc-label-initials">T</span>
+                                </th>
                                 <th className="sc-total-header">OUT</th>
                                 <th className="sc-total-header">IN</th>
                                 <th className="sc-total-header">TOT</th>

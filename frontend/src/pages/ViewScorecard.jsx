@@ -115,6 +115,7 @@ export default function ViewScorecard() {
                     <tr className="sc-par-row">
                         <td className="sc-label">
                             <span className="sc-label-full">Par</span>
+                            <span className="sc-label-initials">P</span>
                         </td>
                         {holes.map(h => (
                             <td key={h.hole_number}>{h.par}</td>
@@ -124,6 +125,7 @@ export default function ViewScorecard() {
                     <tr className="sc-yard-row">
                         <td className="sc-label">
                             <span className="sc-label-full">Yard</span>
+                            <span className="sc-label-initials">Y</span>
                         </td>
                         {holes.map(h => (
                             <td key={h.hole_number}>{h.yardage || '–'}</td>
