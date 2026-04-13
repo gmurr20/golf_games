@@ -461,7 +461,7 @@ def get_public_scorecard(tournament_id, tee_id):
                     # Player general stats
                     p_st_gen = ms.get('player_stats', {}).get(mp.player_id, {})
                     handicap_index = p_st_gen.get('handicap_index', 0)
-                    total_pops = p_st_gen.get('playing_handicap', 0)
+                    total_pops = p_st_gen.get('course_handicap', 0)
                     
                     # Pull pops from the full 18-hole mapping in player_stats
                     pops = p_st_gen.get('pops_per_hole', {}).get(h.hole_number, 0)

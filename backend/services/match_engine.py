@@ -37,7 +37,8 @@ def calculate_match_status(matchup_id: int) -> dict:
     # Calculate handicaps and pops
     all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
     
-    if matchup.format == 'shamble':
+    m_format = (matchup.format or 'individual').lower()
+    if m_format == 'shamble':
         # Shamble uses 75% for 2-person, 65% for 4-person
         team_size = len(team_a_pids)
         shamble_type = "4-person" if team_size >= 4 else "2-person"
