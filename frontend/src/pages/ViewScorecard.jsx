@@ -121,10 +121,20 @@ export default function ViewScorecard() {
                         ))}
                         <td className="sc-total">{holes.reduce((s, h) => s + h.par, 0)}</td>
                     </tr>
+                    <tr className="sc-yard-row">
+                        <td className="sc-label">
+                            <span className="sc-label-full">Yard</span>
+                        </td>
+                        {holes.map(h => (
+                            <td key={h.hole_number}>{h.yardage || '–'}</td>
+                        ))}
+                        <td className="sc-total">{holes.reduce((s, h) => s + (h.yardage || 0), 0) || '–'}</td>
+                    </tr>
                     {data.scoring_type === 'match_play' && (
                         <tr className="sc-match-row">
                             <td className="sc-label">
                                 <span className="sc-match-label-full">Match</span>
+                                <span className="sc-label-initials">M</span>
                             </td>
                             {holes.map(h => {
                                 const mr = h.match_result;
@@ -194,7 +204,7 @@ export default function ViewScorecard() {
                     )}
                     {data.format && data.scoring_type && (
                         <span className="match-format-badge">
-                            {data.format.charAt(0).toUpperCase() + data.format.slice(1)} {data.scoring_type === 'match_play' ? 'Match Play' : 'Stroke Play'} Net
+                            {data.format.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ')} {data.scoring_type === 'match_play' ? 'Match Play' : 'Stroke Play'} Net
                         </span>
                     )}
                 </div>

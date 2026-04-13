@@ -455,21 +455,24 @@ def get_public_scorecard(tournament_id, tee_id):
                 pops = 0
                 handicap_index = 0
                 total_pops = 0
+
                 if m.id in matchup_stats:
                     ms = matchup_stats[m.id]
-                    # Hole stats
+                    # Player general stats
+                    p_st_gen = ms.get('player_stats', {}).get(mp.player_id, {})
+                    handicap_index = p_st_gen.get('handicap_index', 0)
+                    total_pops = p_st_gen.get('playing_handicap', 0)
+                    
+                    # Pull pops from the full 18-hole mapping in player_stats
+                    pops = p_st_gen.get('pops_per_hole', {}).get(h.hole_number, 0)
+                    
+                    # Hole-specific stats (raw/net)
                     h_st = next((sh for sh in ms['scorecard'] if sh['hole_number'] == h.hole_number), None)
                     if h_st:
                         p_st_hole = h_st['players'].get(mp.player_id)
                         if p_st_hole:
                             raw = p_st_hole.get('raw')
                             net = p_st_hole.get('net')
-                            pops = p_st_hole.get('pops', 0)
-                    
-                    # Player general stats
-                    p_st_gen = ms.get('player_stats', {}).get(mp.player_id, {})
-                    handicap_index = p_st_gen.get('handicap_index', 0)
-                    total_pops = p_st_gen.get('playing_handicap', 0)
 
                 p = player_map.get(mp.player_id)
                 hole_data["players"][str(mp.player_id)] = {

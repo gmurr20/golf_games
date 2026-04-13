@@ -324,7 +324,7 @@ export default function PlayRound() {
 
     const formatMatchName = (format, scoring) => {
         if (!format || !scoring) return '';
-        const fmt = format.charAt(0).toUpperCase() + format.slice(1);
+        const fmt = format.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
         const scr = scoring === 'match_play' ? 'Match Play' : 'Stroke Play';
         return `${fmt} ${scr} Net`;
     };
@@ -395,6 +395,7 @@ export default function PlayRound() {
                                 <tr className="sc-match-row">
                                     <td className="sc-label-cell">
                                         <span className="sc-match-label-full">Match</span>
+                                        <span className="sc-label-initials">M</span>
                                     </td>
                                     {holes.map(h => {
                                         const mr = h.match_result;

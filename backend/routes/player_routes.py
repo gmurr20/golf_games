@@ -332,14 +332,18 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             pops = 0
             if matchup.id in matchup_stats:
                 ms = matchup_stats[matchup.id]
-                # Find hole in ms scorecard
+                # Player general stats
+                p_st_gen = ms.get('player_stats', {}).get(pid, {})
+                # Pull pops from the full 18-hole mapping in player_stats
+                pops = p_st_gen.get('pops_per_hole', {}).get(h.hole_number, 0)
+
+                # Find hole in ms scorecard for scores
                 h_st = next((sh for sh in ms['scorecard'] if sh['hole_number'] == h.hole_number), None)
                 if h_st:
                     p_st = h_st['players'].get(pid)
                     if p_st:
                         raw = p_st.get('raw')
                         net = p_st.get('net')
-                        pops = p_st.get('pops', 0)
 
             hole_data["players"][str(pid)] = {
                 "name": pdata.get("name", "Unknown"),

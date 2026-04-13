@@ -612,7 +612,7 @@
     min-width: 60px;
 }
 
-.sc-name-initials, .sc-label-initials {
+.sc-name-initials, .sc-label-initials, .sc-match-label-initials {
     display: none;
 }
 
@@ -623,12 +623,10 @@
     .sc-name-initials, .sc-label-initials {
         display: inline;
     }
-    .sc-label-cell {
-        min-width: 30px;
-        padding-left: 4px !important;
-    }
-    .sc-player-name {
-        padding-left: 4px !important;
+    .sc-label-cell, .sc-player-name {
+        min-width: 40px !important;
+        padding-left: 8px !important;
+        text-align: left !important;
     }
     .hole-number-label {
         font-size: 1.2rem;

@@ -77,8 +77,8 @@ def calculate_match_status(matchup_id: int) -> dict:
             s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
             course_handicaps[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
         playing_handicaps = match_playing_handicaps
-        pops_per_hole = match_pops_per_hole
-        stats_pops_per_hole = course_pops_per_hole # Used for net score calculation
+        pops_per_hole = match_pops_per_hole # Match relative for winner logic
+        stats_pops_per_hole = course_pops_per_hole # Course (allowance) pops for display/leaderboard
     else:
         # Standard calculations
         # CH is used for Course Net
@@ -89,19 +89,25 @@ def calculate_match_status(matchup_id: int) -> dict:
             ch_dict[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
         
         # PH (Relative) is used for Match Standings UI dots
-        playing_handicaps = calculate_playing_handicaps(ch_dict)
+        is_match_play = matchup.scoring_type == 'match_play'
+        if is_match_play:
+            playing_handicaps = calculate_playing_handicaps(ch_dict)
+        else:
+            playing_handicaps = ch_dict # Full strokes for stroke play
+            
         course_handicaps = ch_dict
         
-        # Course Pops (Full CH) for stats/leaderboard
+        # Course Pops (Full CH) for stats/leaderboard and visual dots
         stats_pops_per_hole = {
             p.id: allocate_pops(course_handicaps[p.id], all_holes)
             for p in players
         }
-        # Match Pops (Relative) for visual dots
-        pops_per_hole = {
+        # Match Pops (Relative) for internal winner determination logic if match play
+        match_pops_per_hole = {
             p.id: allocate_pops(playing_handicaps[p.id], all_holes)
             for p in players
         }
+        pops_per_hole = match_pops_per_hole # Used for winner determination
     
     # Fetch Scores
     scores = Score.query.filter_by(matchup_id=matchup_id).all()
@@ -124,7 +130,8 @@ def calculate_match_status(matchup_id: int) -> dict:
                 "course_handicap": course_handicaps[pid],
                 "playing_handicap": playing_handicaps[pid],
                 "handicap_index": player_map[pid].handicap_index,
-                "pops_per_hole": pops_per_hole[pid]
+                "pops_per_hole": pops_per_hole[pid], # Relative pops (for dots)
+                "course_pops_per_hole": stats_pops_per_hole[pid]
             } for pid in team_a_pids + team_b_pids
         }
     }
@@ -145,6 +152,7 @@ def calculate_match_status(matchup_id: int) -> dict:
         hole_data = {
             "hole_number": h.hole_number,
             "par": h.par,
+            "yardage": h.yardage,
             "handicap_index": h.handicap_index,
             "players": {},
             "winner": None
@@ -156,22 +164,27 @@ def calculate_match_status(matchup_id: int) -> dict:
         
         for pid in team_a_pids + team_b_pids:
             raw_score = scores_by_hole_player.get(h.hole_number, {}).get(pid)
+            
+            # ALWAYS provide player metadata and dots for this hole
+            # 'net' is course-relative (Full CH) for leaderboard/stats
+            # 'pops' is Course Pops for literal visual display on scorecard
+            c_pops = stats_pops_per_hole[pid].get(h.hole_number, 0)
+            m_pops = pops_per_hole[pid].get(h.hole_number, 0)
+            
+            hole_data["players"][pid] = {
+                "raw": raw_score,
+                "net": raw_score - c_pops if raw_score is not None else None,
+                "match_net": raw_score - m_pops if raw_score is not None else None,
+                "pops": m_pops, # Show relative dots for match-centric UI
+                "course_pops": c_pops 
+            }
+
             if raw_score is not None:
-                # 'net' is course-relative (Full CH) for leaderboard/stats
-                course_net = raw_score - stats_pops_per_hole[pid].get(h.hole_number, 0)
-                # 'match_net' is match-relative (Reduced PH) for winner determination
-                match_net = raw_score - pops_per_hole[pid].get(h.hole_number, 0)
-                
-                hole_data["players"][pid] = {
-                    "raw": raw_score,
-                    "net": course_net,
-                    "match_net": match_net,
-                    "pops": pops_per_hole[pid].get(h.hole_number, 0)
-                }
+                m_net = hole_data["players"][pid]["match_net"]
                 if pid in team_a_pids:
-                    a_scores.append(match_net)
+                    a_scores.append(m_net)
                 else:
-                    b_scores.append(match_net)
+                    b_scores.append(m_net)
                     
         if a_scores and b_scores:
             match_status["holes_played"] += 1

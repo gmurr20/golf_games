@@ -29,7 +29,7 @@ export default function LiveScorecard() {
 
     const formatMatchName = (format, scoring) => {
         if (!format || !scoring) return '';
-        const fmt = format.charAt(0).toUpperCase() + format.slice(1);
+        const fmt = format.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.substring(1)).join(' ');
         const scr = scoring === 'match_play' ? 'Match Play' : 'Stroke Play';
         return `${fmt} ${scr} Net`;
     };
@@ -102,11 +102,21 @@ export default function LiveScorecard() {
                                 <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
                             ))}
                         </tr>
+                        <tr>
+                            <td className="sc-label-cell">
+                                <span className="sc-label-full">Yard</span>
+                                <span className="sc-label-initials">Y</span>
+                            </td>
+                            {data.scorecard.map(h => (
+                                <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.yardage || '–'}</td>
+                            ))}
+                        </tr>
                     </thead>
                     <tbody>
                         <tr className="sc-match-row">
                             <td className="sc-label-cell">
                                 <span className="sc-match-label-full">Match</span>
+                                <span className="sc-label-initials">M</span>
                             </td>
                             {(() => {
                                 let running = 0;
