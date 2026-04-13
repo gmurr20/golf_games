@@ -8,11 +8,22 @@ export default function PlayerStats() {
     const { playerId } = useParams();
     const navigate = useNavigate();
     const [data, setData] = useState(null);
+    const [compInfo, setCompInfo] = useState({ name: 'Golf Games' });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchStats();
+        fetchCompInfo();
     }, [playerId]);
+
+    const fetchCompInfo = async () => {
+        try {
+            const res = await backend.get('/competition/active');
+            setCompInfo(res.data);
+        } catch (e) {
+            console.error('Failed to fetch competition info', e);
+        }
+    };
 
     const fetchStats = async () => {
         try {
@@ -55,7 +66,14 @@ export default function PlayerStats() {
     return (
         <div className="player-stats-container animate-slide-up">
             <header className="player-stats-header">
-                <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
+                <div className="player-stats-brand-header">
+                    <div className="player-stats-brand-left">
+                        <img src="/full-logo.jpg" alt="Logo" className="player-stats-logo-mini" />
+                        <span className="player-stats-brand-title">Golf Games</span>
+                    </div>
+                    <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
+                </div>
+                <span className="player-stats-subtitle">{compInfo.name}</span>
                 <h1>Player Profile</h1>
             </header>
 
@@ -84,6 +102,15 @@ export default function PlayerStats() {
                         <span className="record-label">Points Contributed</span>
                         <span className="record-value">{total_points.toFixed(1)} PTS</span>
                     </div>
+                    
+                    {/* Visual performance bar */}
+                    {(wins + losses + ties) > 0 && (
+                        <div className="record-bar">
+                            <div className="record-segment win" style={{ width: `${(wins / (wins + losses + ties)) * 100}%` }}></div>
+                            <div className="record-segment tie" style={{ width: `${(ties / (wins + losses + ties)) * 100}%` }}></div>
+                            <div className="record-segment loss" style={{ width: `${(losses / (wins + losses + ties)) * 100}%` }}></div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -120,20 +147,34 @@ export default function PlayerStats() {
                                 <div className="round-info">
                                     <span className="round-course">{r.course_name}</span>
                                     <span className="round-meta">
-                                        {new Date(r.tee_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {r.completed_holes} Holes
+                                        {new Date(r.tee_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                        &nbsp; {r.completed_holes} Holes
+                                        <span className="round-format-tag">
+                                            {r.format === 'individual' ? 'IND' : r.format?.replace('_', ' ')}
+                                        </span>
                                     </span>
                                 </div>
                                 <div className="round-scores">
                                     <div className="score-block">
-                                        <span className={`score-val ${r.to_par.startsWith('-') ? 'under' : r.to_par.startsWith('+') ? 'over' : ''}`}>
-                                            {r.to_par}
-                                        </span>
+                                        <div className="score-main-row">
+                                            <div className="score-val-wrapper">
+                                                <span className="score-val">{r.gross_score}</span>
+                                                <span className={`score-rel ${r.to_par.startsWith('-') ? 'under' : r.to_par.startsWith('+') ? 'over' : ''}`}>
+                                                    {r.to_par}
+                                                </span>
+                                            </div>
+                                        </div>
                                         <span className="score-label">GROSS</span>
                                     </div>
                                     <div className="score-block">
-                                        <span className={`score-val ${r.net_to_par.startsWith('-') ? 'under' : r.net_to_par.startsWith('+') ? 'over' : ''}`}>
-                                            {r.net_to_par}
-                                        </span>
+                                        <div className="score-main-row">
+                                            <div className="score-val-wrapper">
+                                                <span className="score-val">{r.net_score}</span>
+                                                <span className={`score-rel ${r.net_to_par.startsWith('-') ? 'under' : r.net_to_par.startsWith('+') ? 'over' : ''}`}>
+                                                    {r.net_to_par}
+                                                </span>
+                                            </div>
+                                        </div>
                                         <span className="score-label">NET</span>
                                     </div>
                                 </div>
@@ -151,13 +192,20 @@ export default function PlayerStats() {
                         <div className="list-empty">No matchups played yet.</div>
                     ) : (
                         matchups.map((m, i) => (
-                            <div key={m.id} className="matchup-history-item">
-                                <span className="matchup-course">{m.course_name} • {m.format.replace('_', ' ')}</span>
+                            <div 
+                                key={m.id} 
+                                className="matchup-history-item"
+                                onClick={() => navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?matchup_id=${m.id}`)}
+                            >
+                                <span className="matchup-course">
+                                    {m.course_name} • {m.format === 'individual' ? 'IND' : m.format?.replace('_', ' ')}
+                                </span>
                                 <div className="matchup-main">
                                     <span className="matchup-opponents">vs {m.opponents.join(' & ')}</span>
                                     <span className={`matchup-result-badge ${
-                                        m.result.includes('Won') || m.result.includes('UP') ? 'win' : 
-                                        m.result.includes('Lost') || m.result.includes('DN') ? 'loss' : 'tie'
+                                        !m.is_completed ? 'tie' :
+                                        m.winner === 'Push' ? 'tie' :
+                                        m.winner === m.my_team ? 'win' : 'loss'
                                     }`}>
                                         {m.result}
                                     </span>

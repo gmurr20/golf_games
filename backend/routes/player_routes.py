@@ -585,7 +585,19 @@ def get_player_stats(player_id):
 
         matchup_result = "Upcoming"
         if ms.get('holes_played', 0) > 0:
-            matchup_result = ms.get('display_value', 'In Progress')
+            val = ms.get('display_value', 'In Progress')
+            # Localize result string to the current player's perspective
+            if ms.get('leading_team'):
+                if ms['leading_team'] == my_team:
+                    matchup_result = val
+                else:
+                    if "UP" in val:
+                        matchup_result = val.replace("UP", "DN")
+                    else:
+                        matchup_result = f"Lost {val}"
+            else:
+                matchup_result = val
+
             if ms.get('display_thru'):
                 matchup_result += f" {ms['display_thru']}"
 
@@ -598,7 +610,9 @@ def get_player_stats(player_id):
             "format": m.format,
             "opponents": opponents,
             "result": matchup_result,
-            "is_completed": ms.get('is_completed', False)
+            "is_completed": ms.get('is_completed', False),
+            "winner": res.get('winner'),
+            "my_team": my_team
         })
 
     # Round History
@@ -646,6 +660,7 @@ def get_player_stats(player_id):
             "tee_time": group_matchups[0].tee_time.isoformat() if group_matchups[0].tee_time else None,
             "course_name": course.name if course else "Unknown",
             "tee_name": tee.name if tee else "Unknown",
+            "format": group_matchups[0].format if group_matchups else "individual",
             "gross_score": gross_total,
             "net_score": net_total,
             "to_par": f"+{to_par}" if to_par > 0 else ("E" if to_par == 0 else str(to_par)),
