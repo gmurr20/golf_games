@@ -34,6 +34,11 @@ export default function LiveScorecard() {
         return `${fmt} ${scr} Net`;
     };
 
+    const getInitials = (name) => {
+        if (!name) return '';
+        return name.split(' ').map(part => part[0]).join('').toUpperCase();
+    };
+
     if (loading && !data) {
         return (
             <div className="play-container">
@@ -80,13 +85,19 @@ export default function LiveScorecard() {
                 <table className="golf-scorecard-table" style={{ minWidth: '100%', margin: '0' }}>
                     <thead>
                         <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
-                            <th className="sc-label-cell">Hole</th>
+                            <th className="sc-label-cell">
+                                <span className="sc-label-full">Hole</span>
+                                <span className="sc-label-initials">H</span>
+                            </th>
                             {data.scorecard.map(h => (
                                 <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
                             ))}
                         </tr>
                         <tr>
-                            <td className="sc-label-cell">Par</td>
+                            <td className="sc-label-cell">
+                                <span className="sc-label-full">Par</span>
+                                <span className="sc-label-initials">P</span>
+                            </td>
                             {data.scorecard.map(h => (
                                 <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
                             ))}
@@ -94,7 +105,9 @@ export default function LiveScorecard() {
                     </thead>
                     <tbody>
                         <tr className="sc-match-row">
-                            <td className="sc-label-cell">Match</td>
+                            <td className="sc-label-cell">
+                                <span className="sc-match-label-full">Match</span>
+                            </td>
                             {(() => {
                                 let running = 0;
                                 return data.scorecard.map(h => {

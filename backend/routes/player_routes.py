@@ -622,6 +622,48 @@ def get_player_stats(player_id):
     return jsonify(stats), 200
 
 
+@player_bp.route('/matchups/<int:matchup_id>/finalize', methods=['POST'])
+def finalize_matchup(matchup_id):
+    """
+    Validate that all holes for all players in the matchup have scores,
+    then mark the matchup as completed.
+    """
+    matchup = db.session.get(Matchup, matchup_id)
+    if not matchup:
+        return jsonify({"error": "Matchup not found"}), 404
+        
+    # Get all players in this matchup
+    mps = MatchupPlayer.query.filter_by(matchup_id=matchup_id).all()
+    player_ids = [mp.player_id for mp in mps]
+    
+    # Determine the range of holes
+    hole_start = matchup.hole_start or 1
+    hole_end = matchup.hole_end or 18
+    
+    # Check every hole for every player
+    for h_num in range(hole_start, hole_end + 1):
+        for pid in player_ids:
+            score = Score.query.filter_by(
+                matchup_id=matchup_id,
+                player_id=pid,
+                hole_number=h_num
+            ).first()
+            if not score:
+                p = db.session.get(Player, pid)
+                player_name = p.name if p else "Unknown Player"
+                return jsonify({
+                    "error": "Incomplete Scores",
+                    "message": f"Hole {h_num} is missing a score for {player_name}.",
+                    "missing_hole": h_num
+                }), 400
+                
+    # If all scores are present, update status
+    matchup.status = 'completed'
+    db.session.commit()
+    
+    return jsonify({"status": "success", "message": "Matchup finalized"}), 200
+
+
 @player_bp.route('/scores/batch', methods=['POST'])
 def batch_upsert_scores():
     """Accept an array of scores and upsert them all."""

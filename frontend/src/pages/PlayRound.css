@@ -5,7 +5,7 @@
 .play-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: var(--spacing-4);
+    padding: var(--spacing-3);
     min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
@@ -43,7 +43,7 @@
 /* Hole Header */
 .hole-header {
     text-align: center;
-    margin-bottom: var(--spacing-4);
+    margin-bottom: var(--spacing-2);
 }
 
 .hole-header-top {
@@ -82,7 +82,7 @@
 
 
 .hole-number-label {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--color-text);
     margin: 0;
@@ -92,7 +92,7 @@
 .hole-info-row {
     display: flex;
     justify-content: center;
-    gap: var(--spacing-4);
+    gap: var(--spacing-2);
     margin-top: var(--spacing-1);
 }
 
@@ -170,7 +170,7 @@
 .score-entries {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-3);
+    gap: var(--spacing-2);
     flex: 1;
 }
 
@@ -178,7 +178,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-4);
+    padding: var(--spacing-2) var(--spacing-3);
     box-shadow: var(--shadow-sm);
     transition: border-color 0.2s ease;
 }
@@ -192,7 +192,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-3);
+    margin-bottom: var(--spacing-1);
 }
 
 .score-entry-name {
@@ -247,8 +247,8 @@
 }
 
 .stepper-btn {
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 2px solid var(--color-border);
     background: var(--color-surface);
@@ -277,9 +277,9 @@
 }
 
 .stepper-value {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 800;
-    min-width: 60px;
+    min-width: 50px;
     text-align: center;
     line-height: 1;
     letter-spacing: -1px;
@@ -301,15 +301,15 @@
 
 /* Bottom Actions */
 .play-bottom-actions {
-    margin-top: var(--spacing-4);
+    margin-top: var(--spacing-2);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-3);
+    gap: var(--spacing-2);
 }
 
 .save-next-btn {
     width: 100%;
-    padding: var(--spacing-4);
+    padding: var(--spacing-3);
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
     color: #fff;
     border: none;
@@ -610,7 +610,29 @@
     letter-spacing: 0.5px;
     color: var(--color-text-light);
     min-width: 60px;
-    white-space: nowrap;
+}
+
+.sc-name-initials, .sc-label-initials {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .sc-name-full, .sc-match-label-full, .sc-label-full {
+        display: none;
+    }
+    .sc-name-initials, .sc-label-initials {
+        display: inline;
+    }
+    .sc-label-cell {
+        min-width: 30px;
+        padding-left: 4px !important;
+    }
+    .sc-player-name {
+        padding-left: 4px !important;
+    }
+    .hole-number-label {
+        font-size: 1.2rem;
+    }
 }
 
 .sc-hole-header {
@@ -893,3 +915,70 @@
     }
 }
 
+
+/* ==========================================
+   VALIDATION ERROR BANNER
+   ========================================== */
+.validation-error-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: hsla(0, 70%, 50%, 0.08); /* Minimal red tint */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsla(0, 70%, 50%, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-3);
+    margin-bottom: var(--spacing-3);
+    gap: var(--spacing-3);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.1);
+}
+
+.error-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.error-icon {
+    font-size: 1.2rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.error-message {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: hsl(0, 70%, 45%);
+    line-height: 1.4;
+}
+
+.error-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: hsl(0, 70%, 45%);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-close:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+@media (prefers-color-scheme: dark) {
+    .error-message, .error-close {
+        color: hsl(0, 85%, 75%);
+    }
+    .validation-error-banner {
+        background: hsla(0, 80%, 40%, 0.15);
+        border-color: hsla(0, 80%, 40%, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+}

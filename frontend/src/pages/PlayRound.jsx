@@ -10,6 +10,7 @@ export default function PlayRound() {
     const { tournamentId, teeId } = useParams();
     const [searchParams] = useSearchParams();
     const teeTime = searchParams.get('tee_time');
+    const source = searchParams.get('source');
     const navigate = useNavigate();
 
     const [scorecard, setScorecard] = useState(null);
@@ -19,8 +20,8 @@ export default function PlayRound() {
     const [saving, setSaving] = useState(false);
     const [complete, setComplete] = useState(false);
     const [viewingScorecard, setViewingScorecard] = useState(false);
-    const [editing, setEditing] = useState(false); // user tapped "Edit Scores" from scorecard
-    const [matchResults, setMatchResults] = useState([]);
+    const [editing, setEditing] = useState(false); // user tapped "Edit Scores" or a scorecard cell
+    const [validationError, setValidationError] = useState(null);
     const playerId = parseInt(localStorage.getItem(STORAGE_PLAYER_ID));
     const saveTimeoutRef = useRef(null);
 
@@ -137,7 +138,7 @@ export default function PlayRound() {
             ...prev,
             [holeNum]: {
                 ...prev[holeNum],
-                [String(pid)]: value === undefined ? undefined : Math.max(1, value),
+                [String(pid)]: value === undefined ? undefined : (value === null ? null : Math.max(1, value)),
             }
         }));
     };
@@ -146,23 +147,40 @@ export default function PlayRound() {
         return holeData?.par || 4;
     };
 
-    // Save scores for current hole and advance
-    const handleSaveAndNext = async () => {
-        if (!currentHoleData) return;
-        setSaving(true);
+    // New helper to persist scores for a specific hole
+    const saveHoleScores = async (holeNum) => {
+        const holeData = getHoleData(holeNum);
+        if (!holeData) return;
 
+        setSaving(true);
         const batchScores = [];
-        const playerEntries = Object.entries(currentHoleData.players);
+        const playerEntries = Object.entries(holeData.players);
 
         for (const [pid, pdata] of playerEntries) {
-            const rawScore = getScore(currentHole, pid);
-            const strokes = rawScore !== undefined ? rawScore : defaultScoreForHole(currentHoleData);
-            setPlayerScore(currentHole, pid, strokes);
+            const rawScore = getScore(holeNum, pid);
+            
+            // If explicitly cleared (null), send null to backend to delete
+            if (rawScore === null) {
+                batchScores.push({
+                    matchup_id: holeData.matchup_id,
+                    player_id: parseInt(pid),
+                    hole_number: holeNum,
+                    strokes: null,
+                });
+                continue;
+            }
+
+            const strokes = rawScore !== undefined ? rawScore : defaultScoreForHole(holeData);
+            
+            // Sync local state if it was undefined (using default)
+            if (rawScore === undefined) {
+                setPlayerScore(holeNum, pid, strokes);
+            }
 
             batchScores.push({
-                matchup_id: currentHoleData.matchup_id,
+                matchup_id: holeData.matchup_id,
                 player_id: parseInt(pid),
-                hole_number: currentHole,
+                hole_number: holeNum,
                 strokes: strokes,
             });
         }
@@ -171,47 +189,53 @@ export default function PlayRound() {
             await backend.post('/scores/batch', batchScores);
         } catch (e) {
             console.error('Failed to save scores', e);
+        } finally {
+            setSaving(false);
         }
+    };
+
+    // Save scores for current hole and advance
+    const handleSaveAndNext = async () => {
+        if (!currentHoleData) return;
+        await saveHoleScores(currentHole);
 
         if (scorecard) {
             const holes = scorecard.scorecard;
             const currentIdx = holes.findIndex(h => h.hole_number === currentHole);
             if (currentIdx < holes.length - 1) {
+                setValidationError(null);
                 setCurrentHole(holes[currentIdx + 1].hole_number);
             } else {
-                setComplete(true);
-                localStorage.removeItem(STORAGE_ACTIVE_ROUND);
+                // Finalize round on server
+                setSaving(true);
+                try {
+                    await backend.post(`/matchups/${currentHoleData.matchup_id}/finalize`);
+                    setComplete(true);
+                    setValidationError(null);
+                    localStorage.removeItem(STORAGE_ACTIVE_ROUND);
+                } catch (e) {
+                    if (e.response && e.response.status === 400) {
+                        setValidationError(e.response.data.message);
+                        if (e.response.data.missing_hole) {
+                            setCurrentHole(e.response.data.missing_hole);
+                            // Scroll to top to see the error
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    } else {
+                        setValidationError('Failed to finish round. Please try again.');
+                    }
+                    console.error('Finalization failed', e);
+                } finally {
+                    setSaving(false);
+                }
             }
         }
-
-        setSaving(false);
     };
 
     // Save a single hole (used when editing from scorecard)
     const handleSaveCurrentHole = async () => {
         if (!currentHoleData) return;
-        setSaving(true);
-
-        const batchScores = [];
-        for (const [pid, pdata] of Object.entries(currentHoleData.players)) {
-            const rawScore = getScore(currentHole, pid);
-            const strokes = rawScore !== undefined ? rawScore : defaultScoreForHole(currentHoleData);
-            setPlayerScore(currentHole, pid, strokes);
-            batchScores.push({
-                matchup_id: currentHoleData.matchup_id,
-                player_id: parseInt(pid),
-                hole_number: currentHole,
-                strokes: strokes,
-            });
-        }
-
-        try {
-            await backend.post('/scores/batch', batchScores);
-        } catch (e) {
-            console.error('Failed to save scores', e);
-        }
-
-        setSaving(false);
+        await saveHoleScores(currentHole);
         setEditing(false);
         
         // Check if all holes are actually complete before forcing complete
@@ -232,7 +256,7 @@ export default function PlayRound() {
         setSaving(true);
         const batchScores = [];
         for (const pid of Object.keys(currentHoleData.players)) {
-            setPlayerScore(currentHole, pid, undefined);
+            setPlayerScore(currentHole, pid, null);
             batchScores.push({
                 matchup_id: currentHoleData.matchup_id,
                 player_id: parseInt(pid),
@@ -331,6 +355,11 @@ export default function PlayRound() {
         return `${fmt} ${scr} Net`;
     };
 
+    const getInitials = (name) => {
+        if (!name) return '';
+        return name.split(' ').map(part => part[0]).join('').toUpperCase();
+    };
+
     // ===== LOADING =====
     if (loading || !scorecard) {
         return (
@@ -390,7 +419,9 @@ export default function PlayRound() {
                             </tr>
                             {holes.some(h => h.match_result) && (
                                 <tr className="sc-match-row">
-                                    <td className="sc-label-cell">Match</td>
+                                    <td className="sc-label-cell">
+                                        <span className="sc-match-label-full">Match</span>
+                                    </td>
                                     {holes.map(h => {
                                         const mr = h.match_result;
                                         let display = '–';
@@ -421,7 +452,8 @@ export default function PlayRound() {
                                 return (
                                     <tr key={pid} className={isMe ? 'sc-me-row' : ''}>
                                         <td className="sc-player-name">
-                                            {name}
+                                            <span className="sc-name-full">{name}</span>
+                                            <span className="sc-name-initials">{getInitials(name)}</span>
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
                                         {holes.map(h => {
@@ -437,7 +469,7 @@ export default function PlayRound() {
                                                     className="sc-score-cell"
                                                     onClick={() => {
                                                         setCurrentHole(h.hole_number);
-                                                        setEditing(!complete);
+                                                        setEditing(true);
                                                         setViewingScorecard(false);
                                                         setComplete(false);
                                                     }}
@@ -472,7 +504,18 @@ export default function PlayRound() {
         return (
             <div className="play-container">
                 <div className="play-top-bar">
-                    <button className="play-back-btn" onClick={() => navigate(-1)}>
+                    <button className="play-back-btn" onClick={() => {
+                        if (source === 'admin') {
+                            navigate('/admin');
+                        } else {
+                            if (viewingScorecard) {
+                                setViewingScorecard(false);
+                                setEditing(false);
+                            } else {
+                                navigate(-1);
+                            }
+                        }
+                    }}>
                         ← Back
                     </button>
                     <span className="play-course-label">
@@ -552,7 +595,8 @@ export default function PlayRound() {
                                 return (
                                     <tr key={pid} className={isMe ? 'sc-me-row' : ''}>
                                         <td className="sc-player-name">
-                                            {name}
+                                            <span className="sc-name-full">{name}</span>
+                                            <span className="sc-name-initials">{getInitials(name)}</span>
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
                                         <td className="sc-total-cell">{outTotal || '–'}</td>
@@ -573,6 +617,7 @@ export default function PlayRound() {
                         className="edit-scores-btn"
                         onClick={() => {
                             setViewingScorecard(false);
+                            setEditing(false);
                             if (complete) {
                                 setEditing(true);
                                 setComplete(false);
@@ -609,7 +654,7 @@ export default function PlayRound() {
                 <button className="play-back-btn" onClick={() => {
                     if (isEditMode) {
                         setEditing(false);
-                        setComplete(true);
+                        setViewingScorecard(true);
                     } else if (viewingScorecard) {
                         setViewingScorecard(false);
                     } else {
@@ -626,6 +671,16 @@ export default function PlayRound() {
             {isEditMode && (
                 <div className="edit-mode-banner">
                     ✏️ Editing — tap Save when done
+                </div>
+            )}
+
+            {validationError && (
+                <div className="validation-error-banner animate-slide-up">
+                    <div className="error-content">
+                        <span className="error-icon">⚠️</span>
+                        <span className="error-message">{validationError}</span>
+                    </div>
+                    <button className="error-close" onClick={() => setValidationError(null)}>×</button>
                 </div>
             )}
 
@@ -648,7 +703,12 @@ export default function PlayRound() {
                                 <h1 className="hole-number-label">Hole {currentHole}</h1>
                                 
                                 {nextHole != null ? (
-                                    <button className="hole-nav-arrow" onClick={() => setCurrentHole(nextHole)}>
+                                    <button className="hole-nav-arrow" onClick={async () => {
+                                        if (!editing) {
+                                            await saveHoleScores(currentHole);
+                                        }
+                                        setCurrentHole(nextHole);
+                                    }}>
                                         &rsaquo;
                                     </button>
                                 ) : <div className="hole-nav-arrow-placeholder" />}
@@ -662,9 +722,6 @@ export default function PlayRound() {
                         <span className="hole-info-chip">{currentHoleData.yardage} yds</span>
                     )}
                     <span className="hole-info-chip">HDCP {currentHoleData?.handicap_index}</span>
-                    {scorecard.format && scorecard.scoring_type && (
-                        <span className="match-format-badge-mini">{formatMatchName(scorecard.format, scorecard.scoring_type)}</span>
-                    )}
                 </div>
             </div>
 
@@ -773,10 +830,13 @@ export default function PlayRound() {
                     Delete Hole Scores
                 </button>
 
-                {!complete && (
+                {(editing || !complete) && (
                     <button
                         className="view-scorecard-btn"
-                        onClick={() => setViewingScorecard(true)}
+                        onClick={() => {
+                            if (editing) setEditing(false);
+                            setViewingScorecard(true);
+                        }}
                         style={{marginTop: 'var(--spacing-2)', width: '100%', padding: 'var(--spacing-3)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--color-text)'}}
                     >
                         📊 View Full Scorecard
@@ -794,7 +854,12 @@ export default function PlayRound() {
                     <button
                         key={h.hole_number}
                         className={`hole-dot ${h.hole_number === currentHole ? 'active' : ''} ${isHoleComplete(h.hole_number) ? 'completed' : ''}`}
-                        onClick={() => setCurrentHole(h.hole_number)}
+                        onClick={async () => {
+                            if (h.hole_number !== currentHole) {
+                                await saveHoleScores(currentHole);
+                                setCurrentHole(h.hole_number);
+                            }
+                        }}
                     >
                         {h.hole_number}
                     </button>

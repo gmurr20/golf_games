@@ -143,6 +143,29 @@
     height: 44px;
 }
 
+.sc-name-initials, .sc-label-initials {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .sc-name-full, .sc-match-label-full, .sc-label-full {
+        display: none;
+    }
+    .sc-name-initials, .sc-label-initials {
+        display: inline;
+    }
+    .sc-label {
+        width: 30px !important;
+        padding-left: 4px !important;
+    }
+    .sc-player-name {
+        padding-left: 4px !important;
+    }
+    .view-scorecard-header h1 {
+        font-size: 1.2rem;
+    }
+}
+
 .sc-player-name {
     text-align: left !important;
     padding-left: var(--spacing-3) !important;

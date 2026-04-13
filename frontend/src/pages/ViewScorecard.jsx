@@ -79,6 +79,11 @@ export default function ViewScorecard() {
         return diff > 0 ? `+${diff}` : diff;
     };
 
+    const getInitials = (name) => {
+        if (!name) return '';
+        return name.split(' ').map(part => part[0]).join('').toUpperCase();
+    };
+
     const getScoreClass = (score, par) => {
         if (!score) return '';
         const diff = score - par;
@@ -110,7 +115,9 @@ export default function ViewScorecard() {
                         <th className="sc-total">TOT</th>
                     </tr>
                     <tr className="sc-par-row">
-                        <td className="sc-label">Par</td>
+                        <td className="sc-label">
+                            <span className="sc-label-full">Par</span>
+                        </td>
                         {holes.map(h => (
                             <td key={h.hole_number}>{h.par}</td>
                         ))}
@@ -118,7 +125,9 @@ export default function ViewScorecard() {
                     </tr>
                     {data.scoring_type === 'match_play' && (
                         <tr className="sc-match-row">
-                            <td className="sc-label">Match</td>
+                            <td className="sc-label">
+                                <span className="sc-match-label-full">Match</span>
+                            </td>
                             {holes.map(h => {
                                 const mr = h.match_result;
                                 if (!mr) return <td key={h.hole_number}>–</td>;
@@ -135,7 +144,10 @@ export default function ViewScorecard() {
                         return (
                             <tr key={pid} className="sc-player-row">
                                 <td className="sc-player-name">
-                                    <div className="sc-player-name-text">{players[pid].name}</div>
+                                    <div className="sc-player-name-text">
+                                        <span className="sc-name-full">{players[pid].name}</span>
+                                        <span className="sc-name-initials">{getInitials(players[pid].name)}</span>
+                                    </div>
                                     <div className="sc-player-hcp-sub">
                                         Idx: {players[pid].handicap_index} • {players[pid].total_pops} strokes
                                     </div>
@@ -200,7 +212,10 @@ export default function ViewScorecard() {
 
                     return (
                         <div key={pid} className="player-par-card">
-                            <div className="player-par-name">{p.name}</div>
+                            <div className="player-par-name">
+                                <span className="sc-name-full">{p.name}</span>
+                                <span className="sc-name-initials">{getInitials(p.name)}</span>
+                            </div>
                             <div className={`player-par-score ${diffClass}`}>{toPar}</div>
                         </div>
                     );

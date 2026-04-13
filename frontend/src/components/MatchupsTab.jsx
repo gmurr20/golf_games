@@ -164,6 +164,7 @@ export default function MatchupsTab({
         
         const params = new URLSearchParams();
         if (m.tee_time) params.set('tee_time', m.tee_time);
+        params.set('source', 'admin');
         
         navigate(`/play/${m.tournament_id}/${m.tee_id}?${params.toString()}`);
     };
