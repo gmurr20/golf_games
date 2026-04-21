@@ -128,6 +128,7 @@ def get_courses():
                 "id": t.id, "name": t.name, "par": t.par,
                 "rating": t.rating, "slope": t.slope,
                 "rating_female": t.rating_female, "slope_female": t.slope_female,
+                "total_yardage": sum(h.yardage for h in holes if h.yardage is not None),
                 "holes": [{
                     "id": h.id, "hole_number": h.hole_number,
                     "par": h.par, "yardage": h.yardage,
@@ -324,6 +325,7 @@ def get_course(id):
             "id": t.id, "name": t.name, "par": t.par,
             "rating": t.rating, "slope": t.slope,
             "rating_female": t.rating_female, "slope_female": t.slope_female,
+            "total_yardage": sum(h.yardage for h in holes if h.yardage is not None),
             "holes": [{
                 "id": h.id, "hole_number": h.hole_number,
                 "par": h.par, "yardage": h.yardage,
@@ -461,7 +463,7 @@ def get_matchups():
     
     if not tourney_ids: return jsonify([]), 200
     
-    matchups = Matchup.query.filter(Matchup.tournament_id.in_(tourney_ids)).order_by(Matchup.tee_time, Matchup.id).all()
+    matchups = Matchup.query.filter(Matchup.tournament_id.in_(tourney_ids)).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
     
     out = []
     for m in matchups:

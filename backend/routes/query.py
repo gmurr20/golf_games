@@ -50,7 +50,7 @@ def get_leaderboard():
     })))
 
     for t in tournaments:
-        matchups = Matchup.query.filter_by(tournament_id=t.id).all()
+        matchups = Matchup.query.filter_by(tournament_id=t.id).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
         for m in matchups:
             ms = calculate_match_status(m.id)
             res = calculate_overall_winner(m.id)
@@ -366,7 +366,7 @@ def get_public_scorecard(tournament_id, tee_id):
     matchups = Matchup.query.filter_by(
         tournament_id=tournament_id,
         tee_id=tee_id
-    ).all()
+    ).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
 
     # Filter by player_id if provided (useful for Awards/History split rounds)
     if player_id_param:

@@ -14,6 +14,7 @@ export default function MatchupsTab({
     const [mFormat, setMFormat] = useState('individual');
     const [mScoring, setMScoring] = useState('match_play');
     const [useHandicaps, setUseHandicaps] = useState(true);
+    const [mCourseId, setMCourseId] = useState('');
     const [mTeeId, setMTeeId] = useState('');
     const [teamA1, setTeamA1] = useState('');
     const [teamA2, setTeamA2] = useState('');
@@ -35,6 +36,7 @@ export default function MatchupsTab({
         setMFormat('individual');
         setMScoring('match_play');
         setUseHandicaps(true);
+        setMCourseId('');
         setMTeeId('');
         setTeamA1(''); setTeamA2('');
         setTeamB1(''); setTeamB2('');
@@ -271,14 +273,27 @@ export default function MatchupsTab({
                             </div>
                         </div>
 
-                        {/* Course / Tee */}
+                        {/* Course */}
                         <div className="matchup-field">
-                            <label>Course & Tee</label>
-                            <select value={mTeeId} onChange={e => setMTeeId(e.target.value)} required>
-                                <option value="">Select a course and tee...</option>
-                                {courses.flatMap(c => c.tees.map(t => (
-                                    <option key={t.id} value={t.id}>{c.name} — {t.name}</option>
-                                )))}
+                            <label>Course</label>
+                            <select value={mCourseId} onChange={e => { setMCourseId(e.target.value); setMTeeId(''); }} required>
+                                <option value="">Select a course...</option>
+                                {courses.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Tee Box */}
+                        <div className="matchup-field">
+                            <label>Tee Box</label>
+                            <select value={mTeeId} onChange={e => setMTeeId(e.target.value)} required disabled={!mCourseId}>
+                                <option value="">{mCourseId ? "Select a tee box..." : "Select a course first..."}</option>
+                                {courses.find(c => c.id === parseInt(mCourseId))?.tees.map(t => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.name} ({t.total_yardage.toLocaleString()} yds, Par {t.par})
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
