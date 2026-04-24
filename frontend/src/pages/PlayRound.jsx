@@ -30,8 +30,8 @@ export default function PlayRound() {
         fetchScorecard();
     }, []);
 
-    const fetchScorecard = async () => {
-        setLoading(true);
+    const fetchScorecard = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
             const params = new URLSearchParams();
             if (teeTime) params.set('tee_time', teeTime);
@@ -90,7 +90,7 @@ export default function PlayRound() {
                 setComplete(true);
                 // Clear the active round from localStorage so resume banner disappears
                 localStorage.removeItem(STORAGE_ACTIVE_ROUND);
-                setCurrentHole(data.scorecard[totalHoles - 1].hole_number);
+                if (!isSilent) setCurrentHole(data.scorecard[totalHoles - 1].hole_number);
             } else {
                 let startHole = data.scorecard[0].hole_number;
                 for (const h of data.scorecard) {
@@ -100,12 +100,12 @@ export default function PlayRound() {
                         break;
                     }
                 }
-                setCurrentHole(startHole);
+                if (!isSilent) setCurrentHole(startHole);
             }
         } catch (e) {
             console.error('Failed to fetch scorecard', e);
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
@@ -187,6 +187,8 @@ export default function PlayRound() {
 
         try {
             await backend.post('/scores/batch', batchScores);
+            // Silent refresh to update match status
+            await fetchScorecard(true);
         } catch (e) {
             console.error('Failed to save scores', e);
         } finally {
@@ -267,6 +269,7 @@ export default function PlayRound() {
 
         try {
             await backend.post('/scores/batch', batchScores);
+            await fetchScorecard(true);
         } catch (e) {
             console.error('Failed to clear scores', e);
         }
@@ -687,12 +690,7 @@ export default function PlayRound() {
                                 <h1 className="hole-number-label">Hole {currentHole}</h1>
                                 
                                 {nextHole != null ? (
-                                    <button className="hole-nav-arrow" onClick={async () => {
-                                        if (!editing) {
-                                            await saveHoleScores(currentHole);
-                                        }
-                                        setCurrentHole(nextHole);
-                                    }}>
+                                    <button className="hole-nav-arrow" onClick={() => setCurrentHole(nextHole)}>
                                         &rsaquo;
                                     </button>
                                 ) : <div className="hole-nav-arrow-placeholder" />}
@@ -838,9 +836,8 @@ export default function PlayRound() {
                     <button
                         key={h.hole_number}
                         className={`hole-dot ${h.hole_number === currentHole ? 'active' : ''} ${isHoleComplete(h.hole_number) ? 'completed' : ''}`}
-                        onClick={async () => {
+                        onClick={() => {
                             if (h.hole_number !== currentHole) {
-                                await saveHoleScores(currentHole);
                                 setCurrentHole(h.hole_number);
                             }
                         }}

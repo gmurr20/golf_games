@@ -5,10 +5,14 @@
     right: 0;
     display: flex;
     justify-content: space-around;
-    padding: var(--spacing-2) var(--spacing-4);
+    padding: var(--spacing-2) var(--spacing-4) calc(var(--spacing-2) + env(safe-area-inset-bottom));
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-bottom: none;
     z-index: 1000;
+    /* iOS Safari fixes */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .nav-item {

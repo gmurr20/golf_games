@@ -7,7 +7,7 @@
     padding: var(--spacing-4);
     max-width: 600px;
     margin: 0 auto;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100dvh - 80px);
 }
 
 .home-brand-header {
@@ -354,7 +354,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 40vh;
+    min-height: 40dvh;
     gap: var(--spacing-4);
     color: var(--color-text-light);
 }

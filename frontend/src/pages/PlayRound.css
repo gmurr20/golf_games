@@ -5,8 +5,8 @@
 .play-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: var(--spacing-3);
-    min-height: calc(100vh - 80px);
+    padding: var(--spacing-2);
+    min-height: calc(100dvh - 60px);
     display: flex;
     flex-direction: column;
 }
@@ -16,7 +16,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-3);
+    margin-bottom: var(--spacing-2);
 }
 
 .play-back-btn {
@@ -43,7 +43,7 @@
 /* Hole Header */
 .hole-header {
     text-align: center;
-    margin-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-1);
 }
 
 .hole-header-top {
@@ -57,18 +57,18 @@
 .hole-nav-arrow {
     background: transparent;
     border: none;
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: var(--color-primary);
     cursor: pointer;
     line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     transition: background 0.15s ease;
-    padding-bottom: 6px; /* align visual center of the arrows */
+    padding-bottom: 4px; /* align visual center of the arrows */
 }
 
 .hole-nav-arrow:hover {
@@ -82,7 +82,7 @@
 
 
 .hole-number-label {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 800;
     color: var(--color-text);
     margin: 0;
@@ -141,10 +141,10 @@
 /* Match status ticker */
 .match-status-ticker {
     text-align: center;
-    margin-bottom: var(--spacing-4);
-    font-size: 0.85rem;
+    margin-bottom: var(--spacing-2);
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 6px var(--spacing-3);
+    padding: 4px var(--spacing-3);
     border-radius: var(--radius-pill);
     display: inline-block;
     margin-left: auto;
@@ -170,15 +170,15 @@
 .score-entries {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
     flex: 1;
 }
 
 .score-entry-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-2) var(--spacing-3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-1) 10px;
     box-shadow: var(--shadow-sm);
     transition: border-color 0.2s ease;
 }
@@ -197,7 +197,7 @@
 
 .score-entry-name {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--color-text);
 }
 
@@ -243,16 +243,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-4);
+    gap: var(--spacing-3);
 }
 
 .stepper-btn {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     border: 2px solid var(--color-border);
     background: var(--color-surface);
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--color-text);
     display: flex;
@@ -277,9 +277,9 @@
 }
 
 .stepper-value {
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 800;
-    min-width: 50px;
+    min-width: 40px;
     text-align: center;
     line-height: 1;
     letter-spacing: -1px;
@@ -301,15 +301,15 @@
 
 /* Bottom Actions */
 .play-bottom-actions {
-    margin-top: var(--spacing-2);
+    margin-top: var(--spacing-1);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-2);
+    gap: 6px;
 }
 
 .save-next-btn {
     width: 100%;
-    padding: var(--spacing-3);
+    padding: var(--spacing-2);
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
     color: #fff;
     border: none;
@@ -411,7 +411,7 @@
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-4);
-    min-height: calc(100vh - 200px);
+    min-height: calc(100dvh - 200px);
     justify-content: center;
 }
 
