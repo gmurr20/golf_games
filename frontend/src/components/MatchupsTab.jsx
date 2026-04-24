@@ -27,6 +27,8 @@ export default function MatchupsTab({
     const [customEnd, setCustomEnd] = useState('18');
     const [teeTime, setTeeTime] = useState('');
     const [showCreate, setShowCreate] = useState(false);
+    const [showOverrides, setShowOverrides] = useState(false);
+    const [overrides, setOverrides] = useState({}); // { playerId: handicap }
 
     const arrTeamA = players.filter(p => p.team === teamAName);
     const arrTeamB = players.filter(p => p.team === teamBName);
@@ -44,6 +46,8 @@ export default function MatchupsTab({
         setSelectedRanges([{ start: 1, end: 18 }]);
         setCustomStart('1'); setCustomEnd('18');
         setTeeTime('');
+        setShowOverrides(false);
+        setOverrides({});
     };
 
     const togglePreset = (preset) => {
@@ -106,6 +110,7 @@ export default function MatchupsTab({
                     use_handicaps: useHandicaps,
                     tee_id: parseInt(mTeeId),
                     teams,
+                    handicap_overrides: overrides,
                     points_for_win: parseFloat(pointsWin),
                     points_for_push: parseFloat(pointsPush),
                     hole_start: range.start,
@@ -389,50 +394,99 @@ export default function MatchupsTab({
 
                         {/* Players */}
                         <div className="matchup-field">
-                            <label>Players</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ margin: 0 }}>Players</label>
+                                <button 
+                                    type="button" 
+                                    className={`override-toggle ${showOverrides ? 'active' : ''}`}
+                                    onClick={() => setShowOverrides(!showOverrides)}
+                                >
+                                    {showOverrides ? '✓ Custom HCPs' : '⚙️ Override HCPs'}
+                                </button>
+                            </div>
                             <div className="players-draft-grid">
                                 <div className="players-draft-team">
                                     <span className="draft-team-label">{teamAName}</span>
-                                    <select value={teamA1} onChange={e => setTeamA1(e.target.value)} required className="draft-select">
-                                        <option value="">Player 1...</option>
-                                        {arrTeamA
-                                            .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned
-                                            .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                    </select>
-                                    <select value={teamA2} onChange={e => setTeamA2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
-                                        <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
-                                        {arrTeamA
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                    </select>
+                                    <div className="draft-selection-group">
+                                        <select value={teamA1} onChange={e => setTeamA1(e.target.value)} required className="draft-select">
+                                            <option value="">Player 1...</option>
+                                            {arrTeamA
+                                                .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                            {arrUnassigned
+                                                .filter(p => p.id.toString() !== teamA2 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        </select>
+                                        {showOverrides && teamA1 && (
+                                            <input 
+                                                type="number" step="0.1" placeholder="HCP"
+                                                className="override-input"
+                                                value={overrides[teamA1] || ''}
+                                                onChange={e => setOverrides(prev => ({ ...prev, [teamA1]: e.target.value }))}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="draft-selection-group">
+                                        <select value={teamA2} onChange={e => setTeamA2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
+                                            <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
+                                            {arrTeamA
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                            {arrUnassigned
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamB1 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        </select>
+                                        {showOverrides && teamA2 && (
+                                            <input 
+                                                type="number" step="0.1" placeholder="HCP"
+                                                className="override-input"
+                                                value={overrides[teamA2] || ''}
+                                                onChange={e => setOverrides(prev => ({ ...prev, [teamA2]: e.target.value }))}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="players-draft-vs">VS</div>
                                 <div className="players-draft-team">
                                     <span className="draft-team-label">{teamBName}</span>
-                                    <select value={teamB1} onChange={e => setTeamB1(e.target.value)} required className="draft-select">
-                                        <option value="">Player 1...</option>
-                                        {arrTeamB
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                    </select>
-                                    <select value={teamB2} onChange={e => setTeamB2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
-                                        <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
-                                        {arrTeamB
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                        {arrUnassigned
-                                            .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
-                                            .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
-                                    </select>
+                                    <div className="draft-selection-group">
+                                        <select value={teamB1} onChange={e => setTeamB1(e.target.value)} required className="draft-select">
+                                            <option value="">Player 1...</option>
+                                            {arrTeamB
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                            {arrUnassigned
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB2)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        </select>
+                                        {showOverrides && teamB1 && (
+                                            <input 
+                                                type="number" step="0.1" placeholder="HCP"
+                                                className="override-input"
+                                                value={overrides[teamB1] || ''}
+                                                onChange={e => setOverrides(prev => ({ ...prev, [teamB1]: e.target.value }))}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="draft-selection-group">
+                                        <select value={teamB2} onChange={e => setTeamB2(e.target.value)} disabled={mFormat === 'individual'} className="draft-select draft-select-optional">
+                                            <option value="">{mFormat === 'individual' ? '—' : 'Player 2 (opt)...'}</option>
+                                            {arrTeamB
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                            {arrUnassigned
+                                                .filter(p => p.id.toString() !== teamA1 && p.id.toString() !== teamA2 && p.id.toString() !== teamB1)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.handicap_index})</option>)}
+                                        </select>
+                                        {showOverrides && teamB2 && (
+                                            <input 
+                                                type="number" step="0.1" placeholder="HCP"
+                                                className="override-input"
+                                                value={overrides[teamB2] || ''}
+                                                onChange={e => setOverrides(prev => ({ ...prev, [teamB2]: e.target.value }))}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -483,14 +537,28 @@ export default function MatchupsTab({
                             <div className="matchup-card-teams">
                                 <div className="matchup-team-col">
                                     <span className="matchup-team-name">{teamAName}</span>
-                                    <span className="matchup-team-players">{m.teams['A']?.join(' & ') || '—'}</span>
+                                    <span className="matchup-team-players">
+                                        {m.teams['A']?.map((p, idx) => (
+                                            <React.Fragment key={p.id}>
+                                                {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
+                                                {idx < m.teams['A'].length - 1 ? ' & ' : ''}
+                                            </React.Fragment>
+                                        )) || '—'}
+                                    </span>
                                 </div>
                                 <div className="matchup-vs-divider">
                                     <span>VS</span>
                                 </div>
                                 <div className="matchup-team-col matchup-team-col-right">
                                     <span className="matchup-team-name">{teamBName}</span>
-                                    <span className="matchup-team-players">{m.teams['B']?.join(' & ') || '—'}</span>
+                                    <span className="matchup-team-players">
+                                        {m.teams['B']?.map((p, idx) => (
+                                            <React.Fragment key={p.id}>
+                                                {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
+                                                {idx < m.teams['B'].length - 1 ? ' & ' : ''}
+                                            </React.Fragment>
+                                        )) || '—'}
+                                    </span>
                                 </div>
                             </div>
 

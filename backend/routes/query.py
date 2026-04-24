@@ -93,42 +93,49 @@ def get_leaderboard():
             m_players = MatchupPlayer.query.filter_by(matchup_id=m.id).all()
             
             # Scorecard Accrual
+            seen_player_holes = defaultdict(set) # {pid: set(hole_numbers)}
             for h_st in ms.get('scorecard', []):
                 h_par = h_st.get('par', 0)
+                h_num = h_st['hole_number']
                 for pid, p_hole_data in h_st.get('players', {}).items():
                     raw = p_hole_data.get('raw')
                     net = p_hole_data.get('net')
                     if raw is not None:
                         p_stats = player_stats[pid]
-                        p_stats['strokes'] += raw
-                        p_stats['total_net_strokes'] += (net if net is not None else raw)
-                        p_stats['total_par'] += h_par
-                        p_stats['holes'] += 1
-                        
-                        # Natural Birdies+
-                        diff = raw - h_par
-                        if diff <= -2:
-                            p_stats['eagles'] += 1
-                            p_stats['birdies'] += 1
-                        elif diff == -1:
-                            p_stats['birdies'] += 1
-                        
-                        # Net Birdies+
-                        net_diff = net - h_par if net is not None else diff
-                        if net_diff <= -1:
-                            p_stats['net_birdies'] += 1
-
-                        # Worst Hole
-                        if diff > p_stats['worst_hole_rel']:
-                            p_stats['worst_hole_rel'] = diff
-
-                        # Round Stats (Unique Holes per Tee)
                         r_stats = player_round_stats[pid][t.id][m.tee_id]
-                        if h_st['hole_number'] not in r_stats['hole_counts']:
-                            r_stats['net'] += (net if net is not None else raw)
-                            r_stats['par'] += h_par
-                            r_stats['hole_counts'].add(h_st['hole_number'])
-                            r_stats['holes'] = len(r_stats['hole_counts'])
+                        
+                        # Use uniqueness check to avoid double-counting overlapping matchups
+                        if h_num not in seen_player_holes[pid]:
+                            p_stats['strokes'] += raw
+                            p_stats['total_net_strokes'] += (net if net is not None else raw)
+                            p_stats['total_par'] += h_par
+                            p_stats['holes'] += 1
+                            
+                            # Natural Birdies+
+                            diff = raw - h_par
+                            if diff <= -2:
+                                p_stats['eagles'] += 1
+                                p_stats['birdies'] += 1
+                            elif diff == -1:
+                                p_stats['birdies'] += 1
+                            
+                            # Net Birdies+
+                            net_diff = net - h_par if net is not None else diff
+                            if net_diff <= -1:
+                                p_stats['net_birdies'] += 1
+
+                            # Worst Hole
+                            if diff > p_stats['worst_hole_rel']:
+                                p_stats['worst_hole_rel'] = diff
+
+                            # Round Stats (Unique Holes per Tee)
+                            if h_num not in r_stats['hole_counts']:
+                                r_stats['net'] += (net if net is not None else raw)
+                                r_stats['par'] += h_par
+                                r_stats['hole_counts'].add(h_num)
+                                r_stats['holes'] = len(r_stats['hole_counts'])
+                            
+                            seen_player_holes[pid].add(h_num)
 
             # Points logic
             winner = res.get('winner')
@@ -165,7 +172,7 @@ def get_leaderboard():
                         "profile_picture": p.profile_picture,
                         "team": mp.team,
                         "team_name": (comp.team_a_name or "Team A") if mp.team == 'A' else (comp.team_b_name or "Team B"),
-                        "handicap_index": p.handicap_index,
+                        "handicap_index": mp.handicap_index if mp.handicap_index is not None else p.handicap_index,
                         "to_par": to_par_str
                     })
             

@@ -56,6 +56,16 @@ def create_app():
                 try:
                     upgrade()
                     print("Database schema successfully updated via migrations.")
+                    
+                    # Backfill any missing handicap_index values in MatchupPlayer
+                    from models.models import MatchupPlayer, Player
+                    missing_mps = MatchupPlayer.query.filter(MatchupPlayer.handicap_index == None).all()
+                    if missing_mps:
+                        print(f"Backfilling {len(missing_mps)} matchup player handicaps from profile defaults...")
+                        for mp in missing_mps:
+                            mp.handicap_index = mp.player.handicap_index
+                        db.session.commit()
+                        print("Backfill complete.")
                 except Exception as e:
                     print(f"Standard migration update failed: {e}")
 

@@ -85,6 +85,7 @@ class MatchupPlayer(db.Model):
     matchup_id = db.Column(db.Integer, db.ForeignKey('matchups.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     team = db.Column(db.String(5), nullable=False) # 'A' or 'B'
+    handicap_index = db.Column(db.Float, nullable=True) # The locked-in handicap index for this matchup
 
     matchup = db.relationship('Matchup', backref=db.backref('player_links', cascade="all, delete-orphan", lazy=True))
     player = db.relationship('Player', backref=db.backref('matchup_players', cascade="all, delete-orphan", lazy=True))

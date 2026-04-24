@@ -27,6 +27,10 @@ def calculate_match_status(matchup_id: int) -> dict:
     ).order_by(Hole.hole_number).all()
     
     m_players = MatchupPlayer.query.filter_by(matchup_id=matchup_id).all()
+    # Create map for quick lookup: {player_id: handicap_index}
+    # Fallback to player.handicap_index if for some reason it's still null
+    player_hcp_map = {mp.player_id: (mp.handicap_index if mp.handicap_index is not None else mp.player.handicap_index) for mp in m_players}
+    
     # Separate teams
     team_a_pids = [mp.player_id for mp in m_players if mp.team == 'A']
     team_b_pids = [mp.player_id for mp in m_players if mp.team == 'B']
@@ -49,7 +53,8 @@ def calculate_match_status(matchup_id: int) -> dict:
         for p in players:
             r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
             s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
-            ch_u = calculate_course_handicap(p.handicap_index, s, r, tee.par, rounded=False)
+            hcp_index = player_hcp_map.get(p.id, p.handicap_index)
+            ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False)
             course_playing_handicaps[p.id] = round_half_up(ch_u * allowance)
         
         # Match handicaps (Relative to low man in the matchup)
@@ -83,7 +88,8 @@ def calculate_match_status(matchup_id: int) -> dict:
         for p in players:
             r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
             s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
-            ch_dict[p.id] = calculate_course_handicap(p.handicap_index, s, r, tee.par)
+            hcp_index = player_hcp_map.get(p.id, p.handicap_index)
+            ch_dict[p.id] = calculate_course_handicap(hcp_index, s, r, tee.par)
         
         # PH (Relative) is used for Match Standings UI dots
         is_match_play = matchup.scoring_type == 'match_play'
@@ -126,7 +132,7 @@ def calculate_match_status(matchup_id: int) -> dict:
             pid: {
                 "course_handicap": course_handicaps[pid],
                 "playing_handicap": playing_handicaps[pid],
-                "handicap_index": player_map[pid].handicap_index,
+                "handicap_index": player_hcp_map.get(pid),
                 "pops_per_hole": pops_per_hole[pid], # Relative pops (for dots)
                 "course_pops_per_hole": stats_pops_per_hole[pid]
             } for pid in team_a_pids + team_b_pids
@@ -346,8 +352,12 @@ def calculate_overall_winner(matchup_id: int) -> dict:
             r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
             s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
             
+            # Use locked handicap
+            mp = next((mp_obj for mp_obj in m_players if mp_obj.player_id == p.id), None)
+            hcp_index = mp.handicap_index if (mp and mp.handicap_index is not None) else p.handicap_index
+
             # WHS CH
-            ch_u = calculate_course_handicap(p.handicap_index, s, r, tee.par, rounded=False)
+            ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False)
             
             # Application of Format Allowance (Shamble)
             if matchup.format == 'shamble':

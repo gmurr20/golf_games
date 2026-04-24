@@ -444,9 +444,25 @@ def create_matchup():
     db.session.add(matchup)
     db.session.flush()
     
+    overrides = data.get('handicap_overrides', {})
+
     for team, pids in data['teams'].items():
         for pid in pids: 
-            mp = MatchupPlayer(matchup_id=matchup.id, player_id=pid, team=team)
+            # Lock in the handicap: Use override if provided, else current player index
+            player = db.session.get(Player, pid)
+            hcp_to_lock = player.handicap_index
+            if str(pid) in overrides and overrides[str(pid)] is not None:
+                try:
+                    hcp_to_lock = float(overrides[str(pid)])
+                except (ValueError, TypeError):
+                    pass
+
+            mp = MatchupPlayer(
+                matchup_id=matchup.id, 
+                player_id=pid, 
+                team=team,
+                handicap_index=hcp_to_lock
+            )
             db.session.add(mp)
             
     db.session.commit()
@@ -485,7 +501,11 @@ def get_matchups():
         teams_dict = {}
         for mp in players:
             if mp.team not in teams_dict: teams_dict[mp.team] = []
-            teams_dict[mp.team].append(mp.player.name)
+            teams_dict[mp.team].append({
+                "id": mp.player_id,
+                "name": mp.player.name,
+                "handicap_index": mp.handicap_index if mp.handicap_index is not None else mp.player.handicap_index
+            })
             
         hole_label = f"Holes {m.hole_start}-{m.hole_end}" if (m.hole_start != 1 or m.hole_end != 18) else "Full 18"
         
