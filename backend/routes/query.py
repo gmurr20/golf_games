@@ -160,8 +160,8 @@ def get_leaderboard():
                     # (Quickly recalculate or pull from ms if preferred)
                     match_rel = 0
                     for h_st in ms.get('scorecard', []):
-                        if str(p.id) in h_st.get('players', {}):
-                            phd = h_st['players'][str(p.id)]
+                        if p.id in h_st.get('players', {}):
+                            phd = h_st['players'][p.id]
                             if phd.get('raw') is not None:
                                 match_rel += (phd['raw'] - h_st['par'])
                     

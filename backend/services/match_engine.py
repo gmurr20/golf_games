@@ -113,7 +113,20 @@ def calculate_match_status(matchup_id: int) -> dict:
         pops_per_hole = match_pops_per_hole # Used for winner determination
     
     # Fetch Scores
-    scores = Score.query.filter_by(matchup_id=matchup_id).all()
+    # We load all scores for these players in this tournament and tee time
+    # to handle concurrent matchups being scored under a single matchup_id context.
+    # We narrow it to the same tournament and tee_time to avoid overlaps in 36-hole events.
+    from sqlalchemy import or_
+    rel_ids = [rm.id for rm in Matchup.query.filter_by(
+        tournament_id=matchup.tournament_id,
+        tee_time=matchup.tee_time
+    ).all()]
+
+    scores = Score.query.filter(
+        Score.matchup_id.in_(rel_ids),
+        Score.player_id.in_(team_a_pids + team_b_pids)
+    ).all()
+
     scores_by_hole_player = {}
     for s in scores:
         if s.hole_number not in scores_by_hole_player:
@@ -374,7 +387,17 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     else:
         pops_per_hole = { p.id: {} for p in players }
     
-    scores = Score.query.filter_by(matchup_id=matchup_id).all()
+    # Fetch scores for all related matchups (same tournament and tee time)
+    rel_ids = [rm.id for rm in Matchup.query.filter_by(
+        tournament_id=matchup.tournament_id,
+        tee_time=matchup.tee_time
+    ).all()]
+
+    scores = Score.query.filter(
+        Score.matchup_id.in_(rel_ids),
+        Score.player_id.in_(team_a_pids + team_b_pids)
+    ).all()
+
     scores_by_hole_player = {}
     for s in scores:
         if s.hole_number not in scores_by_hole_player:
