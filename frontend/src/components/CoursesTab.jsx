@@ -9,6 +9,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [selectedTeeIdx, setSelectedTeeIdx] = useState(0);
     const [editMode, setEditMode] = useState(false);
+    const [editCourseName, setEditCourseName] = useState('');
     const [editHoles, setEditHoles] = useState([]);
     const [editTee, setEditTee] = useState({});
 
@@ -34,21 +35,25 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     };
 
     const startEdit = () => {
+        setEditCourseName(selectedCourse.name);
         const tee = selectedCourse.tees[selectedTeeIdx];
-        setEditTee({ 
-            name: tee.name, 
-            rating: tee.rating, 
-            slope: tee.slope, 
-            rating_female: tee.rating_female || '', 
-            slope_female: tee.slope_female || '',
-            par: tee.par 
-        });
-        setEditHoles(tee.holes.map(h => ({ ...h })));
+        if (tee) {
+            setEditTee({ 
+                name: tee.name, 
+                rating: tee.rating, 
+                slope: tee.slope, 
+                rating_female: tee.rating_female || '', 
+                slope_female: tee.slope_female || '',
+                par: tee.par 
+            });
+            setEditHoles(tee.holes.map(h => ({ ...h })));
+        }
         setEditMode(true);
     };
 
     const cancelEdit = () => {
         setEditMode(false);
+        setEditCourseName('');
         setEditHoles([]);
         setEditTee({});
     };
@@ -56,6 +61,10 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     const saveEdit = async () => {
         const tee = selectedCourse.tees[selectedTeeIdx];
         try {
+            if (editCourseName !== selectedCourse.name) {
+                await backend.put(`/courses/${selectedCourse.id}`, { name: editCourseName });
+            }
+            
             // Recalculate total par from holes
             const totalPar = editHoles.reduce((sum, h) => sum + Number(h.par), 0);
             await backend.put(`/tees/${tee.id}`, {
@@ -357,7 +366,17 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                 <Card style={{ marginTop: '1rem' }}>
                     <div className="course-detail-header">
                         <div className="course-title-section">
-                            <h2 className="course-detail-title">{selectedCourse.name}</h2>
+                            {editMode ? (
+                                <input
+                                    type="text"
+                                    className="course-name-input"
+                                    value={editCourseName}
+                                    onChange={e => setEditCourseName(e.target.value)}
+                                    style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem', width: '100%', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '0.25rem' }}
+                                />
+                            ) : (
+                                <h2 className="course-detail-title">{selectedCourse.name}</h2>
+                            )}
                             <p className="course-detail-subtitle">{selectedCourse.tees.length} tee{selectedCourse.tees.length !== 1 ? 's' : ''} registered</p>
                         </div>
                         <button 
@@ -427,30 +446,29 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                                 )}
                             </div>
 
-                            {/* Hole-by-Hole Scorecard */}
                             <ScorecardTable
                                 holes={displayHoles}
                                 editable={editMode}
                                 onChange={updateEditHole}
                             />
-
-                            {/* Edit Actions */}
-                            <div className="detail-actions">
-                                {editMode ? (
-                                    <>
-                                        <Button onClick={saveEdit}>💾 Save Changes</Button>
-                                        <Button variant="outline" onClick={cancelEdit}>Cancel</Button>
-                                    </>
-                                ) : (
-                                    <Button variant="outline" onClick={startEdit}>✏️ Edit Hole Data</Button>
-                                )}
-                            </div>
                         </>
                     )}
 
                     {selectedCourse.tees.length === 0 && (
                         <p className="empty-state">No tees have been added to this course yet.</p>
                     )}
+
+                    {/* Edit Actions */}
+                    <div className="detail-actions">
+                        {editMode ? (
+                            <>
+                                <Button onClick={saveEdit}>💾 Save Changes</Button>
+                                <Button variant="outline" onClick={cancelEdit}>Cancel</Button>
+                            </>
+                        ) : (
+                            <Button variant="outline" onClick={startEdit}>✏️ Edit Course & Hole Data</Button>
+                        )}
+                    </div>
                 </Card>
             </div>
         );
