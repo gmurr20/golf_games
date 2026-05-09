@@ -98,7 +98,7 @@ export default function ViewScorecard() {
     };
 
     // Split holes for mobile view (Front / Back)
-    const splitPoint = scorecard.length === 12 ? 6 : 9;
+    const splitPoint = scorecard.length <= 9 ? scorecard.length : Math.ceil(scorecard.length / 2);
     const front9 = scorecard.filter(h => h.hole_number <= splitPoint);
     const back9 = scorecard.filter(h => h.hole_number > splitPoint);
 

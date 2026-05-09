@@ -370,7 +370,7 @@ export default function PlayRound() {
 
         // Split holes for mobile view (Front / Back)
         const totalHoles = scorecard.scorecard.length;
-        const splitPoint = totalHoles === 12 ? 6 : 9;
+        const splitPoint = totalHoles <= 9 ? totalHoles : Math.ceil(totalHoles / 2);
         const front9 = scorecard.scorecard.filter(h => h.hole_number <= splitPoint);
         const back9 = scorecard.scorecard.filter(h => h.hole_number > splitPoint);
 

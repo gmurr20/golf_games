@@ -6,8 +6,9 @@ import './CoursesTab.css';
 
 // ── SCORECARD TABLE RENDERER ──
 const ScorecardTable = ({ holes, editable, onChange }) => {
-    const front = holes.filter(h => h.hole_number <= 9);
-    const back = holes.filter(h => h.hole_number > 9);
+    const splitPoint = holes.length <= 9 ? holes.length : Math.ceil(holes.length / 2);
+    const front = holes.filter(h => h.hole_number <= splitPoint);
+    const back = holes.filter(h => h.hole_number > splitPoint);
 
     const frontTotalPar = front.reduce((s, h) => s + Number(h.par), 0);
     const backTotalPar = back.reduce((s, h) => s + Number(h.par), 0);
@@ -93,10 +94,10 @@ const ScorecardTable = ({ holes, editable, onChange }) => {
 
     return (
         <div className="scorecard-container">
-            {renderNine(front, 'OUT')}
-            {renderNine(back, 'IN')}
+            {front.length > 0 && renderNine(front, 'OUT')}
+            {back.length > 0 && renderNine(back, 'IN')}
             <div className="scorecard-grand-total">
-                <span>18-Hole Total</span>
+                <span>{holes.length}-Hole Total</span>
                 <span className="scorecard-grand-total-value">Par {frontTotalPar + backTotalPar}</span>
                 {(frontTotalYds + backTotalYds > 0) && (
                     <span className="scorecard-grand-total-yds">{frontTotalYds + backTotalYds} yds</span>
@@ -118,17 +119,34 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
 
     // Manual course creation state
     const [newName, setNewName] = useState('');
-    const [newTees, setNewTees] = useState([createEmptyTee()]);
+    const [newCourseHoles, setNewCourseHoles] = useState(18);
+    const [newTees, setNewTees] = useState([createEmptyTee(18)]);
 
-    function createEmptyTee() {
+    function createEmptyTee(holesCount = 18) {
         return {
             name: '', rating: 72.0, slope: 113,
             rating_female: '', slope_female: '',
-            holes: Array.from({ length: 18 }, (_, i) => ({
+            holes: Array.from({ length: holesCount }, (_, i) => ({
                 hole_number: i + 1, par: 4, yardage: '', handicap_index: i + 1
             }))
         };
     }
+
+    const handleHoleCountChange = (e) => {
+        const count = parseInt(e.target.value);
+        setNewCourseHoles(count);
+        setNewTees(prev => prev.map(t => {
+            let newHoles = [...t.holes];
+            if (count < newHoles.length) {
+                newHoles = newHoles.slice(0, count);
+            } else if (count > newHoles.length) {
+                for (let i = newHoles.length; i < count; i++) {
+                    newHoles.push({ hole_number: i + 1, par: 4, yardage: '', handicap_index: i + 1 });
+                }
+            }
+            return { ...t, holes: newHoles };
+        }));
+    };
 
     const openDetail = (course) => {
         setSelectedCourse(course);
@@ -262,7 +280,8 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
             });
             setStatus(`Successfully created ${newName}!`);
             setNewName('');
-            setNewTees([createEmptyTee()]);
+            setNewCourseHoles(18);
+            setNewTees([createEmptyTee(18)]);
             setView('list');
             fetchCourses();
         } catch (e) {
@@ -287,7 +306,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     };
 
     const addNewTee = () => {
-        setNewTees(prev => [...prev, createEmptyTee()]);
+        setNewTees(prev => [...prev, createEmptyTee(newCourseHoles)]);
     };
 
     const removeNewTee = (idx) => {
@@ -327,6 +346,18 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                                 onChange={e => setNewName(e.target.value)}
                                 placeholder="e.g. Augusta National"
                                 className="course-name-input"
+                            />
+                        </div>
+                        <div className="create-course-name" style={{ marginTop: '1rem' }}>
+                            <label>Number of Holes</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="36"
+                                value={newCourseHoles}
+                                onChange={handleHoleCountChange}
+                                className="course-name-input"
+                                style={{ width: '100px', display: 'block' }}
                             />
                         </div>
 

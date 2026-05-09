@@ -88,7 +88,7 @@ export default function LiveScorecard() {
 
             {(() => {
                 const totalHoles = data.scorecard.length;
-                const splitPoint = totalHoles === 12 ? 6 : 9;
+                const splitPoint = totalHoles <= 9 ? totalHoles : Math.ceil(totalHoles / 2);
                 const front9 = data.scorecard.filter(h => h.hole_number <= splitPoint);
                 const back9 = data.scorecard.filter(h => h.hole_number > splitPoint);
 
