@@ -212,37 +212,41 @@ def upload_scorecard():
         
         # Process Logo BBox
         course_logo_b64 = None
-        if parsed.get('logo_bbox') and len(parsed['logo_bbox']) == 4:
-            ymin, xmin, ymax, xmax = parsed['logo_bbox']
-            # Ensure coordinates are somewhat valid before processing
-            if 0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000:
-                try:
-                    img = Image.open(io.BytesIO(img_data))
-                    width, height = img.size
-                    
-                    # Ensure RGB mode
-                    if img.mode in ('RGBA', 'P'):
-                        img = img.convert('RGB')
+        logo_bbox = parsed.get('logo_bbox')
+        if isinstance(logo_bbox, list) and len(logo_bbox) == 4:
+            try:
+                ymin, xmin, ymax, xmax = [float(c) for c in logo_bbox]
+                # Ensure coordinates are somewhat valid before processing
+                if 0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000:
+                    try:
+                        img = Image.open(io.BytesIO(img_data))
+                        width, height = img.size
                         
-                    crop_box = (
-                        int(xmin * width / 1000), 
-                        int(ymin * height / 1000), 
-                        int(xmax * width / 1000), 
-                        int(ymax * height / 1000)
-                    )
-                    cropped = img.crop(crop_box)
-                    
-                    # Optional: resize if too large to save DB space
-                    max_dim = 400
-                    if cropped.width > max_dim or cropped.height > max_dim:
-                        cropped.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                        # Ensure RGB mode
+                        if img.mode in ('RGBA', 'P'):
+                            img = img.convert('RGB')
+                            
+                        crop_box = (
+                            int(xmin * width / 1000), 
+                            int(ymin * height / 1000), 
+                            int(xmax * width / 1000), 
+                            int(ymax * height / 1000)
+                        )
+                        cropped = img.crop(crop_box)
                         
-                    buffered = io.BytesIO()
-                    cropped.save(buffered, format="JPEG", quality=85)
-                    course_logo_b64 = "data:image/jpeg;base64," + base64.b64encode(buffered.getvalue()).decode()
-                except Exception as e:
-                    print(f"Error cropping logo: {e}")
-                    pass
+                        # Optional: resize if too large to save DB space
+                        max_dim = 400
+                        if cropped.width > max_dim or cropped.height > max_dim:
+                            cropped.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                            
+                        buffered = io.BytesIO()
+                        cropped.save(buffered, format="JPEG", quality=85)
+                        course_logo_b64 = "data:image/jpeg;base64," + base64.b64encode(buffered.getvalue()).decode()
+                    except Exception as e:
+                        print(f"Error cropping logo: {e}")
+                        pass
+            except (ValueError, TypeError):
+                pass
         
         
         # COMPACT TO VERBOSE EXPANSION:
