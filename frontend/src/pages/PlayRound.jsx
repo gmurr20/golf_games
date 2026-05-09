@@ -368,9 +368,11 @@ export default function PlayRound() {
             return 0;
         });
 
-        // Split holes into front 9 / back 9
-        const front9 = scorecard.scorecard.filter(h => h.hole_number <= 9);
-        const back9 = scorecard.scorecard.filter(h => h.hole_number > 9);
+        // Split holes for mobile view (Front / Back)
+        const totalHoles = scorecard.scorecard.length;
+        const splitPoint = totalHoles === 12 ? 6 : 9;
+        const front9 = scorecard.scorecard.filter(h => h.hole_number <= splitPoint);
+        const back9 = scorecard.scorecard.filter(h => h.hole_number > splitPoint);
 
         const renderScorecardTable = (holes, label) => {
             if (holes.length === 0) return null;

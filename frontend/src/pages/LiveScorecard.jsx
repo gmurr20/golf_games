@@ -86,63 +86,86 @@ export default function LiveScorecard() {
                 </p>
             </header>
 
-            <Card className="animate-slide-up" style={{ padding: '0', overflow: 'hidden' }}>
-                <table className="sc-table" style={{ minWidth: '100%', margin: '0' }}>
-                    <thead>
-                        <tr className="sc-header-row">
-                            <th className="sc-label">
-                                <span className="sc-label-full">Hole</span>
-                                <span className="sc-label-initials">H</span>
-                            </th>
-                            {data.scorecard.map(h => (
-                                <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
-                            ))}
-                        </tr>
-                        <tr className="sc-par-row">
-                            <td className="sc-label">
-                                <span className="sc-label-full">Par</span>
-                                <span className="sc-label-initials">P</span>
-                            </td>
-                            {data.scorecard.map(h => (
-                                <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
-                            ))}
-                        </tr>
-                        <tr className="sc-yard-row">
-                            <td className="sc-label">
-                                <span className="sc-label-full">Yard</span>
-                                <span className="sc-label-initials">Y</span>
-                            </td>
-                            {data.scorecard.map(h => (
-                                <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.yardage || '–'}</td>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr className="sc-match-row">
-                            <td className="sc-label">
-                                <span className="sc-match-label-full">Match</span>
-                                <span className="sc-label-initials">M</span>
-                            </td>
-                            {(() => {
-                                let running = 0;
-                                return data.scorecard.map(h => {
-                                    if (h.winner === 'A') running++;
-                                    else if (h.winner === 'B') running--;
-                                    
-                                    let display = '–';
-                                    let className = '';
-                                    if (h.winner) {
-                                        display = running === 0 ? 'AS' : (running > 0 ? `+${running}` : running);
-                                        if (h.winner === 'A') className = 'sc-match-won';
-                                        else if (h.winner === 'B') className = 'sc-match-lost';
-                                    }
-                                    return <td key={h.hole_number} className={`sc-match-cell ${className}`} style={{ fontWeight: 700 }}>{display}</td>
-                                });
-                            })()}
-                        </tr>
-                    </tbody>
-                </table>
-            </Card>
+            {(() => {
+                const totalHoles = data.scorecard.length;
+                const splitPoint = totalHoles === 12 ? 6 : 9;
+                const front9 = data.scorecard.filter(h => h.hole_number <= splitPoint);
+                const back9 = data.scorecard.filter(h => h.hole_number > splitPoint);
+
+                // Precompute running totals so they carry over
+                const runningScores = {};
+                let currentRunning = 0;
+                data.scorecard.forEach(h => {
+                    if (h.winner === 'A') currentRunning++;
+                    else if (h.winner === 'B') currentRunning--;
+                    runningScores[h.hole_number] = currentRunning;
+                });
+
+                const renderTable = (holes, label) => {
+                    if (holes.length === 0) return null;
+                    return (
+                        <Card className="animate-slide-up" style={{ padding: '0', overflow: 'hidden', marginBottom: 'var(--spacing-4)' }}>
+                            <table className="sc-table" style={{ minWidth: '100%', margin: '0' }}>
+                                <thead>
+                                    <tr className="sc-header-row">
+                                        <th className="sc-label">
+                                            <span className="sc-label-full">{label}</span>
+                                            <span className="sc-label-initials">{label === 'OUT' ? 'O' : 'I'}</span>
+                                        </th>
+                                        {holes.map(h => (
+                                            <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
+                                        ))}
+                                    </tr>
+                                    <tr className="sc-par-row">
+                                        <td className="sc-label">
+                                            <span className="sc-label-full">Par</span>
+                                            <span className="sc-label-initials">P</span>
+                                        </td>
+                                        {holes.map(h => (
+                                            <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.par}</td>
+                                        ))}
+                                    </tr>
+                                    <tr className="sc-yard-row">
+                                        <td className="sc-label">
+                                            <span className="sc-label-full">Yard</span>
+                                            <span className="sc-label-initials">Y</span>
+                                        </td>
+                                        {holes.map(h => (
+                                            <td key={h.hole_number} style={{ fontSize: '0.7rem', color: 'var(--color-text-light)' }}>{h.yardage || '–'}</td>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className="sc-match-row">
+                                        <td className="sc-label">
+                                            <span className="sc-match-label-full">Match</span>
+                                            <span className="sc-label-initials">M</span>
+                                        </td>
+                                        {holes.map(h => {
+                                            const running = runningScores[h.hole_number];
+                                            let display = '–';
+                                            let className = '';
+                                            if (h.winner) {
+                                                display = running === 0 ? 'AS' : (running > 0 ? `+${running}` : running);
+                                                if (h.winner === 'A') className = 'sc-match-won';
+                                                else if (h.winner === 'B') className = 'sc-match-lost';
+                                            }
+                                            return <td key={h.hole_number} className={`sc-match-cell ${className}`} style={{ fontWeight: 700 }}>{display}</td>
+                                        })}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </Card>
+                    );
+                };
+
+                return (
+                    <>
+                        {renderTable(front9, 'OUT')}
+                        {renderTable(back9, 'IN')}
+                    </>
+                );
+            })()}
 
             <div style={{ marginTop: 'var(--spacing-8)', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: 'var(--spacing-4)' }}>

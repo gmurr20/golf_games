@@ -152,7 +152,7 @@ def calculate_match_status(matchup_id: int) -> dict:
         }
     }
     
-    total_match_holes = hole_end - hole_start + 1
+    total_match_holes = len(holes)
     
     # Evaluate holes in order
     decided_status = None
@@ -425,7 +425,7 @@ def calculate_overall_winner(matchup_id: int) -> dict:
             team_b_total += min(b_scores)
             holes_played += 1
             
-    total_match_holes = (matchup.hole_end or 18) - (matchup.hole_start or 1) + 1
+    total_match_holes = len(holes)
     if holes_played < total_match_holes:
         return {
             "winner": None,

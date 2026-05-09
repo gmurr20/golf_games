@@ -97,9 +97,10 @@ export default function ViewScorecard() {
         return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     };
 
-    // Split holes for mobile view (Front 9 / Back 9)
-    const front9 = scorecard.filter(h => h.hole_number <= 9);
-    const back9 = scorecard.filter(h => h.hole_number > 9);
+    // Split holes for mobile view (Front / Back)
+    const splitPoint = scorecard.length === 12 ? 6 : 9;
+    const front9 = scorecard.filter(h => h.hole_number <= splitPoint);
+    const back9 = scorecard.filter(h => h.hole_number > splitPoint);
 
     const renderTable = (holes, label) => (
         <div className="sc-table-container animate-slide-up" style={{ marginBottom: 'var(--spacing-4)' }}>
@@ -236,8 +237,8 @@ export default function ViewScorecard() {
 
 
 
-            {renderTable(front9, 'OUT')}
-            {renderTable(back9, 'IN')}
+            {front9.length > 0 && renderTable(front9, 'OUT')}
+            {back9.length > 0 && renderTable(back9, 'IN')}
         </div>
     );
 }

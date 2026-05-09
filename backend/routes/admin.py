@@ -171,7 +171,7 @@ def upload_scorecard():
         - **UP Triangle/Arrow (▲)**: Use the yardage from the primary tee row directly ABOVE the hybrid line.
         - **DOWN Triangle/Arrow (▼)**: Use the yardage from the primary tee row directly BELOW the hybrid line.
         - **Boxed/Shaded**: If a number is boxed or shaded, use that number. If the hybrid line tells you which hole to play, resolve it.
-        - Hybrid tees must be returned as complete tee entries in the JSON with all 18 absolute yardage numbers filled out.
+        - Hybrid tees must be returned as complete tee entries in the JSON with all absolute yardage numbers filled out.
     4. **Ratings & Slopes**: Look for "Rating/Slope", "CR/Slope", or "M/W". Ratings are decimals (e.g. 71.4), Slopes are integers (e.g. 128).
     5. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings (e.g. "70.1/121 | 72.4/125"). Map the second to "rating_female" and "slope_female". Look for labels like (M), (W), (L), or symbols (♂/♀).
 
@@ -180,7 +180,7 @@ def upload_scorecard():
     {
       "course_name": "...",
       "hole_defaults": [
-        {"hole_number": 1, "par": 4, "handicap_index": 12} // List all 18 holes here
+        {"hole_number": 1, "par": 4, "handicap_index": 12} // List all holes here
       ],
       "tees": [
         {
@@ -189,14 +189,14 @@ def upload_scorecard():
           "slope": int,
           "rating_female": float (optional),
           "slope_female": int (optional),
-          "yardages": [419, 395, 536, ...], // List all 18 absolute yardages, resolve arrows (▲/▼) into numbers
+          "yardages": [419, 395, 536, ...], // List all absolute yardages, resolve arrows (▲/▼) into numbers
           "overrides": [
             {"hole_number": 1, "par": 5} // Optional: only if this tee differs from hole_defaults
           ]
         }
       ]
     }
-    Extract the 18 pars and handicap indexes into `hole_defaults`. For every tee row, resolve all 18 yardages into the `yardages` array.
+    Extract all pars and handicap indexes into `hole_defaults`. For every tee row, resolve all yardages into the `yardages` array.
     Return ONLY raw JSON, do not use markdown codeblocks. Do not include anything else.
     """
     
@@ -215,6 +215,7 @@ def upload_scorecard():
         # for compatibility with the rest of the application.
         expanded_tees = []
         hole_defaults = {h['hole_number']: h for h in parsed.get('hole_defaults', [])}
+        max_hole = max(hole_defaults.keys()) if hole_defaults else 18
         warnings = []
         
         for tee in parsed.get('tees', []):
@@ -222,7 +223,7 @@ def upload_scorecard():
             yardages = tee.get('yardages', [])
             overrides = {o['hole_number']: o for o in tee.get('overrides', [])}
             
-            for i in range(1, 19):
+            for i in range(1, max_hole + 1):
                 # Get the base par/handicap from defaults
                 default = hole_defaults.get(i, {})
                 # Apply any tee-specific overrides
@@ -446,6 +447,8 @@ def create_matchup():
         except (ValueError, TypeError):
             pass
 
+    tee_max_hole = db.session.query(db.func.max(Hole.hole_number)).filter_by(tee_id=data['tee_id']).scalar() or 18
+
     matchup = Matchup(
         tournament_id=tourney.id,
         tee_id=data['tee_id'],
@@ -455,7 +458,7 @@ def create_matchup():
         points_for_win=data.get('points_for_win', 1.0),
         points_for_push=data.get('points_for_push', 0.5),
         hole_start=data.get('hole_start', 1),
-        hole_end=data.get('hole_end', 18),
+        hole_end=data.get('hole_end', tee_max_hole),
         tee_time=tee_time,
     )
     db.session.add(matchup)
