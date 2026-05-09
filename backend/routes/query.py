@@ -9,6 +9,9 @@ query_bp = Blueprint('query', __name__)
 @query_bp.route('/matchups/<int:matchup_id>', methods=['GET'])
 def get_matchup(matchup_id):
     status = calculate_match_status(matchup_id)
+    m = Matchup.query.get(matchup_id)
+    if m and m.tee and m.tee.course:
+        status['course_logo'] = m.tee.course.logo
     return jsonify(status), 200
 
 @query_bp.route('/leaderboard', methods=['GET'])
@@ -192,6 +195,7 @@ def get_leaderboard():
                     "players": players,
                     "competition_name": comp.name,
                     "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown Course",
+                    "course_logo": m.tee.course.logo if m.tee and m.tee.course else None,
                     "points_a": res.get('points_a', 0),
                     "points_b": res.get('points_b', 0),
                     "hole_start": m.hole_start or 1,
@@ -528,6 +532,7 @@ def get_public_scorecard(tournament_id, tee_id):
 
     return jsonify({
         "course_name": course.name if course else "Unknown",
+        "course_logo": course.logo if course else None,
         "tee_name": tee.name,
         "tee_time": matchups[0].tee_time.isoformat() if matchups[0].tee_time else None,
         "current_hole": current_hole,

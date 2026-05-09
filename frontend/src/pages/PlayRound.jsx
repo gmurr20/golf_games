@@ -508,7 +508,9 @@ export default function PlayRound() {
                 </div>
 
                 <div className="scorecard-complete-header animate-slide-up">
-                    <div className="round-complete-trophy">{complete ? '🏆' : '⛳️'}</div>
+                    <div className="round-complete-trophy">
+                        {complete ? '🏆' : (scorecard?.course_logo ? <img src={scorecard.course_logo} alt="logo" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '50%' }} /> : '⛳️')}
+                    </div>
                     <h2>{complete ? 'Round Complete' : 'Live Scorecard'}</h2>
                     <p className="round-complete-subtitle">
                         {scorecard.course_name} — {scorecard.tee_name} Tees

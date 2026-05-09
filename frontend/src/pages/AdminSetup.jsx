@@ -288,6 +288,7 @@ function Dashboard() {
 
             await backend.post('/courses', {
                 name: parsed.course_name,
+                logo: parsed.course_logo,
                 tees: parsed.tees.map(tee => ({
                     name: tee.tee_name,
                     rating: tee.rating,

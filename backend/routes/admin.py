@@ -136,7 +136,7 @@ def get_courses():
                     "handicap_index": h.handicap_index
                 } for h in holes]
             })
-        out.append({"id": c.id, "name": c.name, "tees": tees_out})
+        out.append({"id": c.id, "name": c.name, "logo": c.logo, "tees": tees_out})
     return jsonify(out), 200
 
 @admin_bp.route('/courses/upload', methods=['POST'])
@@ -178,6 +178,7 @@ def upload_scorecard():
     Return a strict JSON object:
     {
       "course_name": "...",
+      "logo_bbox": [ymin, xmin, ymax, xmax], // Optional: if a clear course logo is visible, provide its bounding box using normalized coordinates (0-1000). ymin < ymax, xmin < xmax.
       "hole_defaults": [
         {"hole_number": 1, "par": 4, "handicap_index": 12} // List all 18 holes here
       ],
@@ -208,6 +209,41 @@ def upload_scorecard():
         if resp_text.startswith('```json'): resp_text = resp_text[7:-3].strip()
         if resp_text.startswith('```'): resp_text = resp_text[3:-3].strip()
         parsed = json.loads(resp_text)
+        
+        # Process Logo BBox
+        course_logo_b64 = None
+        if parsed.get('logo_bbox') and len(parsed['logo_bbox']) == 4:
+            ymin, xmin, ymax, xmax = parsed['logo_bbox']
+            # Ensure coordinates are somewhat valid before processing
+            if 0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000:
+                try:
+                    img = Image.open(io.BytesIO(img_data))
+                    width, height = img.size
+                    
+                    # Ensure RGB mode
+                    if img.mode in ('RGBA', 'P'):
+                        img = img.convert('RGB')
+                        
+                    crop_box = (
+                        int(xmin * width / 1000), 
+                        int(ymin * height / 1000), 
+                        int(xmax * width / 1000), 
+                        int(ymax * height / 1000)
+                    )
+                    cropped = img.crop(crop_box)
+                    
+                    # Optional: resize if too large to save DB space
+                    max_dim = 400
+                    if cropped.width > max_dim or cropped.height > max_dim:
+                        cropped.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                        
+                    buffered = io.BytesIO()
+                    cropped.save(buffered, format="JPEG", quality=85)
+                    course_logo_b64 = "data:image/jpeg;base64," + base64.b64encode(buffered.getvalue()).decode()
+                except Exception as e:
+                    print(f"Error cropping logo: {e}")
+                    pass
+        
         
         # COMPACT TO VERBOSE EXPANSION:
         # To avoid AI timeouts, the AI returns a compact format which we now expand
@@ -260,6 +296,7 @@ def upload_scorecard():
             
         return jsonify({
             "course_name": parsed.get('course_name'),
+            "course_logo": course_logo_b64,
             "tees": expanded_tees,
             "warnings": warnings
         }), 200
@@ -272,7 +309,7 @@ def upload_scorecard():
 def create_course():
     admin_key = request.headers.get('admin-key')
     data = request.json
-    course = Course(name=data['name'])
+    course = Course(name=data['name'], logo=data.get('logo'))
     db.session.add(course)
     db.session.commit()
     
@@ -333,7 +370,7 @@ def get_course(id):
                 "handicap_index": h.handicap_index
             } for h in holes]
         })
-    return jsonify({"id": c.id, "name": c.name, "tees": tees_out}), 200
+    return jsonify({"id": c.id, "name": c.name, "logo": c.logo, "tees": tees_out}), 200
 
 @admin_bp.route('/courses/<int:id>', methods=['PUT'])
 def update_course(id):
@@ -355,6 +392,18 @@ def delete_course(id):
     
     c = Course.query.get_or_404(id)
     db.session.delete(c)
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
+@admin_bp.route('/courses/<int:id>/image', methods=['POST'])
+def update_course_image(id):
+    admin_key = request.headers.get('admin-key')
+    comp = Competition.query.filter_by(admin_key=admin_key).first()
+    if not comp: return jsonify({"error": "Unauthorized"}), 403
+    
+    c = Course.query.get_or_404(id)
+    data = request.json
+    if 'logo' in data: c.logo = data['logo']
     db.session.commit()
     return jsonify({"success": True}), 200
 
@@ -528,6 +577,7 @@ def get_matchups():
             "use_handicaps": m.use_handicaps if m.use_handicaps is not None else True,
             "is_2v2": is_2v2,
             "course": m.tee.course.name if m.tee else "Unknown Course",
+            "course_logo": m.tee.course.logo if m.tee and m.tee.course else None,
             "tee": m.tee.name if m.tee else "Unknown Tee",
             "status": actual_status,
             "points_for_win": m.points_for_win,

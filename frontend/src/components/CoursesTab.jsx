@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import backend from '../api/backend';
@@ -12,6 +12,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     const [editCourseName, setEditCourseName] = useState('');
     const [editHoles, setEditHoles] = useState([]);
     const [editTee, setEditTee] = useState({});
+    const courseLogoRef = useRef(null);
 
     // Manual course creation state
     const [newName, setNewName] = useState('');
@@ -103,6 +104,38 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
         } catch (e) {
             setStatus('Failed to delete course.');
         }
+    };
+
+    const handleCourseLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (!file || !selectedCourse) return;
+        setStatus('Processing logo...');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = async () => {
+                const canvas = document.createElement('canvas');
+                const size = 400;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                let srcX = 0, srcY = 0, srcW = img.width, srcH = img.height;
+                if (srcW > srcH) { srcX = (srcW - srcH) / 2; srcW = srcH; } 
+                else { srcY = (srcH - srcW) / 2; srcH = srcW; }
+                ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, size, size);
+                const base64 = canvas.toDataURL('image/jpeg', 0.85);
+                try {
+                    await backend.post(`/courses/${selectedCourse.id}/image`, { logo: base64 });
+                    setStatus('Logo updated!');
+                    setSelectedCourse(prev => ({ ...prev, logo: base64 }));
+                    fetchCourses();
+                } catch (err) {
+                    setStatus('Failed to upload logo.');
+                }
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleCreateCourse = async (e) => {
@@ -364,8 +397,20 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                 </div>
 
                 <Card style={{ marginTop: '1rem' }}>
-                    <div className="course-detail-header">
-                        <div className="course-title-section">
+                    <div className="course-detail-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div 
+                            className="course-logo-container" 
+                            style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                            onClick={() => courseLogoRef.current && courseLogoRef.current.click()}
+                        >
+                            {selectedCourse.logo ? (
+                                <img src={selectedCourse.logo} alt="course logo" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-border)' }} />
+                            ) : (
+                                <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '2px dashed var(--color-border)' }}>⛳</div>
+                            )}
+                            <div style={{ position: 'absolute', bottom: -5, right: -5, background: 'var(--color-primary)', color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem' }}>📷</div>
+                        </div>
+                        <div className="course-title-section" style={{ flex: 1 }}>
                             {editMode ? (
                                 <input
                                     type="text"
@@ -375,9 +420,9 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                                     style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem', width: '100%', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '0.25rem' }}
                                 />
                             ) : (
-                                <h2 className="course-detail-title">{selectedCourse.name}</h2>
+                                <h2 className="course-detail-title" style={{ margin: 0 }}>{selectedCourse.name}</h2>
                             )}
-                            <p className="course-detail-subtitle">{selectedCourse.tees.length} tee{selectedCourse.tees.length !== 1 ? 's' : ''} registered</p>
+                            <p className="course-detail-subtitle" style={{ margin: 0 }}>{selectedCourse.tees.length} tee{selectedCourse.tees.length !== 1 ? 's' : ''} registered</p>
                         </div>
                         <button 
                             className="card-level-delete-btn" 
@@ -469,6 +514,13 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                             <Button variant="outline" onClick={startEdit}>✏️ Edit Course & Hole Data</Button>
                         )}
                     </div>
+                    <input 
+                        type="file" 
+                        ref={courseLogoRef} 
+                        style={{ display: 'none' }} 
+                        accept="image/*" 
+                        onChange={handleCourseLogoChange} 
+                    />
                 </Card>
             </div>
         );
@@ -508,7 +560,9 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
                             : 0;
                         return (
                             <button key={c.id} className="course-card" onClick={() => openDetail(c)}>
-                                <div className="course-card-icon">⛳</div>
+                                <div className="course-card-icon">
+                                    {c.logo ? <img src={c.logo} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : '⛳'}
+                                </div>
                                 <div className="course-card-info">
                                     <strong className="course-card-name">{c.name}</strong>
                                     <span className="course-card-meta">

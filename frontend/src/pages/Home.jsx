@@ -232,14 +232,19 @@ export default function Home() {
                         onClick={() => handleTapRound(round)}
                     >
                         <div className="round-card-top">
-                            <div>
-                                <div className="round-card-course">{round.course_name}</div>
-                                <div className="round-card-tee">{round.tee_name} Tees</div>
-                                {round.tee_time && (
-                                    <div className="round-card-tee-time">
-                                        🕐 {formatTeeTime(round.tee_time)}
-                                    </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                {round.course_logo && (
+                                    <img src={round.course_logo} alt="course logo" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '50%', flexShrink: 0, marginTop: '0.1rem', border: '1px solid var(--color-border)' }} />
                                 )}
+                                <div>
+                                    <div className="round-card-course">{round.course_name}</div>
+                                    <div className="round-card-tee">{round.tee_name} Tees</div>
+                                    {round.tee_time && (
+                                        <div className="round-card-tee-time">
+                                            🕐 {formatTeeTime(round.tee_time)}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
                                 <span className={`round-status-badge ${round.status}`}>

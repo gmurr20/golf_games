@@ -46,7 +46,7 @@ export default function ViewScorecard() {
 
     if (!data) return <div className="view-scorecard-container">Scorecard not found.</div>;
 
-    const { course_name, tee_name, tee_time, current_hole, scorecard } = data;
+    const { course_name, course_logo, tee_name, tee_time, current_hole, scorecard } = data;
 
     // Use player_totals directly from the backend
     const playerTotals = data.player_totals || {};
@@ -193,8 +193,11 @@ export default function ViewScorecard() {
                 ← Back
             </div>
 
-            <header className="view-scorecard-header">
-                <h1>{course_name}</h1>
+            <header className="view-scorecard-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {course_logo && (
+                    <img src={course_logo} alt="course logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', marginBottom: '0.5rem', border: '2px solid var(--color-border)' }} />
+                )}
+                <h1 style={{ margin: 0 }}>{course_name}</h1>
                 <div className="view-scorecard-meta">
                     <span>{tee_name} Tees</span>
                     {tee_time && <span>🕐 {formatTime(tee_time)}</span>}

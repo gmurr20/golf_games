@@ -137,8 +137,13 @@ function MatchCard({ m, i, navigate }) {
         >
             <div className="match-card-context">
                 <div className="match-location">
-                    <span className="match-course">
-                        <MapPin size={12} strokeWidth={2.5} /> {m.course_name}
+                    <span className="match-course" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {m.course_logo ? (
+                            <img src={m.course_logo} alt="course logo" style={{ width: '20px', height: '20px', objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--color-border)' }} />
+                        ) : (
+                            <MapPin size={12} strokeWidth={2.5} />
+                        )}
+                        {m.course_name}
                     </span>
                     <span className="match-time">
                         <Clock size={12} strokeWidth={2.5} style={{ marginRight: '4px' }} />
