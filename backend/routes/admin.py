@@ -179,7 +179,6 @@ def upload_scorecard():
     Return a strict JSON object:
     {
       "course_name": "...",
-      "logo_bbox": [ymin, xmin, ymax, xmax], // Optional: if a clear course logo is visible, provide its bounding box using normalized coordinates (0-1000). ymin < ymax, xmin < xmax.
       "hole_defaults": [
         {"hole_number": 1, "par": 4, "handicap_index": 12} // List all 18 holes here
       ],
@@ -210,45 +209,6 @@ def upload_scorecard():
         if resp_text.startswith('```json'): resp_text = resp_text[7:-3].strip()
         if resp_text.startswith('```'): resp_text = resp_text[3:-3].strip()
         parsed = json.loads(resp_text)
-        
-        # Process Logo BBox
-        course_logo_b64 = None
-        logo_bbox = parsed.get('logo_bbox')
-        if isinstance(logo_bbox, list) and len(logo_bbox) == 4:
-            try:
-                ymin, xmin, ymax, xmax = [float(c) for c in logo_bbox]
-                # Ensure coordinates are somewhat valid before processing
-                if 0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000:
-                    try:
-                        img = Image.open(io.BytesIO(img_data))
-                        width, height = img.size
-                        
-                        # Ensure RGB mode
-                        if img.mode in ('RGBA', 'P'):
-                            img = img.convert('RGB')
-                            
-                        crop_box = (
-                            int(xmin * width / 1000), 
-                            int(ymin * height / 1000), 
-                            int(xmax * width / 1000), 
-                            int(ymax * height / 1000)
-                        )
-                        cropped = img.crop(crop_box)
-                        
-                        # Optional: resize if too large to save DB space
-                        max_dim = 400
-                        if cropped.width > max_dim or cropped.height > max_dim:
-                            cropped.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
-                            
-                        buffered = io.BytesIO()
-                        cropped.save(buffered, format="JPEG", quality=85)
-                        course_logo_b64 = "data:image/jpeg;base64," + base64.b64encode(buffered.getvalue()).decode()
-                    except Exception as e:
-                        print(f"Error cropping logo: {e}")
-                        pass
-            except (ValueError, TypeError):
-                pass
-        
         
         # COMPACT TO VERBOSE EXPANSION:
         # To avoid AI timeouts, the AI returns a compact format which we now expand
@@ -301,7 +261,6 @@ def upload_scorecard():
             
         return jsonify({
             "course_name": parsed.get('course_name'),
-            "course_logo": course_logo_b64,
             "tees": expanded_tees,
             "warnings": warnings
         }), 200

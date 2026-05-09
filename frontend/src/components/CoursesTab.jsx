@@ -4,6 +4,108 @@ import { Button } from './ui/Button';
 import backend from '../api/backend';
 import './CoursesTab.css';
 
+// ── SCORECARD TABLE RENDERER ──
+const ScorecardTable = ({ holes, editable, onChange }) => {
+    const front = holes.filter(h => h.hole_number <= 9);
+    const back = holes.filter(h => h.hole_number > 9);
+
+    const frontTotalPar = front.reduce((s, h) => s + Number(h.par), 0);
+    const backTotalPar = back.reduce((s, h) => s + Number(h.par), 0);
+    const frontTotalYds = front.reduce((s, h) => s + Number(h.yardage || 0), 0);
+    const backTotalYds = back.reduce((s, h) => s + Number(h.yardage || 0), 0);
+
+    const renderNine = (nineHoles, label) => (
+        <div className="scorecard-nine">
+            <table className="scorecard-table">
+                <thead>
+                    <tr className="scorecard-header-row">
+                        <th className="scorecard-label-cell">{label}</th>
+                        {nineHoles.map(h => (
+                            <th key={h.hole_number} className="scorecard-hole-cell">{h.hole_number}</th>
+                        ))}
+                        <th className="scorecard-total-cell">TOT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr className="scorecard-par-row">
+                        <td className="scorecard-label-cell">Par</td>
+                        {nineHoles.map((h, i) => (
+                            <td key={h.hole_number} className="scorecard-data-cell">
+                                {editable ? (
+                                    <input
+                                        type="number"
+                                        className="scorecard-input"
+                                        value={h.par}
+                                        onChange={e => onChange(holes.indexOf(h), 'par', e.target.value)}
+                                    />
+                                ) : (
+                                    <span className="scorecard-value">{h.par}</span>
+                                )}
+                            </td>
+                        ))}
+                        <td className="scorecard-total-cell scorecard-value-total">
+                            {label === 'OUT' ? frontTotalPar : backTotalPar}
+                        </td>
+                    </tr>
+                    <tr className="scorecard-yardage-row">
+                        <td className="scorecard-label-cell">Yds</td>
+                        {nineHoles.map((h, i) => (
+                            <td key={h.hole_number} className="scorecard-data-cell">
+                                {editable ? (
+                                    <input
+                                        type="number"
+                                        className="scorecard-input"
+                                        value={h.yardage || ''}
+                                        placeholder="—"
+                                        onChange={e => onChange(holes.indexOf(h), 'yardage', e.target.value)}
+                                    />
+                                ) : (
+                                    <span className="scorecard-value scorecard-yardage">{h.yardage || '—'}</span>
+                                )}
+                            </td>
+                        ))}
+                        <td className="scorecard-total-cell scorecard-value-total">
+                            {(label === 'OUT' ? frontTotalYds : backTotalYds) || '—'}
+                        </td>
+                    </tr>
+                    <tr className="scorecard-hdcp-row">
+                        <td className="scorecard-label-cell">Hdcp</td>
+                        {nineHoles.map((h, i) => (
+                            <td key={h.hole_number} className="scorecard-data-cell">
+                                {editable ? (
+                                    <input
+                                        type="number"
+                                        className="scorecard-input"
+                                        value={h.handicap_index}
+                                        onChange={e => onChange(holes.indexOf(h), 'handicap_index', e.target.value)}
+                                    />
+                                ) : (
+                                    <span className="scorecard-value scorecard-hdcp">{h.handicap_index}</span>
+                                )}
+                            </td>
+                        ))}
+                        <td className="scorecard-total-cell"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    );
+
+    return (
+        <div className="scorecard-container">
+            {renderNine(front, 'OUT')}
+            {renderNine(back, 'IN')}
+            <div className="scorecard-grand-total">
+                <span>18-Hole Total</span>
+                <span className="scorecard-grand-total-value">Par {frontTotalPar + backTotalPar}</span>
+                {(frontTotalYds + backTotalYds > 0) && (
+                    <span className="scorecard-grand-total-yds">{frontTotalYds + backTotalYds} yds</span>
+                )}
+            </div>
+        </div>
+    );
+};
+
 export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploadScorecard, setStatus }) {
     const [view, setView] = useState('list'); // 'list' | 'detail' | 'create'
     const [selectedCourse, setSelectedCourse] = useState(null);
@@ -201,107 +303,7 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
         });
     };
 
-    // ── SCORECARD TABLE RENDERER ──
-    const ScorecardTable = ({ holes, editable, onChange }) => {
-        const front = holes.filter(h => h.hole_number <= 9);
-        const back = holes.filter(h => h.hole_number > 9);
-
-        const frontTotalPar = front.reduce((s, h) => s + Number(h.par), 0);
-        const backTotalPar = back.reduce((s, h) => s + Number(h.par), 0);
-        const frontTotalYds = front.reduce((s, h) => s + Number(h.yardage || 0), 0);
-        const backTotalYds = back.reduce((s, h) => s + Number(h.yardage || 0), 0);
-
-        const renderNine = (nineHoles, label) => (
-            <div className="scorecard-nine">
-                <table className="scorecard-table">
-                    <thead>
-                        <tr className="scorecard-header-row">
-                            <th className="scorecard-label-cell">{label}</th>
-                            {nineHoles.map(h => (
-                                <th key={h.hole_number} className="scorecard-hole-cell">{h.hole_number}</th>
-                            ))}
-                            <th className="scorecard-total-cell">TOT</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr className="scorecard-par-row">
-                            <td className="scorecard-label-cell">Par</td>
-                            {nineHoles.map((h, i) => (
-                                <td key={h.hole_number} className="scorecard-data-cell">
-                                    {editable ? (
-                                        <input
-                                            type="number"
-                                            className="scorecard-input"
-                                            value={h.par}
-                                            onChange={e => onChange(holes.indexOf(h), 'par', e.target.value)}
-                                        />
-                                    ) : (
-                                        <span className="scorecard-value">{h.par}</span>
-                                    )}
-                                </td>
-                            ))}
-                            <td className="scorecard-total-cell scorecard-value-total">
-                                {label === 'OUT' ? frontTotalPar : backTotalPar}
-                            </td>
-                        </tr>
-                        <tr className="scorecard-yardage-row">
-                            <td className="scorecard-label-cell">Yds</td>
-                            {nineHoles.map((h, i) => (
-                                <td key={h.hole_number} className="scorecard-data-cell">
-                                    {editable ? (
-                                        <input
-                                            type="number"
-                                            className="scorecard-input"
-                                            value={h.yardage || ''}
-                                            placeholder="—"
-                                            onChange={e => onChange(holes.indexOf(h), 'yardage', e.target.value)}
-                                        />
-                                    ) : (
-                                        <span className="scorecard-value scorecard-yardage">{h.yardage || '—'}</span>
-                                    )}
-                                </td>
-                            ))}
-                            <td className="scorecard-total-cell scorecard-value-total">
-                                {(label === 'OUT' ? frontTotalYds : backTotalYds) || '—'}
-                            </td>
-                        </tr>
-                        <tr className="scorecard-hdcp-row">
-                            <td className="scorecard-label-cell">Hdcp</td>
-                            {nineHoles.map((h, i) => (
-                                <td key={h.hole_number} className="scorecard-data-cell">
-                                    {editable ? (
-                                        <input
-                                            type="number"
-                                            className="scorecard-input"
-                                            value={h.handicap_index}
-                                            onChange={e => onChange(holes.indexOf(h), 'handicap_index', e.target.value)}
-                                        />
-                                    ) : (
-                                        <span className="scorecard-value scorecard-hdcp">{h.handicap_index}</span>
-                                    )}
-                                </td>
-                            ))}
-                            <td className="scorecard-total-cell"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        );
-
-        return (
-            <div className="scorecard-container">
-                {renderNine(front, 'OUT')}
-                {renderNine(back, 'IN')}
-                <div className="scorecard-grand-total">
-                    <span>18-Hole Total</span>
-                    <span className="scorecard-grand-total-value">Par {frontTotalPar + backTotalPar}</span>
-                    {(frontTotalYds + backTotalYds > 0) && (
-                        <span className="scorecard-grand-total-yds">{frontTotalYds + backTotalYds} yds</span>
-                    )}
-                </div>
-            </div>
-        );
-    };
+    // ── CREATE VIEW ──
 
     // ── CREATE VIEW ──
     if (view === 'create') {
