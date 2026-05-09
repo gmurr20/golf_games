@@ -36,7 +36,7 @@ def get_active_competition():
         comp = Competition.query.first()
     
     if not comp:
-        return jsonify({"name": "Golf Games", "tournament": None}), 200
+        return jsonify({"name": "Murray Cup 2026", "tournament": None}), 200
         
     tourney = Tournament.query.filter_by(competition_id=comp.id).first()
     

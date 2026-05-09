@@ -25,7 +25,7 @@ def authenticate():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     
     if not comp:
-        comp = Competition(name='Golf Games', admin_key=admin_key)
+        comp = Competition(name='Murray Cup 2026', admin_key=admin_key)
         db.session.add(comp)
         db.session.flush()
     
@@ -47,6 +47,7 @@ def manage_competition():
 
     if request.method == 'PUT':
         data = request.json
+        if 'name' in data: comp.name = data['name']
         if 'team_a_name' in data: comp.team_a_name = data['team_a_name']
         if 'team_b_name' in data: comp.team_b_name = data['team_b_name']
         db.session.commit()

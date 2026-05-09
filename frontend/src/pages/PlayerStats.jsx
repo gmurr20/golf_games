@@ -8,7 +8,7 @@ export default function PlayerStats() {
     const { playerId } = useParams();
     const navigate = useNavigate();
     const [data, setData] = useState(null);
-    const [compInfo, setCompInfo] = useState({ name: 'Golf Games' });
+    const [compInfo, setCompInfo] = useState({ name: 'Murray Cup 2026' });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -69,7 +69,7 @@ export default function PlayerStats() {
                 <div className="player-stats-brand-header">
                     <div className="player-stats-brand-left">
                         <img src="/full-logo.jpg" alt="Logo" className="player-stats-logo-mini" />
-                        <span className="player-stats-brand-title">Golf Games</span>
+                        <span className="player-stats-brand-title">Murray Cup 2026</span>
                     </div>
                     <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
                 </div>

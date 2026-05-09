@@ -13,7 +13,7 @@ export default function Home() {
     const [playerName, setPlayerName] = useState('');
     const [players, setPlayers] = useState([]);
     const [rounds, setRounds] = useState([]);
-    const [compName, setCompName] = useState('Golf Games');
+    const [compName, setCompName] = useState('Murray Cup 2026');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -131,8 +131,8 @@ export default function Home() {
         return (
             <div className="home-container animate-slide-up">
                 <div className="home-brand-header">
-                    <img src="/full-logo.jpg" alt="Golf Games Logo" className="home-logo" />
-                    <h1>Golf Games</h1>
+                    <img src="/full-logo.jpg" alt="Murray Cup 2026 Logo" className="home-logo" />
+                    <h1>Murray Cup 2026</h1>
                 </div>
                 <div className="home-header">
                     <p>Who are you?</p>
@@ -170,8 +170,8 @@ export default function Home() {
             <div className="greeting-row">
                 <div className="home-brand-header-mini">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-                        <img src="/full-logo.jpg" alt="Golf Games Logo" className="home-logo-mini" />
-                        <span className="home-brand-title">Golf Games</span>
+                        <img src="/full-logo.jpg" alt="Murray Cup 2026 Logo" className="home-logo-mini" />
+                        <span className="home-brand-title">Murray Cup 2026</span>
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
                         <button className="change-player-link" onClick={() => navigate(`/player-stats/${playerId}`)}>
