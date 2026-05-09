@@ -287,7 +287,7 @@ function Dashboard() {
             setStatus(`AI Parsed: ${parsed.course_name}. Saving directly to PostgreSQL...`);
 
             await backend.post('/courses', {
-                name: parsed.course_name,
+                name: parsed.course_name || 'Parsed Course',
                 logo: parsed.course_logo,
                 tees: parsed.tees.map(tee => ({
                     name: tee.tee_name,

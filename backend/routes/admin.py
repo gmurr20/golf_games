@@ -313,7 +313,10 @@ def upload_scorecard():
 def create_course():
     admin_key = request.headers.get('admin-key')
     data = request.json
-    course = Course(name=data['name'], logo=data.get('logo'))
+    course_name = data.get('name')
+    if not course_name:
+        course_name = 'Unknown Course'
+    course = Course(name=course_name, logo=data.get('logo'))
     db.session.add(course)
     db.session.commit()
     
