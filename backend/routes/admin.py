@@ -166,11 +166,12 @@ def upload_scorecard():
     1. **Course Name**: Usually at the top or on the front cover.
     2. **ALL Tee Rows (CRITICAL)**: Extract data for EVERY row listed in the tee section. This includes:
         - **Primary Tees**: Solid color/name rows (e.g., Black, Orange, Sand, Green, Silver).
-        - **Combo/Hybrid Tees**: Rows that name two colors (e.g., "Black/Orange", "Orange/Sand"). These are often thinner rows between primary colors and MUST NOT be skipped.
-    3. **Arrow Resolution (Hybrid Yardages)**: Hybrid/Combo rows frequently use small arrows (▲ or ▼) instead of numbers for specific holes. **YOU MUST RESOLVE THESE INTO NUMBERS**:
-        - **UP Arrow (▲)**: Use yardage from the tee row directly ABOVE.
-        - **DOWN Arrow (▼)**: Use yardage from the tee row directly BELOW.
-        - Hybrid tees must be returned as complete tee entries in the JSON with 18 absolute yardage numbers.
+        - **Combo/Hybrid Tees**: Lines or rows that name two colors/names (e.g., "Back/Middle", "Middle/Front"). These are often printed directly on the horizontal dividing lines between primary rows and MUST NOT be skipped.
+    3. **Arrow/Box Resolution (Hybrid Yardages)**: Hybrid/Combo tees often use small triangles (▲ or ▼), arrows, or boxed numbers to indicate which tee to use for a specific hole. **YOU MUST RESOLVE THESE INTO NUMBERS**:
+        - **UP Triangle/Arrow (▲)**: Use the yardage from the primary tee row directly ABOVE the hybrid line.
+        - **DOWN Triangle/Arrow (▼)**: Use the yardage from the primary tee row directly BELOW the hybrid line.
+        - **Boxed/Shaded**: If a number is boxed or shaded, use that number. If the hybrid line tells you which hole to play, resolve it.
+        - Hybrid tees must be returned as complete tee entries in the JSON with all 18 absolute yardage numbers filled out.
     4. **Ratings & Slopes**: Look for "Rating/Slope", "CR/Slope", or "M/W". Ratings are decimals (e.g. 71.4), Slopes are integers (e.g. 128).
     5. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings (e.g. "70.1/121 | 72.4/125"). Map the second to "rating_female" and "slope_female". Look for labels like (M), (W), (L), or symbols (♂/♀).
 
