@@ -36,6 +36,10 @@ def test_shamble_match_play():
     mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A')
     mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='B')
     
+    # Crucial mapping fix to resolve AttributeError in SQLAlchemy relationship mocking
+    mp1.player = p1
+    mp2.player = p2
+    
     holes = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 19)]
     
     # Mock DB session
@@ -64,28 +68,25 @@ def test_shamble_match_play():
     engine.MatchupPlayer.query = mock_query(MatchupPlayer)
     engine.Score.query = mock_query(Score)
     engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
     
-    # Test Shamble Match Play
+    # Test Shamble Match Play (Course CH: A=8, B=15. Playing Relative: A=0, B=7)
     status = engine.calculate_match_status(1)
     p1_st = status['player_stats'][1]
     p2_st = status['player_stats'][2]
     
-    print("--- SHAMBLE MATCH PLAY ---")
-    print(f"Player A (CH 10): Adjusted CH={p1_st['course_handicap']}, Playing CH={p1_st['playing_handicap']}")
-    print(f"Player B (CH 20): Adjusted CH={p2_st['course_handicap']}, Playing CH={p2_st['playing_handicap']}")
+    assert p1_st['course_handicap'] == 8
+    assert p1_st['playing_handicap'] == 0
+    assert p2_st['course_handicap'] == 15
+    assert p2_st['playing_handicap'] == 7
     
-    # Expected Shamble: A=8, B=15. Relative: A=0, B=7.
-    # Expected Norm: A=10, B=20. Relative: A=0, B=10.
-    
-    # Test Standard Match Play (for comparison)
+    # Test Standard Match Play (Course CH: A=10, B=20. Playing Relative: A=0, B=10)
     mock_matchup.format = 'individual'
     status_norm = engine.calculate_match_status(1)
     p1_st_n = status_norm['player_stats'][1]
     p2_st_n = status_norm['player_stats'][2]
     
-    print("\n--- NORMAL MATCH PLAY ---")
-    print(f"Player A (CH 10): CH={p1_st_n['course_handicap']}, Playing CH={p1_st_n['playing_handicap']}")
-    print(f"Player B (CH 20): CH={p2_st_n['course_handicap']}, Playing CH={p2_st_n['playing_handicap']}")
-
-if __name__ == "__main__":
-    test_shamble_match_play()
+    assert p1_st_n['course_handicap'] == 10
+    assert p1_st_n['playing_handicap'] == 0
+    assert p2_st_n['course_handicap'] == 20
+    assert p2_st_n['playing_handicap'] == 10
