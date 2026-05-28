@@ -801,6 +801,132 @@
     opacity: 0.8;
 }
 
+/* ── 3-Way Handicap Toggle ── */
+.handicap-toggle-3 {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.handicap-custom {
+    background: linear-gradient(135deg, hsl(35, 85%, 55%), hsl(30, 90%, 45%));
+    color: #fff;
+    border-color: transparent;
+}
+.handicap-custom:hover {
+    color: #fff;
+}
+
+/* ── Custom Pops Section ── */
+.custom-pops-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.custom-pops-player {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+}
+
+.custom-pops-player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.custom-pops-player-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.custom-pops-player-total {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(39, 125, 76, 0.08);
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-pill);
+}
+
+.custom-pops-bubbles {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.custom-pops-bubble {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.custom-pops-bubble:hover {
+    border-color: var(--color-primary-light);
+    transform: scale(1.05);
+}
+
+.custom-pops-bubble:active {
+    transform: scale(0.95);
+}
+
+.custom-pops-hole-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    line-height: 1;
+}
+
+.custom-pops-dots {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    margin-top: 1px;
+    letter-spacing: -1px;
+}
+
+/* Active (1 pop) */
+.custom-pops-bubble-active {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(39, 125, 76, 0.25);
+}
+
+.custom-pops-bubble-active .custom-pops-hole-num {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Double pop */
+.custom-pops-bubble-double {
+    background: linear-gradient(135deg, hsl(35, 85%, 55%), hsl(30, 90%, 45%));
+    box-shadow: 0 2px 8px rgba(200, 140, 40, 0.3);
+}
+
+@media (max-width: 480px) {
+    .custom-pops-bubbles {
+        gap: 0.25rem;
+    }
+    .custom-pops-bubble {
+        width: 40px;
+        height: 40px;
+    }
+}
+
 @media (prefers-color-scheme: dark) {
     .override-input {
         background: rgba(255, 255, 255, 0.05);
@@ -809,5 +935,11 @@
     }
     .matchup-player-hcp {
         color: var(--color-primary-light);
+    }
+    .custom-pops-player {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .custom-pops-bubble {
+        background: rgba(255, 255, 255, 0.05);
     }
 }

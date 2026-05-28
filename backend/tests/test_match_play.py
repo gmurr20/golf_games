@@ -423,3 +423,287 @@ def test_freeloader_award_calculation(monkeypatch):
 
 
 
+def test_custom_pops_bypass():
+    """Verify that custom_pops on a MatchupPlayer bypasses WHS allocations."""
+    import json
+    
+    mock_comp = Competition(id=1, name="Comp", team_a_name="Team A", team_b_name="Team B", admin_key="key")
+    mock_tournament = Tournament(id=1, competition_id=1, competition=mock_comp)
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    
+    mock_matchup = Matchup(
+        id=1, 
+        tournament_id=1, 
+        tee_id=1, 
+        format='individual', 
+        scoring_type='match_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5
+    )
+    
+    # Player A: Normal WHS index
+    # Player B: Custom pops on holes 1(1 pop), 5(2 pops), 10(1 pop) = 4 total
+    p1 = Player(id=1, handicap_index=10.0, name="Player A", gender='male')
+    p2 = Player(id=2, handicap_index=20.0, name="Player B", gender='male')
+    
+    custom_pops_b = {"1": 1, "5": 2, "10": 1}
+    
+    mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A', handicap_index=10.0)
+    mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='B', handicap_index=20.0,
+                         custom_pops=json.dumps(custom_pops_b))
+    mp1.player = p1
+    mp2.player = p2
+    
+    holes = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 19)]
+    
+    # Mock DB
+    db.session.get = MagicMock(return_value=mock_matchup)
+    
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Hole:
+            q.filter.return_value.order_by.return_value.all.return_value = holes
+            q.filter_by.return_value.order_by.return_value.all.return_value = holes
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = [mp1, mp2]
+            q.filter.return_value.all.return_value = [mp1, mp2]
+        elif model == Score:
+            q.filter_by.return_value.all.return_value = []
+            q.filter.return_value.all.return_value = []
+        elif model == Player:
+            q.filter.return_value.all.return_value = [p1, p2]
+            q.get.side_effect = lambda pid: p1 if pid == 1 else p2
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup]
+        return q
+
+    import services.match_engine as engine
+    engine.Hole.query = mock_query(Hole)
+    engine.MatchupPlayer.query = mock_query(MatchupPlayer)
+    engine.Score.query = mock_query(Score)
+    engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
+    
+    status = engine.calculate_match_status(1)
+    
+    p1_st = status['player_stats'][1]
+    p2_st = status['player_stats'][2]
+    
+    # Player A: Standard WHS — CH=10 (normal course handicap for 10.0 index on 72/113)
+    assert p1_st['course_handicap'] == 10
+    
+    # Player B: Custom pops — CH = sum of custom pops = 1 + 2 + 1 = 4
+    assert p2_st['course_handicap'] == 4
+    
+    # Player B: playing_handicap should also equal 4 (custom pops bypass relative reduction)
+    assert p2_st['playing_handicap'] == 4
+    
+    # Verify the custom pops are distributed on the correct holes
+    p2_pops = p2_st['pops_per_hole']
+    assert p2_pops.get(1) == 1
+    assert p2_pops.get(5) == 2
+    assert p2_pops.get(10) == 1
+    # All other holes should have 0 pops
+    for h in range(1, 19):
+        if h not in (1, 5, 10):
+            assert p2_pops.get(h, 0) == 0
+    
+    # Player A should have standard relative PH (reduced by low man)
+    # Since Player B has custom pops (CH=4) and Player A has CH=10,
+    # Player A's relative playing handicap is calculated only among standard players,
+    # which is just Player A alone: PH = 10 - 10 = 0
+    assert p1_st['playing_handicap'] == 0
+
+
+def test_custom_pops_match_play_with_scores():
+    """
+    Full match play simulation with custom pops and actual scores.
+    Verifies net scores, hole winners, match status, and overall winner.
+    
+    Setup:
+    - 5-hole match (holes 1-5), par 4 each
+    - Player A: NO custom pops, standard WHS → CH=10, but PH=0 (relative)
+    - Player B: custom pops on hole 1 (1 pop), hole 3 (1 pop) = 2 total, PH=2
+    
+    Scores:
+    - Hole 1: A=5, B=5 → A_net=5, B_net=5-1=4 → B wins
+    - Hole 2: A=4, B=5 → A_net=4, B_net=5    → A wins (AS)
+    - Hole 3: A=4, B=5 → A_net=4, B_net=5-1=4 → Push (AS)
+    - Hole 4: A=5, B=4 → A_net=5, B_net=4    → B wins (B 1UP)
+    - Hole 5: A=4, B=4 → A_net=4, B_net=4    → Push (B 1UP, FINAL)
+    
+    Expected: B wins 1 UP. is_completed=True.
+    """
+    import json
+    
+    mock_comp = Competition(id=1, name="Comp", team_a_name="Team A", team_b_name="Team B", admin_key="key")
+    mock_tournament = Tournament(id=1, competition_id=1, competition=mock_comp)
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    
+    mock_matchup = Matchup(
+        id=1,
+        tournament_id=1,
+        tee_id=1,
+        format='individual',
+        scoring_type='match_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        hole_start=1,
+        hole_end=5
+    )
+    
+    p1 = Player(id=1, handicap_index=10.0, name="Player A", gender='male')
+    p2 = Player(id=2, handicap_index=5.0, name="Player B", gender='male')
+    
+    # Player B gets custom pops: hole 1 (1 pop), hole 3 (1 pop)
+    custom_pops_b = {"1": 1, "3": 1}
+    
+    mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A', handicap_index=10.0)
+    mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='B', handicap_index=5.0,
+                         custom_pops=json.dumps(custom_pops_b))
+    mp1.player = p1
+    mp2.player = p2
+    
+    # Only 5 holes in the match range, but all_holes has full set for pops allocation
+    holes_in_range = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 6)]
+    all_holes = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 19)]
+    
+    scores = [
+        # Hole 1: A=5, B=5 raw → B gets 1 pop → B net=4, A net=5 → B wins
+        Score(matchup_id=1, player_id=1, hole_number=1, strokes=5),
+        Score(matchup_id=1, player_id=2, hole_number=1, strokes=5),
+        # Hole 2: A=4, B=5 → no pops → A net=4, B net=5 → A wins
+        Score(matchup_id=1, player_id=1, hole_number=2, strokes=4),
+        Score(matchup_id=1, player_id=2, hole_number=2, strokes=5),
+        # Hole 3: A=4, B=5 → B gets 1 pop → A net=4, B net=4 → Push
+        Score(matchup_id=1, player_id=1, hole_number=3, strokes=4),
+        Score(matchup_id=1, player_id=2, hole_number=3, strokes=5),
+        # Hole 4: A=5, B=4 → no pops → A net=5, B net=4 → B wins
+        Score(matchup_id=1, player_id=1, hole_number=4, strokes=5),
+        Score(matchup_id=1, player_id=2, hole_number=4, strokes=4),
+        # Hole 5: A=4, B=4 → no pops → A net=4, B net=4 → Push
+        Score(matchup_id=1, player_id=1, hole_number=5, strokes=4),
+        Score(matchup_id=1, player_id=2, hole_number=5, strokes=4),
+    ]
+    
+    db.session.get = MagicMock(return_value=mock_matchup)
+    
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Hole:
+            # filter() for hole range returns holes_in_range
+            q.filter.return_value.order_by.return_value.all.return_value = holes_in_range
+            # filter_by() for all_holes returns all 18
+            q.filter_by.return_value.order_by.return_value.all.return_value = all_holes
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = [mp1, mp2]
+            q.filter.return_value.all.return_value = [mp1, mp2]
+        elif model == Score:
+            q.filter.return_value.all.return_value = scores
+        elif model == Player:
+            q.filter.return_value.all.return_value = [p1, p2]
+            q.get.side_effect = lambda pid: p1 if pid == 1 else p2
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup]
+        return q
+
+    import services.match_engine as engine
+    engine.Hole.query = mock_query(Hole)
+    engine.MatchupPlayer.query = mock_query(MatchupPlayer)
+    engine.Score.query = mock_query(Score)
+    engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
+    
+    status = engine.calculate_match_status(1)
+    
+    # ── Verify per-hole net scores ──
+    sc = status['scorecard']
+    
+    # Key distinction:
+    #   "net" = raw - course_pops (full CH, for leaderboard/stats)
+    #   "match_net" = raw - match_pops (relative PH, for hole winner determination)
+    #
+    # Player A: CH=10, PH=0 (standard WHS, relative). So match_net = raw (no match pops).
+    #   But "net" will subtract course pops (full 10 pops distributed on hardest holes).
+    # Player B: custom_pops on holes 1,3 only. Both "net" and "match_net" use custom pops
+    #   since custom_pops bypass both course and match allocations identically (PH=CH=2).
+    
+    # Hole 1: A raw=5, B raw=5. 
+    #   B match_net=5-1=4, A match_net=5-0=5 → B wins (match_net comparison)
+    h1 = sc[0]
+    assert h1['hole_number'] == 1
+    assert h1['players'][1]['raw'] == 5
+    assert h1['players'][1]['match_net'] == 5  # A: PH=0, no match pops
+    assert h1['players'][2]['raw'] == 5
+    assert h1['players'][2]['match_net'] == 4  # B: custom pop on hole 1
+    assert h1['winner'] == 'B'
+    
+    # Hole 2: A=4, B=5, no custom pops for B here
+    h2 = sc[1]
+    assert h2['hole_number'] == 2
+    assert h2['players'][1]['match_net'] == 4  # A: raw 4, no match pops
+    assert h2['players'][2]['match_net'] == 5  # B: no custom pop on hole 2
+    assert h2['winner'] == 'A'
+    
+    # Hole 3: A=4, B=5, B gets 1 custom pop → B match_net=4
+    h3 = sc[2]
+    assert h3['hole_number'] == 3
+    assert h3['players'][1]['match_net'] == 4
+    assert h3['players'][2]['match_net'] == 4  # B: 1 custom pop on hole 3
+    assert h3['winner'] == 'Push'
+    
+    # Hole 4: A=5, B=4 → B wins
+    h4 = sc[3]
+    assert h4['players'][1]['match_net'] == 5
+    assert h4['players'][2]['match_net'] == 4
+    assert h4['winner'] == 'B'
+    
+    # Hole 5: A=4, B=4 → Push
+    h5 = sc[4]
+    assert h5['players'][1]['match_net'] == 4
+    assert h5['players'][2]['match_net'] == 4
+    assert h5['winner'] == 'Push'
+    
+    # ── Verify match status ──
+    assert status['team_a_wins'] == 1
+    assert status['team_b_wins'] == 2
+    assert status['holes_played'] == 5
+    assert status['is_completed'] is True
+    assert status['leading_team'] == 'B'
+    assert '1 UP' in status['display_value']
+    
+    # ── Verify overall winner ──
+    winner = engine.calculate_overall_winner(1)
+    assert winner['winner'] == 'B'
+    assert winner['points_a'] == 0.0
+    assert winner['points_b'] == 1.0
+    
+    # ── Verify player totals ──
+    p1_st = status['player_stats'][1]
+    p2_st = status['player_stats'][2]
+    
+    # Player A: 5+4+4+5+4 = 22 raw
+    assert p1_st['total_raw'] == 22
+    assert p1_st['holes_scored'] == 5
+    
+    # Player B: 5+5+5+4+4 = 23 raw, 2 custom pops → total_net = 23-2 = 21
+    assert p2_st['total_raw'] == 23
+    assert p2_st['total_net'] == 21
+    assert p2_st['holes_scored'] == 5
+    
+    # ── Verify custom pops player stats are correct ──
+    assert p2_st['course_handicap'] == 2  # sum of custom pops
+    assert p2_st['playing_handicap'] == 2  # custom pops bypass relative reduction
+    
+    # ── Verify status strings are reasonable ──
+    assert status['status_string'] is not None  # Should have a status summary
+
+

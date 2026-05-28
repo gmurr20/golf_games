@@ -677,11 +677,12 @@ def get_player_stats(player_id):
         # Determine hole range label
         h_start = m.hole_start or 1
         h_end = m.hole_end or 18
-        if h_start == 1 and h_end == 18:
-            hole_range = "Full 18"
-        elif h_start == 1 and h_end == 9:
+        tee_hole_count = len(m.tee.holes) if (m.tee and m.tee.holes) else 18
+        if h_start == 1 and h_end == tee_hole_count:
+            hole_range = f"Full {tee_hole_count}"
+        elif h_start == 1 and h_end == 9 and tee_hole_count == 18:
             hole_range = "Front Nine"
-        elif h_start == 10 and h_end == 18:
+        elif h_start == 10 and h_end == 18 and tee_hole_count == 18:
             hole_range = "Back Nine"
         else:
             hole_range = f"Holes {h_start}-{h_end}"

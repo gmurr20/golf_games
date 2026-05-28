@@ -87,6 +87,7 @@ class MatchupPlayer(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     team = db.Column(db.String(5), nullable=False) # 'A' or 'B'
     handicap_index = db.Column(db.Float, nullable=True) # The locked-in handicap index for this matchup
+    custom_pops = db.Column(db.Text, nullable=True) # Stored as JSON string
 
     matchup = db.relationship('Matchup', backref=db.backref('player_links', cascade="all, delete-orphan", lazy=True))
     player = db.relationship('Player', backref=db.backref('matchup_players', cascade="all, delete-orphan", lazy=True))

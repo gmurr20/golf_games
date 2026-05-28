@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -14,6 +14,8 @@ export default function MatchupsTab({
     const [mFormat, setMFormat] = useState('individual');
     const [mScoring, setMScoring] = useState('match_play');
     const [useHandicaps, setUseHandicaps] = useState(true);
+    const [isCustomNet, setIsCustomNet] = useState(false);
+    const [customPops, setCustomPops] = useState({}); // { playerId: { holeNum: pops } }
     const [mCourseId, setMCourseId] = useState('');
     const [mTeeId, setMTeeId] = useState('');
     const [teamA1, setTeamA1] = useState('');
@@ -34,10 +36,28 @@ export default function MatchupsTab({
     const arrTeamB = players.filter(p => p.team === teamBName);
     const arrUnassigned = players.filter(p => p.team !== teamAName && p.team !== teamBName);
 
+    // Dynamic hole count from selected tee
+    const selectedCourse = courses.find(c => c.id === parseInt(mCourseId));
+    const selectedTee = selectedCourse?.tees.find(t => t.id === parseInt(mTeeId));
+    const holeCount = selectedTee?.holes?.length || 18;
+
+    // Handle tee change: update ranges and custom input bounds
+    const handleTeeChange = (newTeeId) => {
+        setMTeeId(newTeeId);
+        const tee = selectedCourse?.tees.find(t => t.id === parseInt(newTeeId));
+        const count = tee?.holes?.length || 18;
+        setSelectedRanges([{ start: 1, end: count }]);
+        setCustomStart('1');
+        setCustomEnd(String(count));
+        setCustomPops({});
+    };
+
     const resetForm = () => {
         setMFormat('individual');
         setMScoring('match_play');
         setUseHandicaps(true);
+        setIsCustomNet(false);
+        setCustomPops({});
         setMCourseId('');
         setMTeeId('');
         setTeamA1(''); setTeamA2('');
@@ -58,13 +78,13 @@ export default function MatchupsTab({
                 const filtered = prev.filter(r => !(r.start === preset.start && r.end === preset.end));
                 return filtered.length > 0 ? filtered : prev;
             }
-            // If "Full 18" is being added, replace everything
-            if (preset.start === 1 && preset.end === 18) {
-                return [{ start: 1, end: 18 }];
+            // If "Full N" is being added, replace everything
+            if (preset.start === 1 && preset.end === holeCount) {
+                return [{ start: 1, end: holeCount }];
             }
-            // If adding a sub-range, remove "Full 18" if present
-            const without18 = prev.filter(r => !(r.start === 1 && r.end === 18));
-            return [...without18, { start: preset.start, end: preset.end }];
+            // If adding a sub-range, remove "Full N" if present
+            const withoutFull = prev.filter(r => !(r.start === 1 && r.end === holeCount));
+            return [...withoutFull, { start: preset.start, end: preset.end }];
         });
     };
 
@@ -75,10 +95,31 @@ export default function MatchupsTab({
     const addCustomRange = () => {
         const s = parseInt(customStart);
         const e = parseInt(customEnd);
-        if (s < 1 || e > 18 || s > e) return;
+        if (s < 1 || e > holeCount || s > e) return;
         if (selectedRanges.some(r => r.start === s && r.end === e)) return;
-        const without18 = selectedRanges.filter(r => !(r.start === 1 && r.end === 18));
-        setSelectedRanges([...without18, { start: s, end: e }]);
+        const withoutFull = selectedRanges.filter(r => !(r.start === 1 && r.end === holeCount));
+        setSelectedRanges([...withoutFull, { start: s, end: e }]);
+    };
+
+    // Toggle custom pops for a player on a specific hole: 0 → 1 → 2 → 0
+    const togglePop = (playerId, holeNum) => {
+        setCustomPops(prev => {
+            const playerPops = { ...(prev[playerId] || {}) };
+            const current = playerPops[holeNum] || 0;
+            const next = (current + 1) % 3;
+            if (next === 0) {
+                delete playerPops[holeNum];
+            } else {
+                playerPops[holeNum] = next;
+            }
+            return { ...prev, [playerId]: playerPops };
+        });
+    };
+
+    // Get the total custom pops for a player
+    const getPlayerPopTotal = (playerId) => {
+        const pops = customPops[playerId] || {};
+        return Object.values(pops).reduce((sum, v) => sum + v, 0);
     };
 
     const removeRange = (idx) => {
@@ -102,6 +143,19 @@ export default function MatchupsTab({
             return;
         }
 
+        // Build custom_pops payload if in Custom Net mode
+        let customPopsPayload = undefined;
+        if (isCustomNet) {
+            customPopsPayload = {};
+            const allPlayerIds = [teamA1, teamA2, teamB1, teamB2].filter(Boolean);
+            for (const pid of allPlayerIds) {
+                const pops = customPops[pid];
+                if (pops && Object.keys(pops).length > 0) {
+                    customPopsPayload[pid] = pops;
+                }
+            }
+        }
+
         try {
             const promises = selectedRanges.map(range =>
                 backend.post('/matchups', {
@@ -111,6 +165,7 @@ export default function MatchupsTab({
                     tee_id: parseInt(mTeeId),
                     teams,
                     handicap_overrides: overrides,
+                    custom_pops: customPopsPayload,
                     points_for_win: parseFloat(pointsWin),
                     points_for_push: parseFloat(pointsPush),
                     hole_start: range.start,
@@ -176,15 +231,42 @@ export default function MatchupsTab({
         navigate(`/play/${m.tournament_id}/${m.tee_id}?${params.toString()}`);
     };
 
-    // Hole range presets
-    const HOLE_PRESETS = [
-        { label: 'Full 18', start: 1, end: 18 },
-        { label: 'Front 9', start: 1, end: 9 },
-        { label: 'Back 9', start: 10, end: 18 },
-        { label: 'Holes 1-6', start: 1, end: 6 },
-        { label: 'Holes 7-12', start: 7, end: 12 },
-        { label: 'Holes 13-18', start: 13, end: 18 },
-    ];
+    // Dynamic hole range presets based on selected tee's hole count
+    const HOLE_PRESETS = useMemo(() => {
+        if (holeCount === 18) {
+            return [
+                { label: 'Full 18', start: 1, end: 18 },
+                { label: 'Front 9', start: 1, end: 9 },
+                { label: 'Back 9', start: 10, end: 18 },
+                { label: 'Holes 1-6', start: 1, end: 6 },
+                { label: 'Holes 7-12', start: 7, end: 12 },
+                { label: 'Holes 13-18', start: 13, end: 18 },
+            ];
+        } else if (holeCount === 12) {
+            return [
+                { label: 'Full 12', start: 1, end: 12 },
+                { label: 'Holes 1-6', start: 1, end: 6 },
+                { label: 'Holes 7-12', start: 7, end: 12 },
+                { label: 'Holes 1-4', start: 1, end: 4 },
+                { label: 'Holes 5-8', start: 5, end: 8 },
+                { label: 'Holes 9-12', start: 9, end: 12 },
+            ];
+        } else if (holeCount === 9) {
+            return [
+                { label: 'Full 9', start: 1, end: 9 },
+                { label: 'Holes 1-3', start: 1, end: 3 },
+                { label: 'Holes 4-6', start: 4, end: 6 },
+                { label: 'Holes 7-9', start: 7, end: 9 },
+            ];
+        } else {
+            return [
+                { label: `Full ${holeCount}`, start: 1, end: holeCount },
+            ];
+        }
+    }, [holeCount]);
+
+    // All selected player IDs for Custom Net UI
+    const selectedPlayerIds = [teamA1, teamA2, teamB1, teamB2].filter(Boolean);
 
     return (
         <div className="animate-slide-up">
@@ -260,20 +342,27 @@ export default function MatchupsTab({
                         {/* Handicap Toggle */}
                         <div className="matchup-field">
                             <label>Handicaps</label>
-                            <div className="handicap-toggle">
+                            <div className="handicap-toggle handicap-toggle-3">
                                 <button
                                     type="button"
-                                    className={`handicap-toggle-btn ${useHandicaps ? 'handicap-on' : ''}`}
-                                    onClick={() => setUseHandicaps(true)}
+                                    className={`handicap-toggle-btn ${useHandicaps && !isCustomNet ? 'handicap-on' : ''}`}
+                                    onClick={() => { setUseHandicaps(true); setIsCustomNet(false); setCustomPops({}); }}
                                 >
-                                    Net (With Handicaps)
+                                    Net
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`handicap-toggle-btn ${isCustomNet ? 'handicap-custom' : ''}`}
+                                    onClick={() => { setUseHandicaps(true); setIsCustomNet(true); }}
+                                >
+                                    Custom Net
                                 </button>
                                 <button
                                     type="button"
                                     className={`handicap-toggle-btn ${!useHandicaps ? 'handicap-off' : ''}`}
-                                    onClick={() => setUseHandicaps(false)}
+                                    onClick={() => { setUseHandicaps(false); setIsCustomNet(false); setCustomPops({}); }}
                                 >
-                                    Gross (No Handicaps)
+                                    Gross
                                 </button>
                             </div>
                         </div>
@@ -292,11 +381,11 @@ export default function MatchupsTab({
                         {/* Tee Box */}
                         <div className="matchup-field">
                             <label>Tee Box</label>
-                            <select value={mTeeId} onChange={e => setMTeeId(e.target.value)} required disabled={!mCourseId}>
+                            <select value={mTeeId} onChange={e => handleTeeChange(e.target.value)} required disabled={!mCourseId}>
                                 <option value="">{mCourseId ? "Select a tee box..." : "Select a course first..."}</option>
                                 {courses.find(c => c.id === parseInt(mCourseId))?.tees.map(t => (
                                     <option key={t.id} value={t.id}>
-                                        {t.name} ({t.total_yardage.toLocaleString()} yds, Par {t.par})
+                                        {t.name} ({t.total_yardage.toLocaleString()} yds, Par {t.par}, {t.holes.length} holes)
                                     </option>
                                 ))}
                             </select>
@@ -324,7 +413,7 @@ export default function MatchupsTab({
                                 <div className="hole-range-input-group">
                                     <span className="hole-range-label">From</span>
                                     <input
-                                        type="number" min="1" max="18"
+                                        type="number" min="1" max={holeCount}
                                         value={customStart}
                                         onChange={e => setCustomStart(e.target.value)}
                                         className="hole-range-input"
@@ -334,7 +423,7 @@ export default function MatchupsTab({
                                 <div className="hole-range-input-group">
                                     <span className="hole-range-label">To</span>
                                     <input
-                                        type="number" min="1" max="18"
+                                        type="number" min="1" max={holeCount}
                                         value={customEnd}
                                         onChange={e => setCustomEnd(e.target.value)}
                                         className="hole-range-input"
@@ -490,6 +579,48 @@ export default function MatchupsTab({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Custom Net Pop Bubbles */}
+                        {isCustomNet && selectedPlayerIds.length > 0 && mTeeId && (
+                            <div className="matchup-field">
+                                <label>Mark Strokes <span className="label-hint">Tap a hole to cycle: 0 → 1 → 2 → 0</span></label>
+                                <div className="custom-pops-section">
+                                    {selectedPlayerIds.map(pid => {
+                                        const p = players.find(pl => pl.id === parseInt(pid));
+                                        if (!p) return null;
+                                        const popTotal = getPlayerPopTotal(pid);
+                                        return (
+                                            <div key={pid} className="custom-pops-player">
+                                                <div className="custom-pops-player-header">
+                                                    <span className="custom-pops-player-name">{p.name}</span>
+                                                    <span className="custom-pops-player-total">{popTotal} stroke{popTotal !== 1 ? 's' : ''}</span>
+                                                </div>
+                                                <div className="custom-pops-bubbles">
+                                                    {Array.from({ length: holeCount }, (_, i) => i + 1).map(hNum => {
+                                                        const pops = (customPops[pid] || {})[hNum] || 0;
+                                                        return (
+                                                            <button
+                                                                key={hNum}
+                                                                type="button"
+                                                                className={`custom-pops-bubble ${pops > 0 ? 'custom-pops-bubble-active' : ''} ${pops === 2 ? 'custom-pops-bubble-double' : ''}`}
+                                                                onClick={() => togglePop(pid, hNum)}
+                                                            >
+                                                                <span className="custom-pops-hole-num">{hNum}</span>
+                                                                {pops > 0 && (
+                                                                    <span className="custom-pops-dots">
+                                                                        {pops === 1 ? '•' : '••'}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <Button type="submit" style={{ width: '100%' }}>🚀 Launch Matchup</Button>
                     </form>

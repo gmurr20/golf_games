@@ -523,6 +523,7 @@ def create_matchup():
     db.session.flush()
     
     overrides = data.get('handicap_overrides', {})
+    custom_pops_data = data.get('custom_pops', {})
 
     for team, pids in data['teams'].items():
         for pid in pids: 
@@ -535,11 +536,18 @@ def create_matchup():
                 except (ValueError, TypeError):
                     pass
 
+            # Check for custom pops for this player
+            c_pops_dict = custom_pops_data.get(str(pid))
+            c_pops_str = None
+            if c_pops_dict:
+                c_pops_str = json.dumps(c_pops_dict)
+
             mp = MatchupPlayer(
                 matchup_id=matchup.id, 
                 player_id=pid, 
                 team=team,
-                handicap_index=hcp_to_lock
+                handicap_index=hcp_to_lock,
+                custom_pops=c_pops_str
             )
             db.session.add(mp)
             
@@ -585,7 +593,8 @@ def get_matchups():
                 "handicap_index": mp.handicap_index if mp.handicap_index is not None else mp.player.handicap_index
             })
             
-        hole_label = f"Holes {m.hole_start}-{m.hole_end}" if (m.hole_start != 1 or m.hole_end != 18) else "Full 18"
+        num_holes = len(m.tee.holes) if (m.tee and m.tee.holes) else 18
+        hole_label = f"Holes {m.hole_start}-{m.hole_end}" if (m.hole_start != 1 or m.hole_end != num_holes) else f"Full {num_holes}"
         
         # Determine player count per team for display
         team_sizes = [len(v) for v in teams_dict.values()]
