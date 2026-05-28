@@ -2,33 +2,389 @@
     padding: var(--spacing-4);
     max-width: 600px;
     margin: 0 auto;
-    padding-bottom: 80px;
+    padding-bottom: 96px; /* Spacing for sticky bottom nav */
 }
 
+/* Header Redesign */
 .awards-header {
     display: flex;
     flex-direction: column;
-    margin-bottom: var(--spacing-8);
+    margin-bottom: var(--spacing-6);
+    position: relative;
+    padding: var(--spacing-6) var(--spacing-4);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.header-glow {
+    position: absolute;
+    top: -50%;
+    left: -20%;
+    right: -20%;
+    height: 150%;
+    background: radial-gradient(circle, rgba(192, 132, 252, 0.08), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .awards-header {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.005));
+    }
 }
 
 .awards-header h1 {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
     font-weight: 800;
     margin: 0;
     margin-top: var(--spacing-1);
     color: var(--color-text);
+    letter-spacing: -0.03em;
+    z-index: 1;
 }
 
 .awards-subtitle {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
+    color: var(--color-primary);
+    opacity: 0.8;
+    z-index: 1;
+}
+
+/* Sections Styling */
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    margin-top: var(--spacing-8);
+    margin-bottom: var(--spacing-4);
+    text-transform: none;
+}
+
+.section-title-icon {
+    color: var(--color-primary);
+    opacity: 0.95;
+}
+
+/* Standings Table Styling */
+.stats-section {
+    margin-bottom: var(--spacing-6);
+}
+
+.stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+/* Sleek Leaderboard Rows */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+    min-height: 64px;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-row:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--color-primary-light);
+}
+
+/* Soft color accents representing teams */
+.stat-row.team-a { border-left: 5px solid var(--color-accent-lose); }
+.stat-row.team-b { border-left: 5px solid var(--color-accent-win); }
+
+/* MVP Row Highlight */
+.stat-row.mvp-row {
+    position: relative;
+    border-color: rgba(255, 215, 0, 0.3) !important;
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.04), rgba(0, 0, 0, 0)) !important;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+    .stat-row.mvp-row {
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.03), rgba(0, 0, 0, 0)) !important;
+    }
+}
+
+.stat-row.mvp-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #ffd700, #ffb300);
+    z-index: 2;
+}
+
+.stat-player-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    flex: 1;
+    min-width: 0; /* allows text truncation */
+}
+
+/* Rank & Highlighted Badges */
+.stat-rank {
+    font-weight: 800;
     color: var(--color-text-light);
+    width: 32px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    box-sizing: border-box;
+    flex-shrink: 0;
     opacity: 0.6;
 }
 
-/* Accolades Section */
+.stat-rank.rank-gold {
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.45);
+    color: #E2B200;
+    opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+    .stat-rank.rank-gold {
+        color: #FFD700;
+        background: rgba(255, 215, 0, 0.15);
+    }
+}
+
+.stat-rank.rank-silver {
+    background: rgba(192, 192, 192, 0.15);
+    border: 1px solid rgba(192, 192, 192, 0.45);
+    color: #7a7a7a;
+    opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+    .stat-rank.rank-silver {
+        color: #d1d1d1;
+        background: rgba(192, 192, 192, 0.12);
+    }
+}
+
+.stat-rank.rank-bronze {
+    background: rgba(205, 127, 50, 0.12);
+    border: 1px solid rgba(205, 127, 50, 0.4);
+    color: #b86214;
+    opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+    .stat-rank.rank-bronze {
+        color: #e0924f;
+        background: rgba(205, 127, 50, 0.12);
+    }
+}
+
+/* Avatar layout for Crown */
+.avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.avatar-mvp-crown {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    background: linear-gradient(135deg, #ffd700, #ffa000);
+    color: #1a1a2e;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    z-index: 3;
+}
+
+.stat-name-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.stat-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    min-width: 0;
+}
+
+.stat-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.team-a .stat-name { color: var(--color-text); }
+.team-b .stat-name { color: var(--color-text); }
+
+/* MVP badge tag */
+.mvp-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.6rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, rgba(255, 179, 0, 0.2), rgba(255, 215, 0, 0.1));
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    color: #d49a00;
+    padding: 1px 5px;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(255, 215, 0, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+    .mvp-tag {
+        color: #ffc107;
+        background: linear-gradient(135deg, rgba(255, 179, 0, 0.25), rgba(255, 215, 0, 0.15));
+    }
+}
+
+.stat-team-badge {
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+    margin-top: 1px;
+}
+
+.stat-team-badge.team-a { color: var(--color-accent-lose); }
+.stat-team-badge.team-b { color: var(--color-accent-win); }
+
+/* Metrics columns */
+.stat-metrics {
+    display: flex;
+    gap: var(--spacing-3);
+    margin-left: auto;
+    margin-right: var(--spacing-4);
+    flex-shrink: 0;
+}
+
+.stat-metric-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 42px;
+}
+
+.metric-label {
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: var(--color-text-light);
+    margin-bottom: 3px;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+}
+
+.metric-value {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-text-light);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.metric-value.under {
+    background: rgba(76, 175, 80, 0.12);
+    color: #2e7d32;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+@media (prefers-color-scheme: dark) {
+    .metric-value.under {
+        background: rgba(76, 175, 80, 0.18);
+        color: #81c784;
+    }
+}
+
+.metric-value.over {
+    background: rgba(244, 67, 54, 0.08);
+    color: #c62828;
+}
+@media (prefers-color-scheme: dark) {
+    .metric-value.over {
+        background: rgba(244, 67, 54, 0.15);
+        color: #e57373;
+    }
+}
+
+.metric-value.even {
+    background: var(--color-surface);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-border);
+}
+
+.stat-value-container {
+    text-align: right;
+    min-width: 60px;
+    flex-shrink: 0;
+}
+
+.stat-value {
+    font-weight: 800;
+    color: var(--color-primary);
+    font-size: 0.95rem;
+}
+
+.stat-label {
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+.row-chevron {
+    color: var(--color-text-light);
+    opacity: 0.2;
+    display: flex;
+    align-items: center;
+    margin-left: 2px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.stat-row:hover .row-chevron {
+    opacity: 0.7;
+    transform: translateX(2px);
+}
+
+/* Accolades Section Layout */
 .accolades-section {
     margin-bottom: var(--spacing-8);
 }
@@ -36,20 +392,23 @@
 .accolades-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-3);
+    gap: var(--spacing-4);
 }
 
+/* Beautiful Accolade Cards */
 .award-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-4);
+    padding: var(--spacing-4) var(--spacing-4) var(--spacing-6);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
 }
 
 .award-card.clickable {
@@ -57,29 +416,64 @@
 }
 
 .award-card.clickable:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-light);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Gradient background shine */
+.award-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: radial-gradient(circle at top, rgba(var(--glow-color, 170, 59, 255), 0.08), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .award-icon-container {
     margin-bottom: var(--spacing-3);
-    padding: var(--spacing-2);
+    padding: var(--spacing-3);
     border-radius: 50%;
-    background: rgba(0,0,0,0.03);
+    background: rgba(0,0,0,0.02);
     color: var(--color-primary);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.award-card:hover .award-icon-container {
+    transform: scale(1.1);
+}
+
+.award-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-2);
+    width: 100%;
+    z-index: 1;
 }
 
 .award-title {
-    font-size: 0.65rem;
-    font-weight: 800;
+    font-size: 0.68rem;
+    font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--color-text-light);
-    margin-bottom: var(--spacing-1);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.award-winner-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    margin-top: 1px;
 }
 
 .award-winner {
@@ -88,22 +482,20 @@
     color: var(--color-text);
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
 }
 
-.award-winner-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-1);
-    margin-bottom: var(--spacing-2);
+.winner-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
 }
 
 .award-tie-badge {
-    font-size: 0.5rem;
+    font-size: 0.55rem;
     font-weight: 900;
-    padding: 2px 6px;
+    padding: 1px 5px;
     background: var(--color-border);
     border-radius: 4px;
     text-transform: uppercase;
@@ -113,195 +505,199 @@
 .award-values {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    align-items: center;
+    gap: 2px;
+    margin-top: 2px;
 }
 
 .award-main-value {
-    font-size: 0.85rem;
-    font-weight: 800;
+    font-size: 0.88rem;
+    font-weight: 850;
     color: var(--color-primary);
 }
 
 .award-subtext {
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     font-weight: 600;
     color: var(--color-text-light);
-    opacity: 0.7;
+    opacity: 0.8;
+    line-height: 1.25;
 }
 
-/* Award-Specific Accents - Bringing back the vibrant colors! */
-.mvp-award {
-    grid-column: span 2;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), var(--color-surface));
-    border-color: rgba(255, 215, 0, 0.4);
-    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.1);
-}
-.mvp-award .award-icon-container { color: #FFD700; background: rgba(255, 215, 0, 0.15); }
-.mvp-award .award-main-value { color: #D4AF37; }
-
-.birdie-award { border-top: 3px solid #FF5722; }
-.birdie-award .award-icon-container { color: #FF5722; background: rgba(255, 87, 34, 0.1); }
-
-.net-birdie-award { border-top: 3px solid #4CAF50; }
-.net-birdie-award .award-icon-container { color: #4CAF50; background: rgba(76, 175, 80, 0.1); }
-
-
-.worst-hole-award { border-top: 3px solid #F44336; }
-.worst-hole-award .award-icon-container { color: #F44336; background: rgba(244, 67, 54, 0.1); }
-
-.best-round-award { border-top: 3px solid #FFC107; }
-.best-round-award .award-icon-container { color: #FFC107; background: rgba(255, 193, 7, 0.1); }
-
-.best-round-gross-award { border-top: 3px solid #FF9800; }
-.best-round-gross-award .award-icon-container { color: #FF9800; background: rgba(255, 152, 0, 0.1); }
-
-
-.worst-round-award { border-top: 3px solid #757575; }
-.worst-round-award .award-icon-container { color: #757575; background: rgba(117, 117, 117, 0.1); }
-
-.eagle-award { border-top: 3px solid #E040FB; }
-.eagle-award .award-icon-container { color: #E040FB; background: rgba(224, 64, 251, 0.1); }
-
-.blowout-award { border-top: 3px solid #FF3D00; }
-.blowout-award .award-icon-container { color: #FF3D00; background: rgba(255, 61, 0, 0.1); }
-
-.best-golfer-award { border-top: 3px solid #00B0FF; }
-.best-golfer-award .award-icon-container { color: #00B0FF; background: rgba(0, 176, 255, 0.1); }
-
-
-
-/* Standings Table Styling */
-.stats-section {
-    margin-bottom: var(--spacing-8);
-}
-
-.stats-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-2);
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-3) var(--spacing-4);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+.award-card-action {
+    position: absolute;
+    bottom: var(--spacing-3);
+    right: var(--spacing-4);
+    color: var(--color-text-light);
+    opacity: 0.25;
     transition: all 0.2s ease;
-    box-shadow: var(--shadow-sm);
 }
 
-.stat-row:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateX(4px);
+.award-card:hover .award-card-action {
+    opacity: 0.8;
+    transform: translateX(2px);
 }
 
-.stat-row.team-a { border-left: 4px solid var(--color-accent-lose); }
-.stat-row.team-b { border-left: 4px solid var(--color-accent-win); }
-
-.stat-player-info {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
+/* Category-specific styling & glowing edges */
+.birdie-award { 
+    --glow-color: 255, 87, 34;
+    border-top: 3px solid hsl(14, 100%, 57%); 
 }
+.birdie-award .award-icon-container { color: hsl(14, 100%, 57%); background: rgba(255, 87, 34, 0.08); }
+.birdie-award.clickable:hover { border-color: hsl(14, 100%, 57%); }
 
-.stat-rank {
-    font-weight: 800;
-    color: var(--color-text-light);
-    width: 18px;
-    font-size: 0.8rem;
-    opacity: 0.6;
+.net-birdie-award { 
+    --glow-color: 76, 175, 80;
+    border-top: 3px solid hsl(122, 39%, 49%); 
 }
+.net-birdie-award .award-icon-container { color: hsl(122, 39%, 49%); background: rgba(76, 175, 80, 0.08); }
+.net-birdie-award.clickable:hover { border-color: hsl(122, 39%, 49%); }
 
-.stat-name-group {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.worst-hole-award { 
+    --glow-color: 244, 67, 54;
+    border-top: 3px solid hsl(4, 90%, 58%); 
 }
+.worst-hole-award .award-icon-container { color: hsl(4, 90%, 58%); background: rgba(244, 67, 54, 0.08); }
+.worst-hole-award.clickable:hover { border-color: hsl(4, 90%, 58%); }
 
-.stat-name {
-    font-weight: 700;
-    font-size: 0.95rem;
-    line-height: 1.2;
+.best-round-award { 
+    --glow-color: 255, 193, 7;
+    border-top: 3px solid hsl(45, 100%, 51%); 
 }
+.best-round-award .award-icon-container { color: hsl(45, 100%, 51%); background: rgba(255, 193, 7, 0.08); }
+.best-round-award.clickable:hover { border-color: hsl(45, 100%, 51%); }
 
-.team-a .stat-name { color: var(--color-accent-lose); }
-.team-b .stat-name { color: var(--color-accent-win); }
-
-.stat-team-badge {
-    font-size: 0.55rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.7;
+.best-round-gross-award { 
+    --glow-color: 255, 152, 0;
+    border-top: 3px solid hsl(36, 100%, 50%); 
 }
+.best-round-gross-award .award-icon-container { color: hsl(36, 100%, 50%); background: rgba(255, 152, 0, 0.08); }
+.best-round-gross-award.clickable:hover { border-color: hsl(36, 100%, 50%); }
 
-.stat-team-badge.team-a { color: var(--color-accent-lose); }
-.stat-team-badge.team-b { color: var(--color-accent-win); }
-
-.stat-metrics {
-    display: flex;
-    gap: var(--spacing-4);
-    margin-left: auto;
-    margin-right: var(--spacing-4);
+.worst-round-award { 
+    --glow-color: 117, 117, 117;
+    border-top: 3px solid hsl(0, 0%, 46%); 
 }
+.worst-round-award .award-icon-container { color: hsl(0, 0%, 46%); background: rgba(117, 117, 117, 0.08); }
+.worst-round-award.clickable:hover { border-color: hsl(0, 0%, 46%); }
 
-.stat-metric-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 44px;
+.eagle-award { 
+    --glow-color: 224, 64, 251;
+    border-top: 3px solid hsl(291, 96%, 62%); 
 }
+.eagle-award .award-icon-container { color: hsl(291, 96%, 62%); background: rgba(224, 64, 251, 0.08); }
+.eagle-award.clickable:hover { border-color: hsl(291, 96%, 62%); }
 
-.metric-label {
-    font-size: 0.5rem;
-    font-weight: 900;
-    color: var(--color-text-light);
-    margin-bottom: 2px;
-    letter-spacing: 0.05em;
-    opacity: 0.7;
+.blowout-award { 
+    --glow-color: 255, 61, 0;
+    border-top: 3px solid hsl(14, 100%, 50%); 
 }
+.blowout-award .award-icon-container { color: hsl(14, 100%, 50%); background: rgba(255, 61, 0, 0.08); }
+.blowout-award.clickable:hover { border-color: hsl(14, 100%, 50%); }
 
-.metric-value {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--color-text-light);
+.best-golfer-award { 
+    --glow-color: 0, 176, 255;
+    border-top: 3px solid hsl(199, 100%, 50%); 
 }
+.best-golfer-award .award-icon-container { color: hsl(199, 100%, 50%); background: rgba(0, 176, 255, 0.08); }
+.best-golfer-award.clickable:hover { border-color: hsl(199, 100%, 50%); }
 
-.metric-value.under {
-    color: white;
-    padding: 1px 6px;
-    border-radius: 4px;
-}
-
-.team-a .stat-metric-block:nth-child(2) .metric-value.under { background: var(--color-accent-lose); }
-.team-b .stat-metric-block:nth-child(2) .metric-value.under { background: var(--color-accent-win); }
-
-.stat-value-container {
-    text-align: right;
-    min-width: 70px;
-}
-
-.stat-value {
-    font-weight: 800;
-    color: var(--color-primary);
-    font-size: 1rem;
-}
-
-.stat-label {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    color: var(--color-text-light);
-    font-weight: 700;
-    opacity: 0.7;
-}
-
-@media (max-width: 480px) {
-    .awards-container { padding: var(--spacing-3); }
-    .stat-player-info { gap: var(--spacing-2); }
-    .stat-metrics { gap: var(--spacing-2); margin-right: var(--spacing-2); }
-    .stat-name { font-size: 0.85rem; }
-    .stat-value { font-size: 0.9rem; }
+/* Mobile-First Responsive Overrides */
+@media (max-width: 500px) {
+    .awards-container {
+        padding: var(--spacing-3);
+    }
+    .mvp-tag {
+        display: none !important; /* Hide tag on mobile, keep avatar crown highlight only */
+    }
+    .accolades-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* Keep 2 across on mobile as requested! */
+        gap: var(--spacing-2) !important;
+    }
+    .award-card {
+        padding: var(--spacing-3) var(--spacing-2) var(--spacing-4) !important;
+        border-radius: var(--radius-md) !important;
+        min-height: auto; /* let height be compact */
+    }
+    .award-glow {
+        height: 48px !important;
+    }
+    .award-icon-container {
+        margin-bottom: var(--spacing-2) !important;
+        padding: var(--spacing-2) !important;
+    }
+    .award-icon-container svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+    .award-card .player-avatar-container {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        font-size: 0.6rem !important;
+        border-width: 1px !important;
+    }
+    .award-title {
+        font-size: 0.52rem !important;
+        letter-spacing: 0.05em !important;
+    }
+    .award-winner-group {
+        gap: var(--spacing-1) !important;
+        margin-top: 0px !important;
+    }
+    .award-winner {
+        font-size: 0.72rem !important;
+    }
+    .winner-name-text {
+        max-width: 70px !important;
+    }
+    .award-tie-badge {
+        font-size: 0.42rem !important;
+        padding: 0px 3px !important;
+    }
+    .award-values {
+        gap: 0px !important;
+        margin-top: 1px !important;
+    }
+    .award-main-value {
+        font-size: 0.72rem !important;
+    }
+    .award-subtext {
+        font-size: 0.52rem !important;
+        opacity: 0.7 !important;
+    }
+    .award-card-action {
+        bottom: var(--spacing-2) !important;
+        right: var(--spacing-2) !important;
+    }
+    .award-card-action svg {
+        width: 10px !important;
+        height: 10px !important;
+    }
+    .stat-row {
+        padding: var(--spacing-3);
+    }
+    .stat-player-info {
+        gap: var(--spacing-2);
+    }
+    .stat-name {
+        font-size: 0.88rem;
+        max-width: 100px;
+    }
+    .stat-metrics {
+        gap: var(--spacing-2);
+        margin-right: var(--spacing-2);
+    }
+    .stat-metric-block {
+        min-width: 38px;
+    }
+    .metric-value {
+        font-size: 0.78rem;
+        padding: 1px 4px;
+    }
+    .stat-value-container {
+        min-width: 52px;
+    }
+    .stat-value {
+        font-size: 0.88rem;
+    }
 }
