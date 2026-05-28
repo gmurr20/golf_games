@@ -149,6 +149,8 @@ export default function LiveScorecard() {
                                                 display = running === 0 ? 'AS' : (running > 0 ? `+${running}` : running);
                                                 if (h.winner === 'A') className = 'sc-match-won';
                                                 else if (h.winner === 'B') className = 'sc-match-lost';
+                                            } else if (h.decided_status) {
+                                                display = h.decided_status;
                                             }
                                             return <td key={h.hole_number} className={`sc-match-cell ${className}`} style={{ fontWeight: 700 }}>{display}</td>
                                         })}

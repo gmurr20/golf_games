@@ -59,6 +59,8 @@ def get_leaderboard():
         'net': 0, 'par': 0, 'gross': 0, 'holes': 0, 'name': '', 'tee_id': None, 'tee_time': None, 'hole_counts': set()
     })))
 
+    freeloader_candidates = []
+
     for t in tournaments:
         matchups = Matchup.query.filter_by(tournament_id=t.id).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
         for m in matchups:
@@ -173,6 +175,77 @@ def get_leaderboard():
                         p_stats['points_earned'] += m.points_for_win
                     else:
                         p_stats['losses'] += 1
+
+                # Freeloader logic (match play, completed, and team win)
+                if m.scoring_type == 'match_play' and winner != 'Push':
+                    winning_players = [mp for mp in m_players if mp.team == winner]
+                    if len(winning_players) == 2:
+                        pid1 = winning_players[0].player_id
+                        pid2 = winning_players[1].player_id
+                        losing_players = [mp for mp in m_players if mp.team != winner]
+                        
+                        contrib1 = 0.0
+                        contrib2 = 0.0
+                        
+                        for hd in ms.get('scorecard', []):
+                            if hd.get("winner") is not None:
+                                opp_scores = []
+                                for lp in losing_players:
+                                    p_hd = hd["players"].get(lp.player_id)
+                                    if p_hd and p_hd.get("match_net") is not None:
+                                        opp_scores.append(p_hd["match_net"])
+                                
+                                opp_best = min(opp_scores) if opp_scores else None
+                                s1 = hd["players"].get(pid1, {}).get("match_net")
+                                s2 = hd["players"].get(pid2, {}).get("match_net")
+                                
+                                if hd["winner"] == winner: # Winning team won the hole
+                                    p1_won = (s1 is not None) and (opp_best is None or s1 < opp_best)
+                                    p2_won = (s2 is not None) and (opp_best is None or s2 < opp_best)
+                                    if p1_won and p2_won:
+                                        contrib1 += 1.0
+                                        contrib2 += 1.0
+                                    elif p1_won:
+                                        contrib1 += 1.0
+                                    elif p2_won:
+                                        contrib2 += 1.0
+                                elif hd["winner"] == "Push": # Halved the hole
+                                    p1_tied = (s1 is not None) and (opp_best is not None and s1 == opp_best)
+                                    p2_tied = (s2 is not None) and (opp_best is not None and s2 == opp_best)
+                                    if p1_tied and p2_tied:
+                                        contrib1 += 0.5
+                                        contrib2 += 0.5
+                                    elif p1_tied:
+                                        contrib1 += 1.0
+                                    elif p2_tied:
+                                        contrib2 += 1.0
+                                        
+                        if contrib1 != contrib2:
+                            if contrib1 < contrib2:
+                                freeloader_id = pid1
+                                partner_id = pid2
+                            else:
+                                freeloader_id = pid2
+                                partner_id = pid1
+                                
+                            diff = abs(contrib1 - contrib2)
+                            p_fl = Player.query.get(freeloader_id)
+                            p_pt = Player.query.get(partner_id)
+                            if p_fl and p_pt:
+                                freeloader_candidates.append({
+                                    "freeloader_id": freeloader_id,
+                                    "freeloader_name": p_fl.name,
+                                    "freeloader_profile_picture": p_fl.profile_picture,
+                                    "partner_id": partner_id,
+                                    "partner_name": p_pt.name,
+                                    "freeloader_contrib": min(contrib1, contrib2),
+                                    "partner_contrib": max(contrib1, contrib2),
+                                    "diff": diff,
+                                    "tournament_id": t.id,
+                                    "tee_id": m.tee_id,
+                                    "tee_time": m.tee_time.isoformat() if m.tee_time else None,
+                                    "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown Course"
+                                })
 
             # Match summary for display
             players = []
@@ -346,6 +419,13 @@ def get_leaderboard():
         best_blowout = blowouts[0]
         blowout_tie = len([b for b in blowouts if b['remaining'] == best_blowout['remaining'] and b['lead'] == best_blowout['lead']]) > 1
 
+    best_freeloader = None
+    freeloader_tie = False
+    if freeloader_candidates:
+        freeloader_candidates.sort(key=lambda x: x['diff'], reverse=True)
+        best_freeloader = freeloader_candidates[0]
+        freeloader_tie = len([c for c in freeloader_candidates if c['diff'] == best_freeloader['diff']]) > 1
+
     awards = {
         "mvp": {
             "player_id": mvp['player_id'] if mvp else None,
@@ -443,6 +523,18 @@ def get_leaderboard():
             "subtext": best_blowout['subtext'] if best_blowout else "No match play blowouts yet",
             "is_tie": blowout_tie,
             "hidden": best_blowout is None
+        },
+        "freeloader": {
+            "player_id": best_freeloader['freeloader_id'] if best_freeloader else None,
+            "name": best_freeloader['freeloader_name'] if best_freeloader else "N/A",
+            "profile_picture": best_freeloader.get('freeloader_profile_picture') if best_freeloader else None,
+            "value": f"{best_freeloader['diff']:.1f} PTS Diff" if best_freeloader else "0 PTS Diff",
+            "subtext": f"Carried by {best_freeloader['partner_name']} ({best_freeloader['partner_contrib']:.1f} vs {best_freeloader['freeloader_contrib']:.1f}) at {best_freeloader['course_name']}" if best_freeloader else "No match play partners yet",
+            "is_tie": freeloader_tie,
+            "hidden": best_freeloader is None,
+            "tournament_id": best_freeloader['tournament_id'] if best_freeloader else None,
+            "tee_id": best_freeloader['tee_id'] if best_freeloader else None,
+            "tee_time": best_freeloader['tee_time'] if best_freeloader else None
         }
     }
 
@@ -552,6 +644,11 @@ def get_public_scorecard(tournament_id, tee_id):
                     "winner": hole_stats['winner'],
                     "running": running_diffs[m_id]
                 }
+            elif hole_stats and hole_stats.get('decided_status'):
+                hole_data["match_result"] = {
+                    "winner": None,
+                    "running": hole_stats['decided_status']
+                }
 
         for mp in mps:
             if mp.matchup_id in all_matchup_ids:
@@ -562,6 +659,8 @@ def get_public_scorecard(tournament_id, tee_id):
                 # Check if hole is within matchup range
                 if h.hole_number < (m.hole_start or 1) or h.hole_number > (m.hole_end or 18):
                     continue
+
+                hole_data["matchup_id"] = m.id
 
                 # Use data directly from the match engine 
                 raw = None

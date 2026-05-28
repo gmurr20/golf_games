@@ -595,6 +595,13 @@
 .blowout-award .award-icon-container { color: hsl(14, 100%, 50%); background: rgba(255, 61, 0, 0.08); }
 .blowout-award.clickable:hover { border-color: hsl(14, 100%, 50%); }
 
+.freeloader-award { 
+    --glow-color: 156, 39, 176;
+    border-top: 3px solid hsl(291, 64%, 42%); 
+}
+.freeloader-award .award-icon-container { color: hsl(291, 64%, 42%); background: rgba(156, 39, 176, 0.08); }
+.freeloader-award.clickable:hover { border-color: hsl(291, 64%, 42%); }
+
 .best-golfer-award { 
     --glow-color: 0, 176, 255;
     border-top: 3px solid hsl(199, 100%, 50%); 

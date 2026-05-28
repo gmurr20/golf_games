@@ -377,11 +377,27 @@
     transform: scale(0.98);
 }
 
+.matchup-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 2px;
+}
+
 .matchup-course {
     font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
     color: var(--color-primary);
+}
+
+.matchup-range-time {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 .matchup-main {
@@ -407,6 +423,11 @@
 .matchup-result-badge.tie { background: rgba(107, 114, 128, 0.1); color: #6b7280; border: 1px solid rgba(107, 114, 128, 0.2); }
 
 @media (max-width: 480px) {
+    .matchup-meta-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
     .player-main-info {
         flex-direction: row;
         align-items: center;
@@ -426,5 +447,230 @@
     }
     .score-val {
         font-size: 1rem;
+    }
+}
+
+/* Par Breakdown Section */
+.par-cards-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-6);
+}
+
+.par-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.par-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.par-card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-3);
+}
+
+.par-title {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text);
+}
+
+.par-diff-badge {
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+.par-diff-badge.under-par {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.par-diff-badge.over-par {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.par-diff-badge.even-par {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.par-circle-wrapper {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.par-circle-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.circle-track {
+    fill: none;
+    stroke: var(--color-border);
+    stroke-width: 6;
+    opacity: 0.4;
+}
+
+.circle-progress {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease-out;
+    filter: drop-shadow(0 0 3px var(--color-primary));
+}
+
+.par-circle-center {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.avg-gross-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--color-text);
+}
+
+.avg-gross-label {
+    font-size: 0.5rem;
+    font-weight: 800;
+    color: var(--color-text-light);
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.par-stats-footer {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--spacing-3);
+    gap: 4px;
+}
+
+.par-stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.pill-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+}
+
+.pill-value {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+/* Par Distance Breakdown Section */
+.par-distance-section {
+    width: 100%;
+    margin-top: var(--spacing-4);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--spacing-3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.distance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: var(--spacing-3);
+}
+
+.distance-range-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    width: 60px;
+    text-align: left;
+}
+
+.distance-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.distance-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent-win, #22c55e));
+    border-radius: 3px;
+    opacity: 0.85;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.distance-avg-value {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-text);
+    width: 24px;
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    .par-cards-container {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-3);
+    }
+    .par-card {
+        padding: var(--spacing-3);
+    }
+    .par-circle-wrapper {
+        width: 104px;
+        height: 104px;
+    }
+    .avg-gross-value {
+        font-size: 1.6rem;
     }
 }

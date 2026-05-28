@@ -396,7 +396,10 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                     my_running = running if my_team == 'A' else -running
 
                     if hd['winner'] is None:
-                        hole_results[hd['hole_number']] = None
+                        if hd.get('decided_status'):
+                            hole_results[hd['hole_number']] = {'result': 'decided', 'running': hd['decided_status']}
+                        else:
+                            hole_results[hd['hole_number']] = None
                     elif hd['winner'] == 'Push':
                         hole_results[hd['hole_number']] = {'result': 'halved', 'running': my_running}
                     elif (hd['winner'] == my_team):
@@ -536,6 +539,30 @@ def get_player_stats(player_id):
         "matchups": []
     }
 
+    stats_by_par = {
+        3: {"total_strokes": 0, "total_net_strokes": 0, "total_holes": 0, "total_net_holes": 0, "best_gross": None},
+        4: {"total_strokes": 0, "total_net_strokes": 0, "total_holes": 0, "total_net_holes": 0, "best_gross": None},
+        5: {"total_strokes": 0, "total_net_strokes": 0, "total_holes": 0, "total_net_holes": 0, "best_gross": None}
+    }
+
+    stats_by_distance = {
+        3: {
+            "< 140y": {"total_strokes": 0, "total_holes": 0},
+            "140-180y": {"total_strokes": 0, "total_holes": 0},
+            "180y+": {"total_strokes": 0, "total_holes": 0}
+        },
+        4: {
+            "< 360y": {"total_strokes": 0, "total_holes": 0},
+            "360-420y": {"total_strokes": 0, "total_holes": 0},
+            "420y+": {"total_strokes": 0, "total_holes": 0}
+        },
+        5: {
+            "< 500y": {"total_strokes": 0, "total_holes": 0},
+            "500-550y": {"total_strokes": 0, "total_holes": 0},
+            "550y+": {"total_strokes": 0, "total_holes": 0}
+        }
+    }
+
     # Fetch all matchups for this player in these tournaments
     mp_entries = MatchupPlayer.query.filter(
         MatchupPlayer.player_id == player_id
@@ -587,6 +614,40 @@ def get_player_stats(player_id):
                         stats['gross_birdies_plus'] += 1
                     if p_hole.get('net') is not None and p_hole['net'] <= h_par - 1:
                         stats['net_birdies_plus'] += 1
+                    
+                    # Accumulate par breakdown statistics
+                    if h_par in stats_by_par:
+                        stats_by_par[h_par]['total_strokes'] += p_hole['raw']
+                        stats_by_par[h_par]['total_holes'] += 1
+                        
+                        if p_hole.get('net') is not None:
+                            stats_by_par[h_par]['total_net_strokes'] += p_hole['net']
+                            stats_by_par[h_par]['total_net_holes'] += 1
+                            
+                        if stats_by_par[h_par]['best_gross'] is None or p_hole['raw'] < stats_by_par[h_par]['best_gross']:
+                            stats_by_par[h_par]['best_gross'] = p_hole['raw']
+                            
+                    # Accumulate distance breakdown statistics
+                    yardage = h_st.get('yardage')
+                    if yardage and h_par in stats_by_distance:
+                        # Map yardage to corresponding distance range
+                        bucket = None
+                        if h_par == 3:
+                            if yardage < 140: bucket = "< 140y"
+                            elif yardage <= 180: bucket = "140-180y"
+                            else: bucket = "180y+"
+                        elif h_par == 4:
+                            if yardage < 360: bucket = "< 360y"
+                            elif yardage <= 420: bucket = "360-420y"
+                            else: bucket = "420y+"
+                        elif h_par == 5:
+                            if yardage < 500: bucket = "< 500y"
+                            elif yardage <= 550: bucket = "500-550y"
+                            else: bucket = "550y+"
+                        
+                        if bucket:
+                            stats_by_distance[h_par][bucket]["total_strokes"] += p_hole['raw']
+                            stats_by_distance[h_par][bucket]["total_holes"] += 1
 
         # Matchup Item for list
         opponents = []
@@ -613,11 +674,33 @@ def get_player_stats(player_id):
             if ms.get('display_thru'):
                 matchup_result += f" {ms['display_thru']}"
 
+        # Determine hole range label
+        h_start = m.hole_start or 1
+        h_end = m.hole_end or 18
+        if h_start == 1 and h_end == 18:
+            hole_range = "Full 18"
+        elif h_start == 1 and h_end == 9:
+            hole_range = "Front Nine"
+        elif h_start == 10 and h_end == 18:
+            hole_range = "Back Nine"
+        else:
+            hole_range = f"Holes {h_start}-{h_end}"
+
+        # Format tee time
+        tee_time_display = None
+        if m.tee_time:
+            # Portable formatting without leading zero on hours
+            hour = m.tee_time.strftime("%I").lstrip("0")
+            tee_time_display = m.tee_time.strftime(f"%b %d • {hour}:%M %p")
+
         stats['matchups'].append({
             "id": m.id,
             "tournament_id": m.tournament_id,
             "tee_id": m.tee_id,
             "tee_time": m.tee_time.isoformat() if m.tee_time else None,
+            "tee_time_display": tee_time_display,
+            "hole_range": hole_range,
+            "hole_start": h_start,
             "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown",
             "format": m.format,
             "opponents": opponents,
@@ -626,6 +709,15 @@ def get_player_stats(player_id):
             "winner": res.get('winner'),
             "my_team": my_team
         })
+
+    # Sort matchups: tee_time descending (newest first), then hole_start descending (back to front)
+    stats['matchups'].sort(
+        key=lambda x: (
+            x['tee_time'] or "",
+            x['hole_start'] or 0
+        ),
+        reverse=True
+    )
 
     # Round History
     for (tournament_id, tee_id, tee_time_key), group_matchups in round_groups.items():
@@ -684,6 +776,29 @@ def get_player_stats(player_id):
     # Sort historical lists
     stats['rounds'].sort(key=lambda r: r['tee_time'] or "0", reverse=True)
     stats['matchups'].sort(key=lambda m: m['tee_time'] or "0", reverse=True)
+
+    # Format and serialize the par stats
+    stats['by_par'] = {}
+    for p, pdata in stats_by_par.items():
+        if pdata['total_holes'] > 0:
+            # Format distance breakdown for this par group
+            dist_breakdown = []
+            if p in stats_by_distance:
+                for b, bdata in stats_by_distance[p].items():
+                    if bdata['total_holes'] > 0:
+                        dist_breakdown.append({
+                            "range": b,
+                            "avg": round(bdata['total_strokes'] / bdata['total_holes'], 2),
+                            "holes": bdata['total_holes']
+                        })
+            
+            stats['by_par'][str(p)] = {
+                "avg_gross": round(pdata['total_strokes'] / pdata['total_holes'], 2),
+                "avg_net": round(pdata['total_net_strokes'] / pdata['total_net_holes'], 2) if pdata['total_net_holes'] > 0 else None,
+                "total_holes": pdata['total_holes'],
+                "best_gross": pdata['best_gross'],
+                "distances": dist_breakdown
+            }
 
     return jsonify(stats), 200
 

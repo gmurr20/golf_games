@@ -232,6 +232,9 @@ def calculate_match_status(matchup_id: int) -> dict:
             else:
                 hole_data["winner"] = None
                 
+        if decided_status is not None:
+            hole_data["decided_status"] = decided_status
+            
         match_status["scorecard"].append(hole_data)
         
     # Build status string and structured data

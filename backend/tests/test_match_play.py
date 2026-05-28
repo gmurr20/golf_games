@@ -236,4 +236,190 @@ def test_best_round_gross_selection():
     assert 4 not in [r["player_id"] for r in valid_rounds]
 
 
+def test_freeloader_award_calculation(monkeypatch):
+    import routes.query as rq
+    
+    # 1. Setup mock competition, tournament, players
+    mock_comp = Competition(id=1, name="Murray Cup 2026", admin_key="secret", team_a_name="Team A", team_b_name="Team B")
+    mock_tourney = Tournament(id=1, competition_id=1, name="Murray Cup")
+    
+    p1 = Player(id=1, name="Tiger", handicap_index=2.0, team="Team A", profile_picture="tiger.png")
+    p2 = Player(id=2, name="Freeloader Phil", handicap_index=15.0, team="Team A", profile_picture="phil.png")
+    p3 = Player(id=3, name="Opponent 1", handicap_index=5.0, team="Team B", profile_picture=None)
+    p4 = Player(id=4, name="Opponent 2", handicap_index=10.0, team="Team B", profile_picture=None)
+    player_map = {1: p1, 2: p2, 3: p3, 4: p4}
+
+    # 2. Setup mock matchup & matchup players
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    mock_tee.course = MagicMock()
+    mock_tee.course.name = "Pebble Beach"
+    mock_tee.course.logo = "logo.png"
+
+    from datetime import datetime
+    mock_match = Matchup(
+        id=100,
+        tournament_id=1,
+        tee_id=1,
+        format="best_ball",
+        scoring_type="match_play",
+        tee_time=datetime(2026, 5, 29, 14, 30),
+        hole_start=1,
+        hole_end=18,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        tee=mock_tee
+    )
+    
+    mps = [
+        MatchupPlayer(matchup_id=100, player_id=1, team="A", handicap_index=2.0),
+        MatchupPlayer(matchup_id=100, player_id=2, team="A", handicap_index=15.0),
+        MatchupPlayer(matchup_id=100, player_id=3, team="B", handicap_index=5.0),
+        MatchupPlayer(matchup_id=100, player_id=4, team="B", handicap_index=10.0),
+    ]
+    for mp in mps:
+        mp.player = player_map[mp.player_id]
+
+    # Mock DB session get
+    from models import db
+    def mock_get(model, ident):
+        if model == Player:
+            return player_map.get(ident)
+        elif model == Matchup and ident == 100:
+            return mock_match
+        return None
+    db.session.get = MagicMock(side_effect=mock_get)
+
+    # 3. Mock database queries
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Competition:
+            q.filter_by.return_value.first.return_value = mock_comp
+        elif model == Tournament:
+            q.filter_by.return_value.order_by.return_value.first.return_value = mock_tourney
+        elif model == Matchup:
+            q.filter_by.return_value.order_by.return_value.all.return_value = [mock_match]
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = mps
+        elif model == Player:
+            q.get.side_effect = lambda pid: player_map.get(pid)
+        return q
+
+    # Apply query mocks to the query blueprint
+    rq.Competition.query = mock_query(Competition)
+    rq.Tournament.query = mock_query(Tournament)
+    rq.Matchup.query = mock_query(Matchup)
+    rq.MatchupPlayer.query = mock_query(MatchupPlayer)
+    rq.Player.query = mock_query(Player)
+
+    # Mock Flask current_app config
+    class MockConfig:
+        def get(self, key, default=None):
+            if key == 'MASTER_PASSWORD':
+                return 'secret'
+            return default
+            
+    class MockApp:
+        config = MockConfig()
+        
+    rq.current_app = MockApp()
+
+    # Mock jsonify to bypass Flask context requirement
+    class MockResponse:
+        def __init__(self, data):
+            self.json = data
+    rq.jsonify = MagicMock(side_effect=lambda data: MockResponse(data))
+
+    # 4. Mock calculate_match_status and calculate_overall_winner
+    # Scorecard:
+    # Hole 1: A wins hole. Tiger=3, Phil=4. Opponents best=4. Tiger gets 1.0, Phil 0.
+    # Hole 2: A wins hole. Tiger=3, Phil=3. Opponents best=4. Tiger gets 0.5, Phil 0.5.
+    # Hole 3: Push. Tiger=4, Phil=5. Opponents best=4. Tiger gets 1.0, Phil 0.
+    # Hole 4: Push. Tiger=4, Phil=4. Opponents best=4. Tiger gets 0.5, Phil 0.5.
+    # Total contribution: Tiger=3.0, Phil=1.0. Phil is Freeloader (2.0 PTS Diff).
+    mock_scorecard = [
+        {
+            "hole_number": 1,
+            "par": 4,
+            "winner": "A",
+            "players": {
+                1: {"match_net": 3},
+                2: {"match_net": 4},
+                3: {"match_net": 4},
+                4: {"match_net": 5}
+            }
+        },
+        {
+            "hole_number": 2,
+            "par": 4,
+            "winner": "A",
+            "players": {
+                1: {"match_net": 3},
+                2: {"match_net": 3},
+                3: {"match_net": 4},
+                4: {"match_net": 5}
+            }
+        },
+        {
+            "hole_number": 3,
+            "par": 4,
+            "winner": "Push",
+            "players": {
+                1: {"match_net": 4},
+                2: {"match_net": 5},
+                3: {"match_net": 4},
+                4: {"match_net": 5}
+            }
+        },
+        {
+            "hole_number": 4,
+            "par": 4,
+            "winner": "Push",
+            "players": {
+                1: {"match_net": 4},
+                2: {"match_net": 4},
+                3: {"match_net": 4},
+                4: {"match_net": 5}
+            }
+        }
+    ]
+
+    def mock_calc_status(matchup_id):
+        return {
+            "is_completed": True,
+            "holes_played": 4,
+            "status_string": "Team A wins 3 & 2",
+            "display_value": "3 & 2",
+            "display_thru": "FINAL",
+            "leading_team": "A",
+            "scorecard": mock_scorecard,
+            "player_stats": {
+                1: {"course_handicap": 2, "playing_handicap": 0, "handicap_index": 2.0, "total_raw": 16, "total_net": 16, "total_par": 16, "holes_scored": 4},
+                2: {"course_handicap": 15, "playing_handicap": 13, "handicap_index": 15.0, "total_raw": 20, "total_net": 20, "total_par": 16, "holes_scored": 4},
+                3: {"course_handicap": 5, "playing_handicap": 3, "handicap_index": 5.0, "total_raw": 18, "total_net": 18, "total_par": 16, "holes_scored": 4},
+                4: {"course_handicap": 10, "playing_handicap": 8, "handicap_index": 10.0, "total_raw": 22, "total_net": 22, "total_par": 16, "holes_scored": 4}
+            }
+        }
+    
+    rq.calculate_match_status = MagicMock(side_effect=mock_calc_status)
+    rq.calculate_overall_winner = MagicMock(return_value={"winner": "A", "points_a": 1.0, "points_b": 0.0})
+
+    # 5. Invoke get_leaderboard
+    response, status_code = rq.get_leaderboard()
+    assert status_code == 200
+    
+    data = response.json
+    assert "awards" in data
+    assert "freeloader" in data["awards"]
+    
+    freeloader = data["awards"]["freeloader"]
+    assert freeloader["hidden"] is False
+    assert freeloader["player_id"] == 2
+    assert freeloader["name"] == "Freeloader Phil"
+    assert freeloader["value"] == "2.0 PTS Diff"
+    assert "Carried by Tiger (3.5 vs 1.5) at Pebble Beach" in freeloader["subtext"]
+    assert freeloader["is_tie"] is False
+
+
+
 

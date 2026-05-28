@@ -13,7 +13,8 @@ import {
     Flame,
     Bird,
     Sparkles,
-    ChevronRight
+    ChevronRight,
+    Backpack
 } from 'lucide-react';
 
 const EagleIcon = () => (
@@ -223,6 +224,14 @@ export default function Awards() {
                             award={awards.matchplay_blowout} 
                             icon={<Flame size={24} />} 
                             className="blowout-award"
+                        />
+                    )}
+                    {awards.freeloader && !awards.freeloader.hidden && (
+                        <AwardCard 
+                            title="Freeloader" 
+                            award={awards.freeloader} 
+                            icon={<Backpack size={24} />} 
+                            className="freeloader-award"
                         />
                     )}
 

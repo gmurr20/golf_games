@@ -60,7 +60,7 @@ export default function PlayerStats() {
         name, profile_picture, handicap_index, team, team_display_name,
         gross_birdies_plus, net_birdies_plus,
         wins, losses, ties, total_points,
-        rounds, matchups 
+        rounds, matchups, by_par 
     } = data;
 
     return (
@@ -125,6 +125,102 @@ export default function PlayerStats() {
                     <span className="summary-stat-label">Net Birdie+</span>
                 </div>
             </div>
+
+            {/* Par Breakdown Section */}
+            {by_par && Object.keys(by_par).length > 0 && (
+                <section className="history-section animate-slide-up" style={{ animationDelay: '0.12s' }}>
+                    <h3 className="history-title">📊 Performance by Par</h3>
+                    <div className="par-cards-container">
+                        {[3, 4, 5].map((par) => {
+                            const parData = by_par[par.toString()];
+                            if (!parData) return null;
+
+                            const { avg_gross, avg_net, total_holes, best_gross, distances } = parData;
+                            const diff = avg_gross - par;
+                            const diffStr = diff > 0 ? `+${diff.toFixed(2)}` : (diff === 0 ? 'E' : `${diff.toFixed(2)}`);
+                            const diffClass = diff < 0 ? 'under-par' : (diff > 0 ? 'over-par' : 'even-par');
+                            
+                            // Visual percentage fill for progress indicator (lower score = more filled)
+                            const fillPercent = Math.min(Math.max(par / avg_gross, 0.4), 1.0);
+                            const radius = 38;
+                            const strokeDasharray = 2 * Math.PI * radius;
+                            const strokeDashoffset = strokeDasharray * (1 - fillPercent);
+
+                            // Logically sort distance buckets ascending by yardage
+                            const distanceOrder = {
+                                "< 140y": 1, "140-180y": 2, "180y+": 3,
+                                "< 360y": 1, "360-420y": 2, "420y+": 3,
+                                "< 500y": 1, "500-550y": 2, "550y+": 3
+                            };
+                            const sortedDistances = distances 
+                                ? [...distances].sort((a, b) => (distanceOrder[a.range] || 0) - (distanceOrder[b.range] || 0))
+                                : [];
+
+                            return (
+                                <div key={par} className="par-card glass-card">
+                                    <div className="par-card-header">
+                                        <span className="par-title">Par {par}'s</span>
+                                        <span className={`par-diff-badge ${diffClass}`}>{diffStr}</span>
+                                    </div>
+                                    
+                                    <div className="par-circle-wrapper">
+                                        <svg className="par-circle-svg" viewBox="0 0 100 100">
+                                            <circle className="circle-track" cx="50" cy="50" r={radius} />
+                                            <circle 
+                                                className={`circle-progress ${diffClass}`} 
+                                                cx="50" 
+                                                cy="50" 
+                                                r={radius}
+                                                strokeDasharray={strokeDasharray}
+                                                strokeDashoffset={strokeDashoffset}
+                                            />
+                                        </svg>
+                                        <div className="par-circle-center">
+                                            <span className="avg-gross-value">{avg_gross.toFixed(1)}</span>
+                                            <span className="avg-gross-label">AVG GROSS</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="par-stats-footer">
+                                        <div className="par-stat-pill">
+                                            <span className="pill-label">Avg Net</span>
+                                            <span className="pill-value">{avg_net ? avg_net.toFixed(1) : '-'}</span>
+                                        </div>
+                                        <div className="par-stat-pill">
+                                            <span className="pill-label">Best</span>
+                                            <span className="pill-value">{best_gross}</span>
+                                        </div>
+                                        <div className="par-stat-pill">
+                                            <span className="pill-label">Holes</span>
+                                            <span className="pill-value">{total_holes}</span>
+                                        </div>
+                                    </div>
+
+                                    {sortedDistances && sortedDistances.length > 0 && (
+                                        <div className="par-distance-section">
+                                            {sortedDistances.map((dist, idx) => {
+                                                const barWidth = Math.min(Math.max((par / dist.avg) * 100, 35), 100);
+                                                return (
+                                                    <div key={idx} className="distance-row">
+                                                        <span className="distance-range-label">{dist.range}</span>
+                                                        <div className="distance-bar-bg">
+                                                            <div 
+                                                                className="distance-bar-fill" 
+                                                                style={{ width: `${barWidth}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="distance-avg-value">{dist.avg.toFixed(1)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* Round History */}
             <section className="history-section animate-slide-up" style={{ animationDelay: '0.15s' }}>
@@ -197,9 +293,14 @@ export default function PlayerStats() {
                                 className="matchup-history-item"
                                 onClick={() => navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?matchup_id=${m.id}`)}
                             >
-                                <span className="matchup-course">
-                                    {m.course_name} • {m.format === 'individual' ? 'IND' : m.format?.replace('_', ' ')}
-                                </span>
+                                <div className="matchup-meta-row">
+                                    <span className="matchup-course">
+                                        {m.course_name} • {m.format === 'individual' ? 'IND' : m.format?.replace('_', ' ')}
+                                    </span>
+                                    <span className="matchup-range-time">
+                                        {m.hole_range} {m.tee_time_display ? `• ${m.tee_time_display}` : ''}
+                                    </span>
+                                </div>
                                 <div className="matchup-main">
                                     <span className="matchup-opponents">vs {m.opponents.join(' & ')}</span>
                                     <span className={`matchup-result-badge ${

@@ -113,7 +113,12 @@ function MatchCard({ m, i, navigate }) {
     const formatTeeTime = (isoString) => {
         if (!isoString) return '';
         const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return date.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
     };
 
     const getHoleRangeLabel = () => {
