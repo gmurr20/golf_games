@@ -1,18 +1,23 @@
 .sticky-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-around;
-    padding: var(--spacing-2) var(--spacing-4) calc(var(--spacing-2) + env(safe-area-inset-bottom));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    border-bottom: none;
-    z-index: 1000;
-    /* iOS Safari fixes */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: transform;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    
+    /* Strict padding: overrides utility decorators like glass-card */
+    padding-top: var(--spacing-2) !important;
+    padding-left: var(--spacing-4) !important;
+    padding-right: var(--spacing-4) !important;
+    padding-bottom: calc(var(--spacing-2) + env(safe-area-inset-bottom, 0px)) !important;
+    
+    /* Aesthetic styling */
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    border-bottom: none !important;
+    z-index: 1000 !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .nav-item {
@@ -21,13 +26,25 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     color: var(--color-text-light);
     gap: 4px;
     font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    flex: 1;
+    /* Ensure robust touch targets (at least 44px x 44px) */
+    min-height: 44px;
+    padding: var(--spacing-1) 0;
+    transition: color 0.2s ease, transform 0.15s ease;
 }
 
 .nav-item:hover, 
 .nav-item:active,
 .nav-item.active {
     color: var(--color-primary);
+}
+
+.nav-item:active {
+    transform: scale(0.95);
 }
