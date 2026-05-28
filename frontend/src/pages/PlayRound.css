@@ -690,14 +690,8 @@
 }
 
 .sc-score-cell {
-    cursor: pointer;
     position: relative;
     padding: 4px 2px !important;
-    transition: background 0.15s ease;
-}
-
-.sc-score-cell:hover {
-    background: rgba(0,0,0,0.04);
 }
 
 /* === Golf-Style Score Marks === */

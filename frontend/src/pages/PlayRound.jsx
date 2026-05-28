@@ -20,7 +20,7 @@ export default function PlayRound() {
     const [saving, setSaving] = useState(false);
     const [complete, setComplete] = useState(false);
     const [viewingScorecard, setViewingScorecard] = useState(false);
-    const [editing, setEditing] = useState(false); // user tapped "Edit Scores" or a scorecard cell
+    const [editing, setEditing] = useState(false); // user tapped "Edit Scores"
     const [validationError, setValidationError] = useState(null);
     const playerId = parseInt(localStorage.getItem(STORAGE_PLAYER_ID));
     const saveTimeoutRef = useRef(null);
@@ -159,21 +159,10 @@ export default function PlayRound() {
         for (const [pid, pdata] of playerEntries) {
             const rawScore = getScore(holeNum, pid);
             
-            // If explicitly cleared (null), send null to backend to delete
-            if (rawScore === null) {
-                batchScores.push({
-                    matchup_id: holeData.matchup_id,
-                    player_id: parseInt(pid),
-                    hole_number: holeNum,
-                    strokes: null,
-                });
-                continue;
-            }
-
-            const strokes = rawScore !== undefined ? rawScore : defaultScoreForHole(holeData);
+            const strokes = (rawScore !== undefined && rawScore !== null) ? rawScore : defaultScoreForHole(holeData);
             
-            // Sync local state if it was undefined (using default)
-            if (rawScore === undefined) {
+            // Sync local state if it was undefined or null (using default)
+            if (rawScore === undefined || rawScore === null) {
                 setPlayerScore(holeNum, pid, strokes);
             }
 
@@ -238,16 +227,21 @@ export default function PlayRound() {
     const handleSaveCurrentHole = async () => {
         if (!currentHoleData) return;
         await saveHoleScores(currentHole);
+    };
+
+    const handleBackToScorecard = () => {
         setEditing(false);
+        setViewingScorecard(true);
         
-        // Check if all holes are actually complete before forcing complete
-        const allHolesScored = scorecard.scorecard.every(h => 
-            h.hole_number === currentHole ? true : (getScore(h.hole_number, String(playerId)) != null)
-        );
-        if (allHolesScored) {
-            setComplete(true);
-        } else {
-            setComplete(false);
+        if (scorecard) {
+            const allHolesScored = scorecard.scorecard.every(h => 
+                getScore(h.hole_number, String(playerId)) != null
+            );
+            if (allHolesScored) {
+                setComplete(true);
+            } else {
+                setComplete(false);
+            }
         }
     };
 
@@ -453,12 +447,6 @@ export default function PlayRound() {
                                                 <td
                                                     key={h.hole_number}
                                                     className="sc-score-cell"
-                                                    onClick={() => {
-                                                        setCurrentHole(h.hole_number);
-                                                        setEditing(true);
-                                                        setViewingScorecard(false);
-                                                        setComplete(false);
-                                                    }}
                                                 >
                                                     {s != null ? (
                                                         <span className={`sc-score-mark ${getScoreClass(s, h.par)}`}>
@@ -618,7 +606,6 @@ export default function PlayRound() {
                     >
                         {complete ? '✏️ Edit Scores' : '← Back to Active Hole'}
                     </button>
-                    {complete && <p className="sc-edit-hint">Tap any score cell above to jump to that hole</p>}
                 </div>
             </div>
         );
@@ -644,8 +631,7 @@ export default function PlayRound() {
             <div className="play-top-bar">
                 <button className="play-back-btn" onClick={() => {
                     if (isEditMode) {
-                        setEditing(false);
-                        setViewingScorecard(true);
+                        handleBackToScorecard();
                     } else if (viewingScorecard) {
                         setViewingScorecard(false);
                     } else {
@@ -786,13 +772,31 @@ export default function PlayRound() {
             {/* Save & Next */}
             <div className="play-bottom-actions">
                 {isEditMode ? (
-                    <button
-                        className="save-next-btn"
-                        onClick={handleSaveCurrentHole}
-                        disabled={saving}
-                    >
-                        {saving ? 'Saving...' : '✓ Save & Back to Scorecard'}
-                    </button>
+                    <>
+                        <button
+                            className="save-next-btn"
+                            onClick={handleSaveCurrentHole}
+                            disabled={saving}
+                        >
+                            {saving ? 'Saving...' : '✓ Save'}
+                        </button>
+                        <button
+                            className="view-scorecard-btn"
+                            onClick={handleBackToScorecard}
+                            disabled={saving}
+                            style={{
+                                width: '100%',
+                                padding: 'var(--spacing-3)',
+                                background: 'var(--color-surface)',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 'var(--radius-md)',
+                                fontWeight: 600,
+                                color: 'var(--color-text)'
+                            }}
+                        >
+                            ⬅ Back to Scorecard
+                        </button>
+                    </>
                 ) : (
                     <button
                         className="save-next-btn"
@@ -816,11 +820,10 @@ export default function PlayRound() {
                     Delete Hole Scores
                 </button>
 
-                {(editing || !complete) && (
+                {!complete && !editing && (
                     <button
                         className="view-scorecard-btn"
                         onClick={() => {
-                            if (editing) setEditing(false);
                             setViewingScorecard(true);
                         }}
                         style={{marginTop: 'var(--spacing-2)', width: '100%', padding: 'var(--spacing-3)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--color-text)'}}
