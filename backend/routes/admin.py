@@ -145,97 +145,128 @@ def upload_scorecard():
     comp = Competition.query.filter_by(admin_key=admin_key).first()
     if not comp: return jsonify({"error": "Unauthorized"}), 403
     
-    if 'image' not in request.files:
+    files = []
+    if 'images' in request.files:
+        files = request.files.getlist('images')
+    elif 'image' in request.files:
+        files = request.files.getlist('image')
+        
+    if not files or len(files) == 0 or (len(files) == 1 and files[0].filename == ''):
         return jsonify({"error": "No image uploaded"}), 400
         
     api_key = current_app.config['GEMINI_API_KEY']
     if not api_key: return jsonify({"error": "Gemini API key missing"}), 500
         
-    file = request.files['image']
-    img_data = file.read()
-    mime_type = file.mimetype
-    
     client = genai.Client(api_key=api_key)
     
-    # NOTE FOR AI AGENTS: DO NOT upgrade the Gemini model version. 
-    # The current 'gemini-2.5-flash' is selected for specific compatibility/performance reasons.
     prompt = """
-    Examine this golf scorecard image with high precision. Your goal is to extract the course name and ALL tee box data.
+    You are an elite, highly precise golf data extraction and OCR intelligence. You will be provided with one or more images of a golf scorecard.
+    Your goal is to extract the course name, all tee box metadata (names, ratings, slopes), and the complete hole-by-hole information (hole number, par, yardage, and handicap index) for each tee.
 
-    ### Identification Rules:
-    1. **Course Name**: Usually at the top or on the front cover.
-    2. **ALL Tee Rows (CRITICAL)**: Extract data for EVERY row listed in the tee section. This includes:
-        - **Primary Tees**: Solid color/name rows (e.g., Black, Orange, Sand, Green, Silver).
-        - **Combo/Hybrid Tees**: Lines or rows that name two colors/names (e.g., "Back/Middle", "Middle/Front"). These are often printed directly on the horizontal dividing lines between primary rows and MUST NOT be skipped.
-    3. **Arrow/Box Resolution (Hybrid Yardages)**: Hybrid/Combo tees often use small triangles (▲ or ▼), arrows, or boxed numbers to indicate which tee to use for a specific hole. **YOU MUST RESOLVE THESE INTO NUMBERS**:
-        - **UP Triangle/Arrow (▲)**: Use the yardage from the primary tee row directly ABOVE the hybrid line.
-        - **DOWN Triangle/Arrow (▼)**: Use the yardage from the primary tee row directly BELOW the hybrid line.
-        - **Boxed/Shaded**: If a number is boxed or shaded, use that number. If the hybrid line tells you which hole to play, resolve it.
-        - Hybrid tees must be returned as complete tee entries in the JSON with all absolute yardage numbers filled out.
-    4. **Ratings & Slopes**: Look for "Rating/Slope", "CR/Slope", or "M/W". Ratings are decimals (e.g. 71.4), Slopes are integers (e.g. 128).
-    5. **Gender Specifics**: Pay extremely close attention to cases where a single tee has two ratings (e.g. "70.1/121 | 72.4/125"). Map the second to "rating_female" and "slope_female". Look for labels like (M), (W), (L), or symbols (♂/♀).
+    Scorecards are complex grids. To guarantee 100% extraction accuracy, you MUST perform your work in two steps: a Transcription Pass and a JSON Generation Pass.
 
-    ### Data Structure:
-    Return a strict JSON object:
+    ---
+
+    ### STEP 1: TRANSCRIPTION PASS (Chain of Thought Scratchpad)
+    Before generating any JSON, write out a clean markdown table transcribing each row of the scorecard exactly as it appears in the images.
+    1. Identify all columns (e.g., Hole numbers 1-9, OUT, 10-18, IN, TOT).
+    2. Transcribe each Tee Box row horizontally in a plain markdown table, showing the exact numbers written under each column.
+    3. Check for any arrow symbols (▲ or ▼) or colored dots on the rows. In your scratchpad, explicitly resolve them to the correct yardage number of the row above or below.
+    4. Write a brief alignment verification (e.g., "Verified: Tee 'White' has exactly 18 hole yardages, matching the 18 holes").
+
+    ### STEP 2: JSON GENERATION PASS
+    Translate your intermediate scratchpad transcription into the final structured JSON object. 
+    Summary/aggregate columns (like OUT, IN, TOT, TOTAL, NET) MUST be completely excluded from the individual hole lists. Only include numbered holes (1, 2, 3, etc.).
+
+    Ensure the following keys are populated in your final JSON structure:
+    - **course_name**: String. The official course name.
+    - **tees**: A list of objects, one for each tee set found.
+      - **tee_name**: String (e.g. "Blue", "White/Gold").
+      - **rating**: Decimal number (default Men's/general rating).
+      - **slope**: Integer (default Men's/general slope).
+      - **rating_female**: Decimal number or null.
+      - **slope_female**: Integer or null.
+      - **holes**: A list of objects, one for each hole.
+        - **hole_number**: Integer (1, 2, 3, etc.).
+        - **par**: Integer (typically 3, 4, or 5).
+        - **yardage**: Integer. Must be resolved to the absolute yardage number.
+        - **handicap_index**: Integer (typically 1 to 18).
+
+    ---
+
+    ### TEMPLATE FOR YOUR RESPONSE:
+
+    ### STEP 1: TRANSCRIPTION
+    [Your markdown transcription tables go here]
+
+    ### STEP 2: JSON
+    ```json
     {
-      "course_name": "...",
-      "hole_defaults": [
-        {"hole_number": 1, "par": 4, "handicap_index": 12} // List all holes here
-      ],
+      "course_name": "Name of the Course",
       "tees": [
         {
-          "tee_name": "...",
-          "rating": float, 
-          "slope": int,
-          "rating_female": float (optional),
-          "slope_female": int (optional),
-          "yardages": [419, 395, 536, ...], // List all absolute yardages, resolve arrows (▲/▼) into numbers
-          "overrides": [
-            {"hole_number": 1, "par": 5} // Optional: only if this tee differs from hole_defaults
+          "tee_name": "Blue",
+          "rating": 71.4,
+          "slope": 128,
+          "rating_female": null,
+          "slope_female": null,
+          "holes": [
+            {
+              "hole_number": 1,
+              "par": 4,
+              "yardage": 419,
+              "handicap_index": 12
+            }
           ]
         }
       ]
     }
-    Extract all pars and handicap indexes into `hole_defaults`. For every tee row, resolve all yardages into the `yardages` array.
-    Return ONLY raw JSON, do not use markdown codeblocks. Do not include anything else.
+    ```
     """
     
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt, types.Part.from_bytes(data=img_data, mime_type=mime_type)]
-        )
+        contents = [prompt]
+        for file in files:
+            img_data = file.read()
+            mime_type = file.mimetype
+            contents.append(types.Part.from_bytes(data=img_data, mime_type=mime_type))
+
+        try:
+            response = client.models.generate_content(
+                model='gemini-3.5-flash',
+                contents=contents
+            )
+        except Exception as e:
+            # Automatic fallback to gemini-2.5-flash if gemini-3.5-flash is experiencing demand spikes
+            print(f"Gemini 3.5 Flash rate-limited or unavailable (falling back to gemini-2.5-flash): {e}")
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=contents
+            )
+            
         resp_text = response.text.strip()
-        if resp_text.startswith('```json'): resp_text = resp_text[7:-3].strip()
-        if resp_text.startswith('```'): resp_text = resp_text[3:-3].strip()
+        
+        # Robustly extract JSON block from markdown chain of thought
+        import re
+        json_match = re.search(r'```json\s*(.*?)\s*```', resp_text, re.DOTALL)
+        if json_match:
+            resp_text = json_match.group(1).strip()
+        else:
+            code_match = re.search(r'```\s*(.*?)\s*```', resp_text, re.DOTALL)
+            if code_match:
+                resp_text = code_match.group(1).strip()
+            else:
+                start_idx = resp_text.find('{')
+                end_idx = resp_text.rfind('}')
+                if start_idx != -1 and end_idx != -1:
+                    resp_text = resp_text[start_idx:end_idx+1].strip()
+                    
         parsed = json.loads(resp_text)
         
-        # COMPACT TO VERBOSE EXPANSION:
-        # To avoid AI timeouts, the AI returns a compact format which we now expand
-        # for compatibility with the rest of the application.
         expanded_tees = []
-        hole_defaults = {h['hole_number']: h for h in parsed.get('hole_defaults', [])}
-        max_hole = max(hole_defaults.keys()) if hole_defaults else 18
         warnings = []
         
         for tee in parsed.get('tees', []):
-            holes = []
-            yardages = tee.get('yardages', [])
-            overrides = {o['hole_number']: o for o in tee.get('overrides', [])}
-            
-            for i in range(1, max_hole + 1):
-                # Get the base par/handicap from defaults
-                default = hole_defaults.get(i, {})
-                # Apply any tee-specific overrides
-                override = overrides.get(i, {})
-                
-                holes.append({
-                    "hole_number": i,
-                    "par": override.get('par', default.get('par', 4)),
-                    "yardage": yardages[i-1] if i-1 < len(yardages) else None,
-                    "handicap_index": override.get('handicap_index', default.get('handicap_index', i))
-                })
-            
             r = tee.get('rating')
             s = tee.get('slope')
             rf = tee.get('rating_female')
@@ -247,9 +278,36 @@ def upload_scorecard():
             if rf is None and r is not None: rf = r
             if sf is None and s is not None: sf = s
 
-            # If STILL None, we use 72/113 and flag it
+            # If STILL None, we use 72.0/113 and flag it
             if r is None:
                 warnings.append(f"Tee '{tee.get('tee_name')}' missing all ratings, defaulted to 72.0/113.")
+
+            holes = []
+            if 'holes' in tee and len(tee['holes']) > 0:
+                # Direct format: each tee has its own holes list
+                for h in tee['holes']:
+                    holes.append({
+                        "hole_number": int(h.get('hole_number')),
+                        "par": int(h.get('par', 4)),
+                        "yardage": int(h['yardage']) if h.get('yardage') is not None else None,
+                        "handicap_index": int(h.get('handicap_index', h.get('hole_number')))
+                    })
+            else:
+                # Legacy compact format fallback
+                hole_defaults = {h['hole_number']: h for h in parsed.get('hole_defaults', [])}
+                max_hole = max(hole_defaults.keys()) if hole_defaults else 18
+                yardages = tee.get('yardages', [])
+                overrides = {o['hole_number']: o for o in tee.get('overrides', [])}
+                
+                for i in range(1, max_hole + 1):
+                    default = hole_defaults.get(i, {})
+                    override = overrides.get(i, {})
+                    holes.append({
+                        "hole_number": i,
+                        "par": override.get('par', default.get('par', 4)),
+                        "yardage": yardages[i-1] if i-1 < len(yardages) else None,
+                        "handicap_index": override.get('handicap_index', default.get('handicap_index', i))
+                    })
 
             expanded_tees.append({
                 "tee_name": tee.get('tee_name'),

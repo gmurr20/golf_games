@@ -117,6 +117,140 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     const [editTee, setEditTee] = useState({});
     const courseLogoRef = useRef(null);
 
+    const [isScanMode, setIsScanMode] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [previews, setPreviews] = useState([]);
+    const [scanning, setScanning] = useState(false);
+    const [scanStep, setScanStep] = useState(0);
+
+    const SCAN_MESSAGES = [
+        "🔍 Preparing images for Gemini...",
+        "🚀 Uploading pages to Gemini 3.5 Flash...",
+        "🧠 Analyzing scorecard structures...",
+        "⛳ Extracting tee ratings and slopes...",
+        "📊 Aligning hole pars and yardages...",
+        "💾 Saving course data to PostgreSQL..."
+    ];
+
+    const handleFilesSelected = (e) => {
+        const files = Array.from(e.target.files);
+        addFiles(files);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const files = Array.from(e.dataTransfer.files);
+        addFiles(files);
+    };
+
+    const addFiles = (files) => {
+        const valid = files.filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
+        if (valid.length === 0) return;
+        
+        setSelectedFiles(prev => [...prev, ...valid]);
+        
+        const newPreviews = valid.map(f => {
+            if (f.type === 'application/pdf') {
+                return 'https://cdn-icons-png.flaticon.com/512/337/337946.png';
+            }
+            return URL.createObjectURL(f);
+        });
+        setPreviews(prev => [...prev, ...newPreviews]);
+    };
+
+    const removeFile = (idx) => {
+        if (previews[idx] && previews[idx].startsWith('blob:')) {
+            URL.revokeObjectURL(previews[idx]);
+        }
+        setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+        setPreviews(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    const cancelScanMode = () => {
+        previews.forEach(p => {
+            if (p.startsWith('blob:')) URL.revokeObjectURL(p);
+        });
+        setSelectedFiles([]);
+        setPreviews([]);
+        setIsScanMode(false);
+        setScanning(false);
+    };
+
+    const triggerAIScan = async () => {
+        if (selectedFiles.length === 0) return;
+        setScanning(true);
+        setScanStep(0);
+        setStatus('Preparing files for AI analysis...');
+        
+        const interval = setInterval(() => {
+            setScanStep(prev => {
+                if (prev < SCAN_MESSAGES.length - 1) return prev + 1;
+                return prev;
+            });
+        }, 2800);
+        
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('images', file);
+        });
+        
+        try {
+            const res = await backend.post('/courses/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const parsed = res.data;
+            
+            setScanStep(SCAN_MESSAGES.length - 1);
+            
+            const saveRes = await backend.post('/courses', {
+                name: parsed.course_name || 'Parsed Course',
+                tees: parsed.tees.map(tee => ({
+                    name: tee.tee_name,
+                    rating: tee.rating,
+                    slope: tee.slope,
+                    rating_female: tee.rating_female,
+                    slope_female: tee.slope_female,
+                    par: tee.holes.reduce((a, b) => a + Number(b.par), 0),
+                    holes: tee.holes
+                }))
+            });
+            
+            clearInterval(interval);
+            
+            const newCourseId = saveRes.data.id;
+            
+            if (parsed.warnings && parsed.warnings.length > 0) {
+                const warnMsg = `Success, but with warnings:\n\n${parsed.warnings.join('\n')}\n\nPlease check course ratings.`;
+                window.alert(warnMsg);
+            }
+            
+            setStatus(`Success! AI parsed and saved ${parsed.course_name}.`);
+            
+            previews.forEach(p => {
+                if (p.startsWith('blob:')) URL.revokeObjectURL(p);
+            });
+            setSelectedFiles([]);
+            setPreviews([]);
+            setIsScanMode(false);
+            setScanning(false);
+            
+            await fetchCourses();
+            
+            const detailRes = await backend.get(`/courses/${newCourseId}`);
+            openDetail(detailRes.data);
+            
+        } catch (error) {
+            clearInterval(interval);
+            setScanning(false);
+            console.error(error);
+            setStatus('Failed to parse scorecard images. Please check Gemini API key configuration.');
+        }
+    };
+
     // Manual course creation state
     const [newName, setNewName] = useState('');
     const [newCourseHoles, setNewCourseHoles] = useState(18);
@@ -563,21 +697,125 @@ export default function CoursesTab({ courses, fetchCourses, fileRef, handleUploa
     return (
         <div className="animate-slide-up">
             {/* Upload & Create Actions */}
-            <Card style={{ marginBottom: '1rem' }}>
-                <h3 style={{ marginBottom: '0.5rem' }}>Add a Course</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '1rem' }}>
-                    Upload a photo of a scorecard for AI extraction, or enter course data manually.
-                </p>
-                <div className="add-course-actions">
-                    <input type="file" ref={fileRef} accept="image/*,application/pdf" onChange={handleUploadScorecard} style={{ display: 'none' }} />
-                    <Button onClick={() => fileRef.current.click()} style={{ flex: 1 }}>
-                        📸 AI Scan Scorecard
-                    </Button>
-                    <Button variant="outline" onClick={() => setView('create')} style={{ flex: 1 }}>
-                        ✍️ Add Manually
-                    </Button>
-                </div>
-            </Card>
+            {isScanMode ? (
+                <Card style={{ marginBottom: '1rem' }} className="scan-card-expanded">
+                    <div className="scan-header-bar">
+                        <h3 style={{ margin: 0 }}>📸 AI Scorecard Scan</h3>
+                        <span className="scan-sub-label">Gemini 3.5 Flash Ingestion</span>
+                    </div>
+                    
+                    {scanning ? (
+                        <div className="scanning-overlay">
+                            <div className="pulsing-scan-circle">
+                                <span className="scan-icon">⚡</span>
+                            </div>
+                            <div className="scan-laser-container">
+                                <div className="scan-laser-line"></div>
+                                <div className="scanning-thumbnails">
+                                    {previews.map((src, i) => (
+                                        <img key={i} src={src} alt="scanning page" className="scanning-img-tiny" />
+                                    ))}
+                                </div>
+                            </div>
+                            <h4 className="scan-progress-title">Ingesting Scorecard</h4>
+                            <p className="scan-progress-msg animate-pulse">{SCAN_MESSAGES[scanStep]}</p>
+                            <div className="scan-progress-dots">
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '1rem' }}>
+                                Drag & drop or select multiple photos of your scorecard (e.g. pages 1 & 2, rules cover page, slope/rating charts).
+                            </p>
+                            <input 
+                                type="file" 
+                                ref={fileRef} 
+                                accept="image/*,application/pdf" 
+                                multiple 
+                                onChange={handleFilesSelected} 
+                                style={{ display: 'none' }} 
+                            />
+                            
+                            {selectedFiles.length === 0 ? (
+                                <div 
+                                    className="scan-dropzone glass-card"
+                                    onClick={() => fileRef.current.click()}
+                                    onDragOver={handleDragOver}
+                                    onDrop={handleDrop}
+                                >
+                                    <div className="scan-dropzone-icon">📥</div>
+                                    <h4>Drop scorecard photos here</h4>
+                                    <p>or click to browse files (PNG, JPG, PDF)</p>
+                                    <span className="scan-dropzone-badge">Multiple pages supported</span>
+                                </div>
+                            ) : (
+                                <div className="scan-previews-container">
+                                    <label className="scan-previews-title">Selected Pages ({selectedFiles.length})</label>
+                                    <div className="scan-previews-grid">
+                                        {previews.map((src, idx) => (
+                                            <div key={idx} className="scan-preview-card animate-scale-in glass-card">
+                                                <img src={src} alt={`Page ${idx + 1}`} />
+                                                <span className="scan-preview-number">Page {idx + 1}</span>
+                                                <button 
+                                                    type="button" 
+                                                    className="scan-preview-delete" 
+                                                    onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                                                    title="Remove page"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button 
+                                            type="button" 
+                                            className="scan-preview-add-card glass-card" 
+                                            onClick={() => fileRef.current.click()}
+                                        >
+                                            <span className="add-card-icon">+</span>
+                                            <span className="add-card-text">Add Page</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="scan-actions-row">
+                                <Button 
+                                    onClick={triggerAIScan} 
+                                    disabled={selectedFiles.length === 0} 
+                                    style={{ flex: 2 }}
+                                >
+                                    ✨ Extract with Gemini AI
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={cancelScanMode} 
+                                    style={{ flex: 1 }}
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </Card>
+            ) : (
+                <Card style={{ marginBottom: '1rem' }}>
+                    <h3 style={{ marginBottom: '0.5rem' }}>Add a Course</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '1rem' }}>
+                        Upload a photo of a scorecard for AI extraction, or enter course data manually.
+                    </p>
+                    <div className="add-course-actions">
+                        <Button onClick={() => setIsScanMode(true)} style={{ flex: 1 }}>
+                            📸 AI Scan Scorecard
+                        </Button>
+                        <Button variant="outline" onClick={() => setView('create')} style={{ flex: 1 }}>
+                            ✍️ Add Manually
+                        </Button>
+                    </div>
+                </Card>
+            )}
 
             {/* Course List */}
             <Card>
