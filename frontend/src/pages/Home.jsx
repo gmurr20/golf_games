@@ -192,7 +192,8 @@ export default function Home() {
             {activeRound && (() => {
                 // Check if this round is actually still in progress
                 const matchingRound = rounds.find(r =>
-                    String(r.tee_id) === String(activeRound.teeId)
+                    String(r.tee_id) === String(activeRound.teeId) &&
+                    String(r.tournament_id) === String(activeRound.tournamentId)
                 );
                 // Don't show banner if round is completed or not found
                 if (!matchingRound || matchingRound.status === 'completed') {

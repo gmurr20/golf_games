@@ -83,12 +83,6 @@ export default function Awards() {
                         className="net-birdie-award"
                     />
                     <AwardCard 
-                        title="Biggest Sandbagger" 
-                        award={awards.sandbagger} 
-                        icon={<Ghost size={32} />} 
-                        className="sandbagger-award"
-                    />
-                    <AwardCard 
                         title="Most Honest" 
                         award={awards.most_honest} 
                         icon={<UserCheck size={32} />} 

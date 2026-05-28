@@ -65,18 +65,16 @@ def get_player_rounds(player_id):
 
     matchups = Matchup.query.filter(Matchup.id.in_(matchup_ids)).all()
 
-    # Group matchups by (tee_id, tee_time) — not tournament_id, since
-    # the admin creates a new tournament per matchup batch
+    # Group matchups by (tournament_id, tee_id, tee_time) to avoid cross-tournament lumping
     round_groups = defaultdict(list)
     for m in matchups:
         tee_time_key = m.tee_time.isoformat() if m.tee_time else "none"
-        key = (m.tee_id, tee_time_key)
+        key = (m.tournament_id, m.tee_id, tee_time_key)
         round_groups[key].append(m)
 
     rounds = []
-    for (tee_id, tee_time_key), group_matchups in round_groups.items():
-        # Use first matchup's tournament for display name
-        tournament = db.session.get(Tournament, group_matchups[0].tournament_id)
+    for (tournament_id, tee_id, tee_time_key), group_matchups in round_groups.items():
+        tournament = db.session.get(Tournament, tournament_id)
         tee = db.session.get(Tee, tee_id)
         course = db.session.get(Course, tee.course_id) if tee else None
 
@@ -190,12 +188,10 @@ def get_player_rounds(player_id):
 
         tee_time_val = group_matchups[0].tee_time
         tee_time_epoch = int(tee_time_val.timestamp()) if tee_time_val else 0
-        # Use the first matchup's tournament_id for routing purposes
-        first_tournament_id = group_matchups[0].tournament_id
 
         rounds.append({
-            "round_id": f"tee{tee_id}_{tee_time_epoch}",
-            "tournament_id": first_tournament_id,
+            "round_id": f"t{tournament_id}_tee{tee_id}_{tee_time_epoch}",
+            "tournament_id": tournament_id,
             "tee_id": tee_id,
             "tournament_name": tournament.name if tournament else "Unknown",
             "course_name": course.name if course else "Unknown",
@@ -240,6 +236,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
     matchups = Matchup.query.filter(
         Matchup.id.in_(matchup_ids),
         Matchup.tee_id == tee_id,
+        Matchup.tournament_id == tournament_id,
     ).all()
 
     # Filter by tee_time if provided
@@ -552,11 +549,11 @@ def get_player_stats(player_id):
     
     matchup_lookup = {m.id: m for m in all_matchups}
 
-    # Group matchups by round (tee_id, tee_time)
+    # Group matchups by round (tournament_id, tee_id, tee_time)
     round_groups = defaultdict(list)
     for m in all_matchups:
         tee_time_key = m.tee_time.isoformat() if m.tee_time else "none"
-        key = (m.tee_id, tee_time_key)
+        key = (m.tournament_id, m.tee_id, tee_time_key)
         round_groups[key].append(m)
 
     # Process Stats and Records
@@ -631,7 +628,7 @@ def get_player_stats(player_id):
         })
 
     # Round History
-    for (tee_id, tee_time_key), group_matchups in round_groups.items():
+    for (tournament_id, tee_id, tee_time_key), group_matchups in round_groups.items():
         tee = db.session.get(Tee, tee_id)
         course = tee.course if tee else None
         
@@ -670,7 +667,7 @@ def get_player_stats(player_id):
         net_to_par = net_total - par_total
 
         stats['rounds'].append({
-            "tournament_id": group_matchups[0].tournament_id,
+            "tournament_id": tournament_id,
             "tee_id": tee_id,
             "tee_time": group_matchups[0].tee_time.isoformat() if group_matchups[0].tee_time else None,
             "course_name": course.name if course else "Unknown",
