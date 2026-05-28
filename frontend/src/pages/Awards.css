@@ -145,8 +145,6 @@
 .net-birdie-award { border-top: 3px solid #4CAF50; }
 .net-birdie-award .award-icon-container { color: #4CAF50; background: rgba(76, 175, 80, 0.1); }
 
-.honest-award { border-top: 3px solid #03A9F4; }
-.honest-award .award-icon-container { color: #03A9F4; background: rgba(3, 169, 244, 0.1); }
 
 .worst-hole-award { border-top: 3px solid #F44336; }
 .worst-hole-award .award-icon-container { color: #F44336; background: rgba(244, 67, 54, 0.1); }
@@ -154,8 +152,23 @@
 .best-round-award { border-top: 3px solid #FFC107; }
 .best-round-award .award-icon-container { color: #FFC107; background: rgba(255, 193, 7, 0.1); }
 
+.best-round-gross-award { border-top: 3px solid #FF9800; }
+.best-round-gross-award .award-icon-container { color: #FF9800; background: rgba(255, 152, 0, 0.1); }
+
+
 .worst-round-award { border-top: 3px solid #757575; }
 .worst-round-award .award-icon-container { color: #757575; background: rgba(117, 117, 117, 0.1); }
+
+.eagle-award { border-top: 3px solid #E040FB; }
+.eagle-award .award-icon-container { color: #E040FB; background: rgba(224, 64, 251, 0.1); }
+
+.blowout-award { border-top: 3px solid #FF3D00; }
+.blowout-award .award-icon-container { color: #FF3D00; background: rgba(255, 61, 0, 0.1); }
+
+.best-golfer-award { border-top: 3px solid #00B0FF; }
+.best-golfer-award .award-icon-container { color: #00B0FF; background: rgba(0, 176, 255, 0.1); }
+
+
 
 /* Standings Table Styling */
 .stats-section {

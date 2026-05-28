@@ -178,3 +178,62 @@ def test_match_play_freezes_when_decided():
     # Verify that Hole 4 winner was frozen to None and not evaluated
     hole_4_data = next(h for h in status["scorecard"] if h["hole_number"] == 4)
     assert hole_4_data["winner"] is None
+
+def test_blowout_sorting():
+    # Test blowout sorting to match the user's specific ordering requirements:
+    # 5&3 beats 3&2, 3&2 beats 2&1, 2&1 beats 2 UP, 2 UP beats 1 UP
+    blowouts = [
+        {"remaining": 1, "lead": 2, "label": "2 & 1"},
+        {"remaining": 3, "lead": 5, "label": "5 & 3"},
+        {"remaining": 0, "lead": 1, "label": "1 UP"},
+        {"remaining": 2, "lead": 3, "label": "3 & 2"},
+        {"remaining": 0, "lead": 2, "label": "2 UP"}
+    ]
+    
+    # Sort descending
+    sorted_blowouts = sorted(blowouts, key=lambda x: (x['remaining'], x['lead']), reverse=True)
+    
+    assert sorted_blowouts[0]["label"] == "5 & 3"
+    assert sorted_blowouts[1]["label"] == "3 & 2"
+    assert sorted_blowouts[2]["label"] == "2 & 1"
+    assert sorted_blowouts[3]["label"] == "2 UP"
+    assert sorted_blowouts[4]["label"] == "1 UP"
+
+def test_best_golfer_selection():
+    # Test finding lowest cumulative gross relative to par
+    players = [
+        {"player_id": 1, "name": "Player A", "gross_rel_num": 5, "holes": 18},
+        {"player_id": 2, "name": "Player B", "gross_rel_num": -2, "holes": 18},
+        {"player_id": 3, "name": "Player C", "gross_rel_num": -5, "holes": 0}, # Inactive
+        {"player_id": 4, "name": "Player D", "gross_rel_num": 1, "holes": 9}
+    ]
+    
+    active_players = [x for x in players if x.get('holes', 0) > 0]
+    best_golfer = min(active_players, key=lambda x: x['gross_rel_num']) if active_players else None
+    
+    assert best_golfer is not None
+    assert best_golfer["player_id"] == 2 # Player B is the best active gross (-2)
+
+def test_best_round_gross_selection():
+    # Test finding lowest single-round gross score relative to par
+    rounds = [
+        {"player_id": 1, "gross_rel": 2, "holes": 18},
+        {"player_id": 2, "gross_rel": -1, "holes": 18},
+        {"player_id": 3, "gross_rel": -4, "holes": 8}, # Under 9 holes (invalid)
+        {"player_id": 4, "gross_rel": 0, "holes": 9}
+    ]
+    
+    valid_rounds = [r for r in rounds if r['holes'] >= 9]
+    if valid_rounds:
+        max_holes = max(r['holes'] for r in valid_rounds)
+        valid_rounds = [r for r in valid_rounds if r['holes'] == max_holes]
+        
+    best_round_gross = min(valid_rounds, key=lambda x: x['gross_rel']) if valid_rounds else None
+    
+    assert best_round_gross is not None
+    assert best_round_gross["player_id"] == 2 # Player B is best gross round (-1)
+    # Check that Player 4 (who shot 0 over 9 holes) is not considered because 18-hole rounds exist
+    assert 4 not in [r["player_id"] for r in valid_rounds]
+
+
+

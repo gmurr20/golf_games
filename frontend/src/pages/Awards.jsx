@@ -3,16 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { 
     Award, 
     Crown, 
-    Zap, 
     Target, 
     Ghost, 
-    UserCheck, 
     Skull, 
     Trophy, 
     Bomb,
     TrendingUp,
-    Medal
+    Medal,
+    Flame,
+    Bird
 } from 'lucide-react';
+
+const EagleIcon = () => (
+    <svg 
+        viewBox="0 0 24 24" 
+        width="32" 
+        height="32" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2.2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className="lucide lucide-eagle"
+    >
+        <path d="M11 6c.5-.7 1.5-.7 2 0l1 1.5M10 9h4" />
+        <path d="M12 8C7 5 3 6.5 1 8.5c4.5 3.5 8.5 3 11 .5" />
+        <path d="M12 8c5-3 9-1.5 11 .5-4.5 3.5-8.5 3-11 .5" />
+        <path d="M9 16c1.5 2 4.5 2 6 0l-3 4-3-4z" />
+    </svg>
+);
 import backend from '../api/backend';
 import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './Awards.css';
@@ -70,10 +89,18 @@ export default function Awards() {
                         icon={<Crown size={32} />} 
                         className="mvp-award"
                     />
+                    {awards.eagle_king && !awards.eagle_king.hidden && (
+                        <AwardCard 
+                            title="Eagle King" 
+                            award={awards.eagle_king} 
+                            icon={<EagleIcon />} 
+                            className="eagle-award"
+                        />
+                    )}
                     <AwardCard 
                         title="Birdie King" 
                         award={awards.birdie_king} 
-                        icon={<Zap size={32} />} 
+                        icon={<Bird size={32} />} 
                         className="birdie-award"
                     />
                     <AwardCard 
@@ -83,11 +110,20 @@ export default function Awards() {
                         className="net-birdie-award"
                     />
                     <AwardCard 
-                        title="Most Honest" 
-                        award={awards.most_honest} 
-                        icon={<UserCheck size={32} />} 
-                        className="honest-award"
+                        title="Best Golfer" 
+                        award={awards.best_golfer} 
+                        icon={<Award size={32} />} 
+                        className="best-golfer-award"
                     />
+                    {awards.matchplay_blowout && !awards.matchplay_blowout.hidden && (
+                        <AwardCard 
+                            title="Matchplay Blowout" 
+                            award={awards.matchplay_blowout} 
+                            icon={<Flame size={32} />} 
+                            className="blowout-award"
+                        />
+                    )}
+
                     {!awards.worst_hole.hidden && (
                         <AwardCard 
                             title="Worst Hole" 
@@ -101,6 +137,12 @@ export default function Awards() {
                         award={awards.best_round} 
                         icon={<Trophy size={32} />} 
                         className="best-round-award"
+                    />
+                    <AwardCard 
+                        title="Best Round (Gross)" 
+                        award={awards.best_round_gross} 
+                        icon={<Trophy size={32} />} 
+                        className="best-round-gross-award"
                     />
                     <AwardCard 
                         title="Worst Round (Net)" 

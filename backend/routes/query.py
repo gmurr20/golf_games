@@ -30,8 +30,9 @@ def get_leaderboard():
     if not comp:
         return jsonify({"error": "No competition found"}), 404
 
-    # Get all tournaments for this competition
-    tournaments = Tournament.query.filter_by(competition_id=comp.id).all()
+    # Get the latest/active tournament for this competition
+    tourney = Tournament.query.filter_by(competition_id=comp.id).order_by(Tournament.start_date.desc()).first()
+    tournaments = [tourney] if tourney else []
     tournament_ids = [t.id for t in tournaments]
 
     team_a_points = 0.0
@@ -49,12 +50,13 @@ def get_leaderboard():
         'worst_hole_tournament_id': None,
         'worst_hole_tee_id': None,
         'worst_hole_tee_time': None,
+        'eagle_details': []
     })
 
     # Track per-tournament-per-tee stats for Best/Worst round
-    # {player_id: {tournament_id: {tee_id: {'net': 0, 'par': 0, 'holes': 0, 'name': ''}}}}
+    # {player_id: {tournament_id: {tee_id: {'net': 0, 'par': 0, 'gross': 0, 'holes': 0, 'name': ''}}}}
     player_round_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: {
-        'net': 0, 'par': 0, 'holes': 0, 'name': '', 'tee_id': None, 'tee_time': None, 'hole_counts': set()
+        'net': 0, 'par': 0, 'gross': 0, 'holes': 0, 'name': '', 'tee_id': None, 'tee_time': None, 'hole_counts': set()
     })))
 
     for t in tournaments:
@@ -124,6 +126,13 @@ def get_leaderboard():
                             if diff <= -2:
                                 p_stats['eagles'] += 1
                                 p_stats['birdies'] += 1
+                                p_stats['eagle_details'].append({
+                                    'hole_number': h_num,
+                                    'course': m.tee.course.name if m.tee and m.tee.course else 'Unknown Course',
+                                    'tournament_id': t.id,
+                                    'tee_id': m.tee_id,
+                                    'tee_time': m.tee_time.isoformat() if m.tee_time else None
+                                })
                             elif diff == -1:
                                 p_stats['birdies'] += 1
                             
@@ -144,6 +153,7 @@ def get_leaderboard():
                             # Round Stats (Unique Holes per Tee)
                             if h_num not in r_stats['hole_counts']:
                                 r_stats['net'] += (net if net is not None else raw)
+                                r_stats['gross'] += raw
                                 r_stats['par'] += h_par
                                 r_stats['hole_counts'].add(h_num)
                                 r_stats['holes'] = len(r_stats['hole_counts'])
@@ -237,6 +247,7 @@ def get_leaderboard():
                         'name': s['name'],
                         'tournament_name': r['name'],
                         'net_rel': r['net'] - r['par'],
+                        'gross_rel': r['gross'] - r['par'],
                         'holes': r['holes']
                     })
     
@@ -255,13 +266,11 @@ def get_leaderboard():
     net_birdie_king = max(sorted_stats, key=lambda x: x['net_birdies']) if sorted_stats else None
     net_birdie_king_tie = (len([x for x in sorted_stats if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1) if net_birdie_king else False
 
-    # Most Honest (Closest to shooting +4 net per round)
-    # diff = abs(net_to_par - (holes / 18 * 4))
-    def honest_diff(x):
-        target = (x['holes'] / 18.0) * 4.0
-        return abs(x['net_rel_num'] - target)
-    most_honest = min(sorted_stats, key=honest_diff) if sorted_stats else None
-    most_honest_tie = (len([x for x in sorted_stats if honest_diff(x) == honest_diff(most_honest)]) > 1) if most_honest else False
+    # Best Golfer (Lowest cumulative gross relative to par)
+    active_players = [x for x in sorted_stats if x.get('holes', 0) > 0]
+    best_golfer = min(active_players, key=lambda x: x['gross_rel_num']) if active_players else None
+    best_golfer_tie = (len([x for x in active_players if x['gross_rel_num'] == best_golfer['gross_rel_num']]) > 1) if best_golfer else False
+
 
     # Worst Hole (Triple or higher)
     worst_hole = max(sorted_stats, key=lambda x: x['worst_hole_rel']) if sorted_stats else None
@@ -270,6 +279,9 @@ def get_leaderboard():
     # Filter rounds_data to only include "full enough" rounds if possible, or just all
     # Include any round with at least 9 holes finished
     valid_rounds = [r for r in rounds_data if r['holes'] >= 9]
+    if valid_rounds:
+        max_holes = max(r['holes'] for r in valid_rounds)
+        valid_rounds = [r for r in valid_rounds if r['holes'] == max_holes]
 
     best_round = min(valid_rounds, key=lambda x: x['net_rel']) if valid_rounds else None
     best_round_tie = (len([x for x in valid_rounds if x['net_rel'] == best_round['net_rel']]) > 1) if best_round else False
@@ -277,8 +289,62 @@ def get_leaderboard():
     worst_round = max(valid_rounds, key=lambda x: x['net_rel']) if valid_rounds else None
     worst_round_tie = (len([x for x in valid_rounds if x['net_rel'] == worst_round['net_rel']]) > 1) if worst_round else False
 
+    best_round_gross = min(valid_rounds, key=lambda x: x['gross_rel']) if valid_rounds else None
+    best_round_gross_tie = (len([x for x in valid_rounds if x['gross_rel'] == best_round_gross['gross_rel']]) > 1) if best_round_gross else False
+
     def fmt_rel(val):
         return f"+{val}" if val > 0 else ("E" if val == 0 else str(val))
+
+    # Eagle King calculation
+    eagle_king = max(sorted_stats, key=lambda x: x['eagles']) if sorted_stats else None
+    eagle_king_tie = (len([x for x in sorted_stats if x['eagles'] == eagle_king['eagles']]) > 1) if (eagle_king and eagle_king['eagles'] > 0) else False
+    total_eagles = sum(x['eagles'] for x in sorted_stats) if sorted_stats else 0
+
+    # Matchplay Blowout calculation
+    blowouts = []
+    for t in tournaments:
+        matchups = Matchup.query.filter_by(tournament_id=t.id).all()
+        for m in matchups:
+            if m.scoring_type == 'match_play':
+                ms = calculate_match_status(m.id)
+                if ms.get('is_completed'):
+                    diff = ms["team_a_wins"] - ms["team_b_wins"]
+                    lead = abs(diff)
+                    if lead > 0:
+                        total_match_holes = (m.hole_end or 18) - (m.hole_start or 1) + 1
+                        holes_played = ms["holes_played"]
+                        remaining = total_match_holes - holes_played
+                        
+                        # Determine winning team and players
+                        winner_team = 'A' if diff > 0 else 'B'
+                        m_players = MatchupPlayer.query.filter_by(matchup_id=m.id).all()
+                        winning_players = [mp.player for mp in m_players if mp.team == winner_team]
+                        winner_names = " & ".join([p.name for p in winning_players])
+                        profile_pic = winning_players[0].profile_picture if winning_players else None
+                        
+                        val_str = f"{lead} & {remaining}" if remaining > 0 else f"{lead} UP"
+                        course_name = m.tee.course.name if m.tee and m.tee.course else "Unknown Course"
+                        subtext = f"{val_str} at {course_name}"
+                        
+                        blowouts.append({
+                            'id': m.id,
+                            'tournament_id': t.id,
+                            'tee_id': m.tee_id,
+                            'tee_time': m.tee_time.isoformat() if m.tee_time else None,
+                            'display_value': val_str,
+                            'winner_names': winner_names,
+                            'profile_picture': profile_pic,
+                            'subtext': subtext,
+                            'remaining': remaining,
+                            'lead': lead
+                        })
+
+    best_blowout = None
+    blowout_tie = False
+    if blowouts:
+        blowouts.sort(key=lambda x: (x['remaining'], x['lead']), reverse=True)
+        best_blowout = blowouts[0]
+        blowout_tie = len([b for b in blowouts if b['remaining'] == best_blowout['remaining'] and b['lead'] == best_blowout['lead']]) > 1
 
     awards = {
         "mvp": {
@@ -303,14 +369,15 @@ def get_leaderboard():
             "value": f"{net_birdie_king['net_birdies']} Net Birdies" if net_birdie_king else "0 Birdies",
             "is_tie": net_birdie_king_tie
         },
-        "most_honest": {
-            "player_id": most_honest['player_id'] if most_honest else None,
-            "name": most_honest['name'] if most_honest else "N/A",
-            "profile_picture": most_honest.get('profile_picture') if most_honest else None,
-            "value": most_honest['net_to_par'] if most_honest else "E",
-            "subtext": f"Target: {fmt_rel(int((most_honest['holes']/18.0)*4))}" if most_honest else "Target: +4",
-            "is_tie": most_honest_tie
+        "best_golfer": {
+            "player_id": best_golfer['player_id'] if best_golfer else None,
+            "name": best_golfer['name'] if best_golfer else "N/A",
+            "profile_picture": best_golfer.get('profile_picture') if best_golfer else None,
+            "value": best_golfer['gross_to_par'] if best_golfer else "E",
+            "subtext": f"{best_golfer['holes']} Holes" if best_golfer else "No holes played",
+            "is_tie": best_golfer_tie
         },
+
         "worst_hole": {
             "player_id": worst_hole['player_id'] if worst_hole else None,
             "name": worst_hole['name'] if worst_hole else "N/A",
@@ -333,6 +400,16 @@ def get_leaderboard():
             "subtext": best_round['tournament_name'] if best_round else "No rounds finished",
             "is_tie": best_round_tie
         },
+        "best_round_gross": {
+            "tournament_id": best_round_gross['tournament_id'] if best_round_gross else None,
+            "tee_id": best_round_gross['tee_id'] if best_round_gross else None,
+            "tee_time": best_round_gross['tee_time'] if best_round_gross else None,
+            "player_id": best_round_gross['player_id'] if best_round_gross else None,
+            "name": best_round_gross['name'] if best_round_gross else "N/A",
+            "value": fmt_rel(best_round_gross['gross_rel']) if best_round_gross else "E",
+            "subtext": best_round_gross['tournament_name'] if best_round_gross else "No rounds finished",
+            "is_tie": best_round_gross_tie
+        },
         "worst_round": {
             "tournament_id": worst_round['tournament_id'] if worst_round else None,
             "tee_id": worst_round['tee_id'] if worst_round else None,
@@ -343,6 +420,29 @@ def get_leaderboard():
             "value": fmt_rel(worst_round['net_rel']) if worst_round else "E",
             "subtext": worst_round['tournament_name'] if worst_round else "No rounds finished",
             "is_tie": worst_round_tie
+        },
+        "eagle_king": {
+            "player_id": eagle_king['player_id'] if (eagle_king and eagle_king['eagles'] > 0) else None,
+            "name": eagle_king['name'] if (eagle_king and eagle_king['eagles'] > 0) else "N/A",
+            "profile_picture": eagle_king.get('profile_picture') if (eagle_king and eagle_king['eagles'] > 0) else None,
+            "value": f"{eagle_king['eagles']} Eagles" if (eagle_king and eagle_king['eagles'] > 0) else "0 Eagles",
+            "subtext": f"Hole {eagle_king['eagle_details'][0]['hole_number']} at {eagle_king['eagle_details'][0]['course']}" if (eagle_king and eagle_king['eagles'] > 0 and total_eagles == 1 and eagle_king['eagle_details']) else None,
+            "tournament_id": eagle_king['eagle_details'][0]['tournament_id'] if (eagle_king and eagle_king['eagles'] > 0 and total_eagles == 1 and eagle_king['eagle_details']) else None,
+            "tee_id": eagle_king['eagle_details'][0]['tee_id'] if (eagle_king and eagle_king['eagles'] > 0 and total_eagles == 1 and eagle_king['eagle_details']) else None,
+            "tee_time": eagle_king['eagle_details'][0]['tee_time'] if (eagle_king and eagle_king['eagles'] > 0 and total_eagles == 1 and eagle_king['eagle_details']) else None,
+            "is_tie": eagle_king_tie,
+            "hidden": not (eagle_king and eagle_king['eagles'] > 0)
+        },
+        "matchplay_blowout": {
+            "tournament_id": best_blowout['tournament_id'] if best_blowout else None,
+            "tee_id": best_blowout['tee_id'] if best_blowout else None,
+            "tee_time": best_blowout['tee_time'] if best_blowout else None,
+            "name": best_blowout['winner_names'] if best_blowout else "N/A",
+            "profile_picture": best_blowout['profile_picture'] if best_blowout else None,
+            "value": best_blowout['display_value'] if best_blowout else "N/A",
+            "subtext": best_blowout['subtext'] if best_blowout else "No match play blowouts yet",
+            "is_tie": blowout_tie,
+            "hidden": best_blowout is None
         }
     }
 
