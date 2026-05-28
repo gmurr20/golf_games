@@ -447,6 +447,18 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             "net_to_par": grand_net - grand_par if h_played > 0 else 0
         }
 
+    matchups_serialized = []
+    for m in sorted(matchups, key=lambda x: x.hole_start or 1):
+        matchups_serialized.append({
+            "id": m.id,
+            "hole_start": m.hole_start or 1,
+            "hole_end": m.hole_end or 18,
+            "format": m.format,
+            "scoring_type": m.scoring_type,
+            "points_for_win": m.points_for_win,
+            "points_for_push": m.points_for_push,
+        })
+
     use_handicaps = any(m.use_handicaps for m in matchups)
     return jsonify({
         "player_id": player_id,
@@ -462,6 +474,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         "scorecard": scorecard,
         "player_totals": player_totals,
         "match_results": match_results_data,
+        "matchups": matchups_serialized,
         "format": matchups[0].format if matchups else 'individual',
         "scoring_type": matchups[0].scoring_type if matchups else 'match_play'
     }), 200

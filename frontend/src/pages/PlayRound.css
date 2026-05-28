@@ -981,3 +981,192 @@
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 }
+
+/* ==========================================
+   PREMIUM GLASSMORPHIC MATCHUP STYLES
+   ========================================== */
+
+.new-match-banner-wrapper {
+    position: relative;
+    margin-bottom: var(--spacing-4);
+    animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.new-match-glass-card {
+    position: relative;
+    overflow: hidden;
+    background: rgba(var(--color-primary-rgb), 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-3) var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.new-match-glow {
+    position: absolute;
+    top: -50%;
+    left: -20%;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(var(--color-primary-rgb), 0.15) 0%, rgba(var(--color-primary-rgb), 0) 70%);
+    pointer-events: none;
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+}
+
+.new-match-badge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.new-match-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.1);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+}
+
+.new-match-format-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.new-match-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.new-match-holes {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--color-text);
+    letter-spacing: -0.2px;
+}
+
+/* Scorecard Column Grouping Header Styles */
+.sc-matchup-group-header-row {
+    background: rgba(0, 0, 0, 0.02) !important;
+}
+
+.sc-matchup-group-header-cell {
+    padding: 6px 4px !important;
+    text-align: center !important;
+    font-weight: 700;
+    background: rgba(var(--color-primary-rgb), 0.03) !important;
+    border-bottom: 2px solid rgba(var(--color-primary-rgb), 0.15) !important;
+    border-right: 2px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.sc-matchup-group-header-cell:last-child {
+    border-right: none !important;
+}
+
+.sc-matchup-group-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.sc-matchup-group-format {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text);
+    opacity: 0.85;
+}
+
+.sc-matchup-group-result {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-light);
+    white-space: nowrap;
+}
+
+.sc-matchup-group-result.is-win {
+    background: rgba(34, 197, 94, 0.12) !important;
+    color: hsl(140, 70%, 35%) !important;
+}
+
+.sc-matchup-group-result.is-loss {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: hsl(0, 75%, 45%) !important;
+}
+
+.sc-matchup-group-result.is-neutral {
+    background: rgba(100, 116, 139, 0.12) !important;
+    color: hsl(215, 20%, 45%) !important;
+}
+
+/* Animations */
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(0.9) translate(0, 0);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.1) translate(10px, 10px);
+        opacity: 1;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .new-match-glass-card {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+    .sc-matchup-group-header-cell {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .sc-matchup-group-result.is-win {
+        background: rgba(34, 197, 94, 0.2) !important;
+        color: hsl(140, 80%, 75%) !important;
+    }
+    .sc-matchup-group-result.is-loss {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: hsl(0, 85%, 75%) !important;
+    }
+    .sc-matchup-group-result.is-neutral {
+        background: rgba(148, 163, 184, 0.2) !important;
+        color: hsl(215, 20%, 80%) !important;
+    }
+}
+
+/* Vertical Matchup separators */
+.sc-group-end {
+    border-right: 2.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .sc-group-end {
+        border-right: 2.5px solid rgba(255, 255, 255, 0.35) !important;
+    }
+}

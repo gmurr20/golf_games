@@ -326,6 +326,13 @@ export default function PlayRound() {
         return `${fmt} ${scr} Net`;
     };
 
+    const getMatchupResultClass = (text) => {
+        if (!text) return '';
+        if (text.includes('UP') || text.includes('Won')) return 'is-win';
+        if (text.includes('DN') || text.includes('Lost') || text.includes('DOWN')) return 'is-loss';
+        return 'is-neutral';
+    };
+
     const getInitials = (name) => {
         if (!name) return '';
         return name.split(' ').map(part => part[0]).join('').toUpperCase();
@@ -370,18 +377,69 @@ export default function PlayRound() {
 
         const renderScorecardTable = (holes, label) => {
             if (holes.length === 0) return null;
+
+            // Group holes by contiguous matchup_id
+            const matchupGroups = [];
+            let currentGroup = null;
+            
+            for (const h of holes) {
+                if (!currentGroup || currentGroup.matchupId !== h.matchup_id) {
+                    currentGroup = {
+                        matchupId: h.matchup_id,
+                        holes: [h]
+                    };
+                    matchupGroups.push(currentGroup);
+                } else {
+                    currentGroup.holes.push(h);
+                }
+            }
+
             return (
                 <div className="scorecard-table-wrapper">
                     <table className="golf-scorecard-table">
                         <thead>
+                            <tr className="sc-matchup-group-header-row">
+                                <th className="sc-label-cell">Match</th>
+                                {matchupGroups.map((g, idx) => {
+                                    const mInfo = scorecard.matchups?.find(m => m.id === g.matchupId);
+                                    const mRes = scorecard.match_results?.find(mr => mr.matchup_id === g.matchupId);
+                                    const formatText = mInfo ? mInfo.format.replace(/_/g, ' ') : (scorecard.format ? scorecard.format.replace(/_/g, ' ') : 'Match');
+                                    const resultText = mRes ? mRes.result_string : '';
+                                    const resultClass = getMatchupResultClass(resultText);
+                                    const isHeaderGroupEnd = idx !== matchupGroups.length - 1;
+                                    return (
+                                        <th 
+                                            key={g.matchupId || idx} 
+                                            colSpan={g.holes.length}
+                                            className={`sc-matchup-group-header-cell ${mRes ? 'has-results' : ''} ${isHeaderGroupEnd ? 'sc-group-end' : ''}`}
+                                        >
+                                            <div className="sc-matchup-group-content">
+                                                <span className="sc-matchup-group-format">{formatText}</span>
+                                                {resultText && (
+                                                    <span className={`sc-matchup-group-result ${resultClass}`}>{resultText}</span>
+                                                )}
+                                            </div>
+                                        </th>
+                                    );
+                                })}
+                                <th className="sc-total-header"></th>
+                            </tr>
                             <tr>
                                 <th className="sc-label-cell">
                                     <span className="sc-label-full">{label}</span>
                                     <span className="sc-label-initials">{label}</span>
                                 </th>
-                                {holes.map(h => (
-                                    <th key={h.hole_number} className="sc-hole-header">{h.hole_number}</th>
-                                ))}
+                                {holes.map((h, idx) => {
+                                    const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    return (
+                                        <th 
+                                            key={h.hole_number} 
+                                            className={`sc-hole-header ${isGroupEnd ? 'sc-group-end' : ''}`}
+                                        >
+                                            {h.hole_number}
+                                        </th>
+                                    );
+                                })}
                                 <th className="sc-total-header">TOT</th>
                             </tr>
                             <tr className="sc-par-row">
@@ -389,9 +447,17 @@ export default function PlayRound() {
                                     <span className="sc-label-full">Par</span>
                                     <span className="sc-label-initials">P</span>
                                 </td>
-                                {holes.map(h => (
-                                    <td key={h.hole_number} className="sc-par-cell">{h.par}</td>
-                                ))}
+                                {holes.map((h, idx) => {
+                                    const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    return (
+                                        <td 
+                                            key={h.hole_number} 
+                                            className={`sc-par-cell ${isGroupEnd ? 'sc-group-end' : ''}`}
+                                        >
+                                            {h.par}
+                                        </td>
+                                    );
+                                })}
                                 <td className="sc-par-cell sc-total-cell">
                                     {holes.reduce((s, h) => s + h.par, 0)}
                                 </td>
@@ -402,7 +468,8 @@ export default function PlayRound() {
                                         <span className="sc-match-label-full">Match</span>
                                         <span className="sc-label-initials">M</span>
                                     </td>
-                                    {holes.map(h => {
+                                    {holes.map((h, idx) => {
+                                        const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
                                         const mr = h.match_result;
                                         let display = '–';
                                         let className = '';
@@ -415,7 +482,14 @@ export default function PlayRound() {
                                             else if (mr.result === 'lost') className = 'sc-match-lost';
                                             else if (mr.result === 'halved') className = 'sc-match-halved';
                                         }
-                                        return <td key={h.hole_number} className={`sc-match-cell ${className}`}>{display}</td>
+                                        return (
+                                            <td 
+                                                key={h.hole_number} 
+                                                className={`sc-match-cell ${className} ${isGroupEnd ? 'sc-group-end' : ''}`}
+                                            >
+                                                {display}
+                                            </td>
+                                        );
                                     })}
                                     <td className="sc-match-cell"></td>
                                 </tr>
@@ -436,7 +510,8 @@ export default function PlayRound() {
                                             <span className="sc-name-initials">{getInitials(name)}</span>
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
-                                        {holes.map(h => {
+                                        {holes.map((h, idx) => {
+                                            const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
                                             const s = getScore(h.hole_number, pid);
                                             const pdata = h.players[pid];
                                             if (s != null) {
@@ -446,7 +521,7 @@ export default function PlayRound() {
                                             return (
                                                 <td
                                                     key={h.hole_number}
-                                                    className="sc-score-cell"
+                                                    className={`sc-score-cell ${isGroupEnd ? 'sc-group-end' : ''}`}
                                                 >
                                                     {s != null ? (
                                                         <span className={`sc-score-mark ${getScoreClass(s, h.par)}`}>
@@ -701,14 +776,39 @@ export default function PlayRound() {
             {!isEditMode && (() => {
                 const currentMatchupId = currentHoleData?.matchup_id;
                 const firstHoleInMatchup = scorecard.scorecard.find(h => h.matchup_id === currentMatchupId);
-                return currentHole > (firstHoleInMatchup?.hole_number || 1);
-            })() && (
-                <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-3)' }}>
-                    <span className={`match-status-ticker ${matchStatus.className}`}>
-                        {matchStatus.text}
-                    </span>
-                </div>
-            )}
+                const isFirstHole = currentHole === (firstHoleInMatchup?.hole_number || 1);
+                
+                if (isFirstHole) {
+                    const activeMatchup = scorecard.matchups?.find(m => m.id === currentMatchupId);
+                    if (!activeMatchup) return null;
+                    return (
+                        <div className="new-match-banner-wrapper">
+                            <div className="new-match-glass-card">
+                                <div className="new-match-glow" />
+                                <div className="new-match-badge-row">
+                                    <span className="new-match-tag">New Match</span>
+                                    <span className="new-match-format-pill">
+                                        {formatMatchName(activeMatchup.format, activeMatchup.scoring_type)}
+                                    </span>
+                                </div>
+                                <div className="new-match-details">
+                                    <span className="new-match-holes">
+                                        ⛳️ Holes {activeMatchup.hole_start} – {activeMatchup.hole_end}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                } else {
+                    return (
+                        <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-3)' }}>
+                            <span className={`match-status-ticker ${matchStatus.className}`}>
+                                {matchStatus.text}
+                            </span>
+                        </div>
+                    );
+                }
+            })()}
 
             {/* Score entries */}
             <div className="score-entries" key={`scores-${currentHole}`}>

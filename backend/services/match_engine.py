@@ -203,29 +203,34 @@ def calculate_match_status(matchup_id: int) -> dict:
                     b_scores.append(m_net)
                     
         if a_scores and b_scores:
-            match_status["holes_played"] += 1
-            best_a = min(a_scores)
-            best_b = min(b_scores)
+            is_decided_before_hole = (matchup.scoring_type == 'match_play' and decided_status is not None)
             
-            if best_a < best_b:
-                hole_data["winner"] = "A"
-                match_status["team_a_wins"] += 1
-            elif best_b < best_a:
-                hole_data["winner"] = "B"
-                match_status["team_b_wins"] += 1
-            else:
-                hole_data["winner"] = "Push"
-            
-            # Check if match is decided at this point
-            if matchup.scoring_type == 'match_play' and decided_status is None:
-                current_diff = match_status["team_a_wins"] - match_status["team_b_wins"]
-                current_holes_remaining = total_match_holes - match_status["holes_played"]
+            if not is_decided_before_hole:
+                match_status["holes_played"] += 1
+                best_a = min(a_scores)
+                best_b = min(b_scores)
                 
-                if abs(current_diff) > current_holes_remaining:
-                    decided_diff = current_diff
-                    decided_holes_remaining = current_holes_remaining
-                    ad = abs(decided_diff)
-                    decided_status = f"{ad} & {decided_holes_remaining}" if decided_holes_remaining > 0 else f"{ad} UP"
+                if best_a < best_b:
+                    hole_data["winner"] = "A"
+                    match_status["team_a_wins"] += 1
+                elif best_b < best_a:
+                    hole_data["winner"] = "B"
+                    match_status["team_b_wins"] += 1
+                else:
+                    hole_data["winner"] = "Push"
+                
+                # Check if match is decided at this point
+                if matchup.scoring_type == 'match_play' and decided_status is None:
+                    current_diff = match_status["team_a_wins"] - match_status["team_b_wins"]
+                    current_holes_remaining = total_match_holes - match_status["holes_played"]
+                    
+                    if abs(current_diff) > current_holes_remaining:
+                        decided_diff = current_diff
+                        decided_holes_remaining = current_holes_remaining
+                        ad = abs(decided_diff)
+                        decided_status = f"{ad} & {decided_holes_remaining}" if decided_holes_remaining > 0 else f"{ad} UP"
+            else:
+                hole_data["winner"] = None
                 
         match_status["scorecard"].append(hole_data)
         

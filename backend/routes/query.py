@@ -530,6 +530,86 @@ def get_public_scorecard(tournament_id, tee_id):
             "net_to_par": grand_net - grand_par if h_played > 0 else 0
         }
 
+    matchups_serialized = []
+    for m in sorted(matchups, key=lambda x: x.hole_start or 1):
+        matchups_serialized.append({
+            "id": m.id,
+            "hole_start": m.hole_start or 1,
+            "hole_end": m.hole_end or 18,
+            "format": m.format,
+            "scoring_type": m.scoring_type,
+            "points_for_win": m.points_for_win,
+            "points_for_push": m.points_for_push,
+        })
+
+    viewer_player_id = None
+    if player_id_param:
+        try:
+            viewer_player_id = int(player_id_param)
+        except ValueError:
+            pass
+
+    match_results_data = []
+    for m in sorted(matchups, key=lambda x: x.hole_start or 1):
+        if m.scoring_type == 'match_play':
+            ms = matchup_stats.get(m.id)
+            if ms and 'error' not in ms:
+                my_team = 'A'
+                if viewer_player_id:
+                    mp_link = next((mp for mp in m.player_links if mp.player_id == viewer_player_id), None)
+                    if mp_link:
+                        my_team = mp_link.team
+
+                diff = ms['team_a_wins'] - ms['team_b_wins']
+                my_diff = diff if my_team == 'A' else -diff
+                total_match_holes = (m.hole_end or 18) - (m.hole_start or 1) + 1
+                holes_remaining = total_match_holes - ms['holes_played']
+
+                # Final result string
+                if ms['holes_played'] == 0:
+                    result_str = 'Not Started'
+                elif my_diff == 0:
+                    result_str = 'A/S' if holes_remaining == 0 else f'AS thru {ms["holes_played"]}'
+                elif my_diff > 0:
+                    if my_diff > holes_remaining or holes_remaining == 0:
+                        result_str = f'Won {my_diff}&{holes_remaining}' if holes_remaining > 0 else f'{my_diff} UP'
+                    else:
+                        result_str = f'{my_diff} UP thru {ms["holes_played"]}'
+                else:
+                    ad = abs(my_diff)
+                    if ad > holes_remaining or holes_remaining == 0:
+                        result_str = f'Lost {ad}&{holes_remaining}' if holes_remaining > 0 else f'{ad} DN'
+                    else:
+                        result_str = f'{ad} DN thru {ms["holes_played"]}'
+
+                # Per-hole results for this matchup
+                hole_results = {}
+                running = 0
+                for hd in ms['scorecard']:
+                    if hd['winner'] == 'A':
+                        running += 1
+                    elif hd['winner'] == 'B':
+                        running -= 1
+
+                    my_running = running if my_team == 'A' else -running
+
+                    if hd['winner'] is None:
+                        hole_results[hd['hole_number']] = None
+                    elif hd['winner'] == 'Push':
+                        hole_results[hd['hole_number']] = {'result': 'halved', 'running': my_running}
+                    elif (hd['winner'] == my_team):
+                        hole_results[hd['hole_number']] = {'result': 'won', 'running': my_running}
+                    else:
+                        hole_results[hd['hole_number']] = {'result': 'lost', 'running': my_running}
+
+                match_results_data.append({
+                    'matchup_id': m.id,
+                    'hole_start': m.hole_start or 1,
+                    'hole_end': m.hole_end or 18,
+                    'result_string': result_str,
+                    'hole_results': hole_results,
+                })
+
     return jsonify({
         "course_name": course.name if course else "Unknown",
         "course_logo": course.logo if course else None,
@@ -538,6 +618,8 @@ def get_public_scorecard(tournament_id, tee_id):
         "current_hole": current_hole,
         "scorecard": scorecard_data,
         "player_totals": player_totals,
+        "matchups": matchups_serialized,
+        "match_results": match_results_data,
         "format": matchups[0].format if matchups else 'individual',
         "scoring_type": matchups[0].scoring_type if matchups else 'match_play'
     }), 200

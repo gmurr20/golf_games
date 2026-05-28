@@ -97,30 +97,96 @@ export default function ViewScorecard() {
         return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     };
 
+    const getMatchupResultClass = (text) => {
+        if (!text) return '';
+        if (text.includes('UP') || text.includes('Won')) return 'is-win';
+        if (text.includes('DN') || text.includes('Lost') || text.includes('DOWN')) return 'is-loss';
+        return 'is-neutral';
+    };
+
     // Split holes for mobile view (Front / Back)
     const splitPoint = scorecard.length <= 9 ? scorecard.length : Math.ceil(scorecard.length / 2);
     const front9 = scorecard.filter(h => h.hole_number <= splitPoint);
     const back9 = scorecard.filter(h => h.hole_number > splitPoint);
 
-    const renderTable = (holes, label) => (
-        <div className="sc-table-container animate-slide-up" style={{ marginBottom: 'var(--spacing-4)' }}>
-            <table className="sc-table">
-                <thead>
-                    <tr className="sc-header-row">
-                        <th className="sc-label">{label}</th>
-                        {holes.map(h => (
-                            <th key={h.hole_number}>{h.hole_number}</th>
-                        ))}
-                        <th className="sc-total">TOT</th>
-                    </tr>
+    const renderTable = (holes, label) => {
+        // Group holes by contiguous matchup_id
+        const matchupGroups = [];
+        let currentGroup = null;
+        
+        for (const h of holes) {
+            if (!currentGroup || currentGroup.matchupId !== h.matchup_id) {
+                currentGroup = {
+                    matchupId: h.matchup_id,
+                    holes: [h]
+                };
+                matchupGroups.push(currentGroup);
+            } else {
+                currentGroup.holes.push(h);
+            }
+        }
+
+        return (
+            <div className="sc-table-container animate-slide-up" style={{ marginBottom: 'var(--spacing-4)' }}>
+                <table className="sc-table">
+                    <thead>
+                        <tr className="sc-matchup-group-header-row">
+                            <th className="sc-label">Match</th>
+                            {matchupGroups.map((g, idx) => {
+                                const mInfo = data.matchups?.find(m => m.id === g.matchupId);
+                                const mRes = data.match_results?.find(mr => mr.matchup_id === g.matchupId);
+                                const formatText = mInfo ? mInfo.format.replace(/_/g, ' ') : (data.format ? data.format.replace(/_/g, ' ') : 'Match');
+                                const resultText = mRes ? mRes.result_string : '';
+                                const resultClass = getMatchupResultClass(resultText);
+                                const isHeaderGroupEnd = idx !== matchupGroups.length - 1;
+                                return (
+                                    <th 
+                                        key={g.matchupId || idx} 
+                                        colSpan={g.holes.length}
+                                        className={`sc-matchup-group-header-cell ${mRes ? 'has-results' : ''} ${isHeaderGroupEnd ? 'sc-group-end' : ''}`}
+                                    >
+                                        <div className="sc-matchup-group-content">
+                                            <span className="sc-matchup-group-format">{formatText}</span>
+                                            {resultText && (
+                                                <span className={`sc-matchup-group-result ${resultClass}`}>{resultText}</span>
+                                            )}
+                                        </div>
+                                    </th>
+                                );
+                            })}
+                            <th className="sc-total"></th>
+                        </tr>
+                        <tr className="sc-header-row">
+                            <th className="sc-label">{label}</th>
+                            {holes.map((h, idx) => {
+                                const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                return (
+                                    <th 
+                                        key={h.hole_number} 
+                                        className={isGroupEnd ? 'sc-group-end' : ''}
+                                    >
+                                        {h.hole_number}
+                                    </th>
+                                );
+                            })}
+                            <th className="sc-total">TOT</th>
+                        </tr>
                     <tr className="sc-par-row">
                         <td className="sc-label">
                             <span className="sc-label-full">Par</span>
                             <span className="sc-label-initials">P</span>
                         </td>
-                        {holes.map(h => (
-                            <td key={h.hole_number}>{h.par}</td>
-                        ))}
+                        {holes.map((h, idx) => {
+                            const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                            return (
+                                <td 
+                                    key={h.hole_number} 
+                                    className={isGroupEnd ? 'sc-group-end' : ''}
+                                >
+                                    {h.par}
+                                </td>
+                            );
+                        })}
                         <td className="sc-total">{holes.reduce((s, h) => s + h.par, 0)}</td>
                     </tr>
                     <tr className="sc-yard-row">
@@ -128,9 +194,17 @@ export default function ViewScorecard() {
                             <span className="sc-label-full">Yard</span>
                             <span className="sc-label-initials">Y</span>
                         </td>
-                        {holes.map(h => (
-                            <td key={h.hole_number}>{h.yardage || '–'}</td>
-                        ))}
+                        {holes.map((h, idx) => {
+                            const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                            return (
+                                <td 
+                                    key={h.hole_number} 
+                                    className={isGroupEnd ? 'sc-group-end' : ''}
+                                >
+                                    {h.yardage || '–'}
+                                </td>
+                            );
+                        })}
                         <td className="sc-total">{holes.reduce((s, h) => s + (h.yardage || 0), 0) || '–'}</td>
                     </tr>
                     {data.scoring_type === 'match_play' && (
@@ -139,11 +213,19 @@ export default function ViewScorecard() {
                                 <span className="sc-match-label-full">Match</span>
                                 <span className="sc-label-initials">M</span>
                             </td>
-                            {holes.map(h => {
+                            {holes.map((h, idx) => {
+                                const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
                                 const mr = h.match_result;
-                                if (!mr) return <td key={h.hole_number}>–</td>;
+                                if (!mr) return <td key={h.hole_number} className={isGroupEnd ? 'sc-group-end' : ''}>–</td>;
                                 const display = mr.running === 0 ? 'AS' : (mr.running > 0 ? `+${mr.running}` : mr.running);
-                                return <td key={h.hole_number} className="sc-match-val">{display}</td>;
+                                return (
+                                    <td 
+                                        key={h.hole_number} 
+                                        className={`sc-match-val ${isGroupEnd ? 'sc-group-end' : ''}`}
+                                    >
+                                        {display}
+                                    </td>
+                                );
                             })}
                             <td className="sc-total"></td>
                         </tr>
@@ -163,11 +245,15 @@ export default function ViewScorecard() {
                                         Idx: {players[pid].handicap_index} • {players[pid].total_pops} strokes
                                     </div>
                                 </td>
-                                {holes.map(h => {
+                                {holes.map((h, idx) => {
+                                    const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
                                     const pdata = h.players[pid];
                                     const s = pdata?.score;
                                     return (
-                                        <td key={h.hole_number}>
+                                        <td 
+                                            key={h.hole_number} 
+                                            className={isGroupEnd ? 'sc-group-end' : ''}
+                                        >
                                             <span className={`sc-score-val ${getScoreClass(s, h.par)}`}>
                                                 {s || '–'}
                                             </span>
@@ -187,6 +273,7 @@ export default function ViewScorecard() {
             </table>
         </div>
     );
+};
 
     return (
         <div className="view-scorecard-container">
