@@ -37,6 +37,7 @@ def get_leaderboard():
 
     team_a_points = 0.0
     team_b_points = 0.0
+    total_points_available = 0.0
     matches = []
     
     player_stats = defaultdict(lambda: {
@@ -64,6 +65,7 @@ def get_leaderboard():
     for t in tournaments:
         matchups = Matchup.query.filter_by(tournament_id=t.id).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
         for m in matchups:
+            total_points_available += float(m.points_for_win or 0.0)
             ms = calculate_match_status(m.id)
             res = calculate_overall_winner(m.id)
             if 'error' not in res:
@@ -294,6 +296,40 @@ def get_leaderboard():
                     "hole_start": m.hole_start or 1,
                     "hole_end": m.hole_end or 18
                 })
+
+    target_to_win = (total_points_available / 2.0) + 0.5 if total_points_available > 0 else 0.0
+    team_a_needed = max(0.0, target_to_win - team_a_points) if total_points_available > 0 else 0.0
+    team_b_needed = max(0.0, target_to_win - team_b_points) if total_points_available > 0 else 0.0
+    
+    is_decided = False
+    winning_team = None
+    if total_points_available > 0:
+        if team_a_points >= target_to_win:
+            is_decided = True
+            winning_team = 'A'
+        elif team_b_points >= target_to_win:
+            is_decided = True
+            winning_team = 'B'
+        else:
+            # Check if all matches in the tournament are completed
+            all_completed = True
+            for t in tournaments:
+                matchups = Matchup.query.filter_by(tournament_id=t.id).all()
+                for m in matchups:
+                    m_status = calculate_match_status(m.id)
+                    if not m_status.get('is_completed'):
+                        all_completed = False
+                        break
+                if not all_completed:
+                    break
+            if all_completed:
+                is_decided = True
+                if team_a_points > team_b_points:
+                    winning_team = 'A'
+                elif team_b_points > team_a_points:
+                    winning_team = 'B'
+                else:
+                    winning_team = 'Tie'
 
     # Prepare Player Data for Awards
     sorted_stats = []
@@ -545,7 +581,13 @@ def get_leaderboard():
             "team_a_name": comp.team_a_name or "Team A",
             "team_b_name": comp.team_b_name or "Team B",
             "team_a_points": team_a_points,
-            "team_b_points": team_b_points
+            "team_b_points": team_b_points,
+            "points_to_win": target_to_win,
+            "team_a_points_needed": team_a_needed,
+            "team_b_points_needed": team_b_needed,
+            "total_points_available": total_points_available,
+            "is_decided": is_decided,
+            "winning_team": winning_team
         },
         "matches": matches,
         "player_stats": sorted_stats,

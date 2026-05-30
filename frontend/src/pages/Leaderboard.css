@@ -37,7 +37,7 @@
     justify-content: space-between;
     align-items: stretch;
     gap: var(--spacing-3);
-    margin-bottom: var(--spacing-8);
+    margin-bottom: var(--spacing-3);
 }
 
 .team-score-card {
@@ -304,4 +304,40 @@
     .player-name { font-size: 0.8rem; }
     .status-text { font-size: 0.7rem; }
     .match-status-arrow { min-width: 70px; }
+}
+
+/* Points to Win Banner */
+.points-to-win-container {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spacing-2);
+    margin-bottom: var(--spacing-3);
+}
+
+.points-to-win-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm);
+    
+    font-size: 0.775rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-light);
+    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+}
+
+.points-to-win-banner:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-light);
 }

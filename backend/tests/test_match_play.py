@@ -707,3 +707,154 @@ def test_custom_pops_match_play_with_scores():
     assert status['status_string'] is not None  # Should have a status summary
 
 
+def test_leaderboard_ryder_cup_calculations(monkeypatch):
+    import routes.query as rq
+    
+    mock_comp = Competition(id=1, name="Murray Cup 2026", admin_key="secret", team_a_name="Team A", team_b_name="Team B")
+    mock_tourney = Tournament(id=1, competition_id=1, name="Murray Cup")
+    
+    p1 = Player(id=1, name="Tiger", handicap_index=2.0, team="Team A", profile_picture=None)
+    p2 = Player(id=2, name="Phil", handicap_index=15.0, team="Team B", profile_picture=None)
+    player_map = {1: p1, 2: p2}
+
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    mock_tee.course = MagicMock()
+    mock_tee.course.name = "Pebble Beach"
+    mock_tee.course.logo = "logo.png"
+
+    from datetime import datetime
+    mock_matchup_1 = Matchup(
+        id=100,
+        tournament_id=1,
+        tee_id=1,
+        format="individual",
+        scoring_type="match_play",
+        tee_time=datetime(2026, 5, 29, 14, 30),
+        hole_start=1,
+        hole_end=18,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        tee=mock_tee
+    )
+    mock_matchup_2 = Matchup(
+        id=101,
+        tournament_id=1,
+        tee_id=1,
+        format="individual",
+        scoring_type="match_play",
+        tee_time=datetime(2026, 5, 29, 14, 30),
+        hole_start=1,
+        hole_end=18,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        tee=mock_tee
+    )
+    
+    mps = [
+        MatchupPlayer(matchup_id=100, player_id=1, team="A", handicap_index=2.0),
+        MatchupPlayer(matchup_id=100, player_id=2, team="B", handicap_index=15.0),
+        MatchupPlayer(matchup_id=101, player_id=1, team="A", handicap_index=2.0),
+        MatchupPlayer(matchup_id=101, player_id=2, team="B", handicap_index=15.0),
+    ]
+    for mp in mps:
+        mp.player = player_map[mp.player_id]
+
+    # Mock DB session get
+    from models import db
+    def mock_get(model, ident):
+        if model == Player:
+            return player_map.get(ident)
+        elif model == Matchup:
+            return mock_matchup_1 if ident == 100 else mock_matchup_2
+        return None
+    db.session.get = MagicMock(side_effect=mock_get)
+
+    # Mock database queries
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Competition:
+            q.filter_by.return_value.first.return_value = mock_comp
+        elif model == Tournament:
+            q.filter_by.return_value.order_by.return_value.first.return_value = mock_tourney
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup_1, mock_matchup_2]
+            q.filter_by.return_value.order_by.return_value.all.return_value = [mock_matchup_1, mock_matchup_2]
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = mps
+        elif model == Player:
+            q.get.side_effect = lambda pid: player_map.get(pid)
+        return q
+
+    # Apply query mocks to the query blueprint
+    rq.Competition.query = mock_query(Competition)
+    rq.Tournament.query = mock_query(Tournament)
+    rq.Matchup.query = mock_query(Matchup)
+    rq.MatchupPlayer.query = mock_query(MatchupPlayer)
+    rq.Player.query = mock_query(Player)
+
+    # Mock Flask current_app config
+    class MockConfig:
+        def get(self, key, default=None):
+            if key == 'MASTER_PASSWORD':
+                return 'secret'
+            return default
+            
+    class MockApp:
+        config = MockConfig()
+        
+    rq.current_app = MockApp()
+
+    # Mock jsonify
+    class MockResponse:
+        def __init__(self, data):
+            self.json = data
+    rq.jsonify = MagicMock(side_effect=lambda data: MockResponse(data))
+
+    # Mock calculate_match_status
+    def mock_calc_status(matchup_id):
+        # Match 100 has some scorecard data so we don't skip it
+        return {
+            "is_completed": False,
+            "holes_played": 2,
+            "status_string": "1 UP",
+            "scorecard": [{"hole_number": 1, "par": 4, "players": {1: {"raw": 4}}}]
+        }
+    rq.calculate_match_status = MagicMock(side_effect=mock_calc_status)
+
+    # Mock calculate_overall_winner
+    # Let's say Team A won matchup 100 (1.0 pts) and matchup 101 is not finished (0.0 pts)
+    def mock_calc_overall_winner(matchup_id):
+        if matchup_id == 100:
+            return {"winner": "A", "points_a": 1.0, "points_b": 0.0}
+        return {"winner": None, "points_a": 0.0, "points_b": 0.0}
+    rq.calculate_overall_winner = MagicMock(side_effect=mock_calc_overall_winner)
+
+    # Call get_leaderboard
+    response, status_code = rq.get_leaderboard()
+    assert status_code == 200
+    
+    data = response.json
+    assert "competition" in data
+    comp_data = data["competition"]
+    
+    # 2 matchups, each 1.0 points_for_win = 2.0 total points available
+    assert comp_data["total_points_available"] == 2.0
+    # Target to win: 2.0 / 2 + 0.5 = 1.5
+    assert comp_data["points_to_win"] == 1.5
+    
+    # Team A has 1.0 points (from matchup 100)
+    assert comp_data["team_a_points"] == 1.0
+    # Team B has 0.0 points
+    assert comp_data["team_b_points"] == 0.0
+    
+    # Team A needs: 1.5 - 1.0 = 0.5
+    assert comp_data["team_a_points_needed"] == 0.5
+    # Team B needs: 1.5 - 0.0 = 1.5
+    assert comp_data["team_b_points_needed"] == 1.5
+    
+    # Not decided yet because neither team has reached 1.5 points
+    assert comp_data["is_decided"] is False
+    assert comp_data["winning_team"] is None
+
+

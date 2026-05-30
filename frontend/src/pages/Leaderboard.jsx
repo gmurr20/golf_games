@@ -28,6 +28,14 @@ export default function Leaderboard() {
         }
     };
 
+    const formatPoints = (val) => {
+        if (val === undefined || val === null) return '0';
+        const num = parseFloat(val);
+        if (isNaN(num)) return '0';
+        if (num % 1 === 0.5) return `${Math.floor(num)}½`;
+        return num.toString();
+    };
+
     if (loading && !data) {
         return (
             <div className="leaderboard-container">
@@ -54,30 +62,41 @@ export default function Leaderboard() {
             <div className="team-scoreboard animate-slide-up">
                 <div className="team-score-card team-a">
                     <span className="team-name">{competition.team_a_name}</span>
-                    <span className="team-score team-a">{competition.team_a_points}</span>
+                    <span className="team-score team-a">{formatPoints(competition.team_a_points)}</span>
                 </div>
                 <div className="team-score-card team-b">
                     <span className="team-name">{competition.team_b_name}</span>
-                    <span className="team-score team-b">{competition.team_b_points}</span>
+                    <span className="team-score team-b">{formatPoints(competition.team_b_points)}</span>
                 </div>
             </div>
 
-            {/* Live Matches */}
-            <section className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                <h2 className="section-title">
-                    <span className="live-indicator"></span>
-                    Live Matches
-                </h2>
-                <div className="matches-list">
-                    {matches.filter(m => m.status === 'in_progress').length === 0 ? (
-                        <div className="list-empty">No active matches.</div>
-                    ) : (
-                        matches.filter(m => m.status === 'in_progress').map((m, i) => (
-                            <MatchCard key={m.id} m={m} i={i} navigate={navigate} />
-                        ))
-                    )}
+            {/* Points to Win Banner */}
+            {competition.total_points_available > 0 && (
+                <div className="points-to-win-container animate-slide-up" style={{ animationDelay: '0.05s' }}>
+                    <div className="points-to-win-banner">
+                        {competition.is_decided ? (
+                            <span>🏆 {competition.winning_team === 'Tie' ? 'Competition Ended in a Tie!' : `${competition.winning_team === 'A' ? competition.team_a_name : competition.team_b_name} Wins!`}</span>
+                        ) : (
+                            <span>{formatPoints(competition.points_to_win)} pts to win</span>
+                        )}
+                    </div>
                 </div>
-            </section>
+            )}
+
+            {/* Live Matches */}
+            {matches.filter(m => m.status === 'in_progress').length > 0 && (
+                <section className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="section-title">
+                        <span className="live-indicator"></span>
+                        Live Matches
+                    </h2>
+                    <div className="matches-list">
+                        {matches.filter(m => m.status === 'in_progress').map((m, i) => (
+                            <MatchCard key={m.id} m={m} i={i} navigate={navigate} />
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Completed Matches */}
             <section className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
