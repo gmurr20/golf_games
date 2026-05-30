@@ -282,8 +282,10 @@ export default function ViewScorecard() {
             </div>
 
             <header className="view-scorecard-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {course_logo && (
+                {course_logo ? (
                     <img src={course_logo} alt="course logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', marginBottom: '0.5rem', border: '2px solid var(--color-border)' }} />
+                ) : (
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⛳️</div>
                 )}
                 <h1 style={{ margin: 0 }}>{course_name}</h1>
                 <div className="view-scorecard-meta">

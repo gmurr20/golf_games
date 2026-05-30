@@ -77,8 +77,10 @@ export default function LiveScorecard() {
             </div>
 
             <header className="hole-header" style={{ marginBottom: 'var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {data.course_logo && (
+                {data.course_logo ? (
                     <img src={data.course_logo} alt="course logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', marginBottom: '0.5rem', border: '2px solid var(--color-border)' }} />
+                ) : (
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⛳️</div>
                 )}
                 <h1 className="hole-number-label" style={{ margin: 0 }}>{data.status_string}</h1>
                 <p style={{ color: 'var(--color-text-light)', marginTop: 'var(--spacing-1)', fontWeight: 600, margin: 0 }}>
