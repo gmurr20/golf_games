@@ -606,6 +606,7 @@ def get_public_scorecard(tournament_id, tee_id):
     
     tee_time_param = request.args.get('tee_time')
     player_id_param = request.args.get('player_id')
+    matchup_id_param = request.args.get('matchup_id')
     tee = db.session.get(Tee, tee_id)
     if not tee:
         return jsonify({"error": "Tee not found"}), 404
@@ -616,8 +617,16 @@ def get_public_scorecard(tournament_id, tee_id):
         tee_id=tee_id
     ).order_by(Matchup.tee_time, Matchup.hole_start, Matchup.id).all()
 
+    # Filter by matchup_id if provided
+    if matchup_id_param:
+        try:
+            mid = int(matchup_id_param)
+            matchups = [m for m in matchups if m.id == mid]
+        except ValueError:
+            pass
+
     # Filter by player_id if provided (useful for Awards/History split rounds)
-    if player_id_param:
+    if player_id_param and not matchup_id_param:
         try:
             pid = int(player_id_param)
             matchups = [m for m in matchups if any(mp.player_id == pid for mp in m.player_links)]
@@ -625,7 +634,7 @@ def get_public_scorecard(tournament_id, tee_id):
             pass
 
     # Filter by tee_time if provided
-    elif tee_time_param and tee_time_param != 'null':
+    if tee_time_param and tee_time_param != 'null':
         try:
             target_tt = datetime.fromisoformat(tee_time_param)
             matchups = [m for m in matchups if m.tee_time and abs((m.tee_time - target_tt).total_seconds()) < 60]

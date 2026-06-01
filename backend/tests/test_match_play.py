@@ -858,3 +858,91 @@ def test_leaderboard_ryder_cup_calculations(monkeypatch):
     assert comp_data["winning_team"] is None
 
 
+def test_stroke_play_handicapping_without_relative_reduction():
+    # Setup mock data for 2v2 Stroke Play
+    mock_comp = Competition(id=1, name="Comp", team_a_name="Team A", team_b_name="Team B")
+    mock_tournament = Tournament(id=1, competition_id=1, competition=mock_comp)
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    
+    # 2v2 Stroke Play matchup
+    mock_matchup = Matchup(
+        id=1, 
+        tournament_id=1, 
+        tee_id=1, 
+        format='best_ball', 
+        scoring_type='stroke_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        hole_start=1,
+        hole_end=18
+    )
+    
+    p1 = Player(id=1, handicap_index=10.0, name="Player A1", gender='male')
+    p2 = Player(id=2, handicap_index=20.0, name="Player A2", gender='male')
+    p3 = Player(id=3, handicap_index=10.0, name="Player B1", gender='male')
+    p4 = Player(id=4, handicap_index=20.0, name="Player B2", gender='male')
+    
+    mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A')
+    mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='A')
+    mp3 = MatchupPlayer(matchup_id=1, player_id=3, team='B')
+    mp4 = MatchupPlayer(matchup_id=1, player_id=4, team='B')
+    
+    mp1.player = p1
+    mp2.player = p2
+    mp3.player = p3
+    mp4.player = p4
+    
+    holes = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 19)]
+    
+    scores = [
+        Score(matchup_id=1, player_id=1, hole_number=1, strokes=5),
+        Score(matchup_id=1, player_id=2, hole_number=1, strokes=6),
+        Score(matchup_id=1, player_id=3, hole_number=1, strokes=5),
+        Score(matchup_id=1, player_id=4, hole_number=1, strokes=6),
+    ]
+    
+    # Mock DB session
+    db.session.get = MagicMock(return_value=mock_matchup)
+    
+    # Mock queries
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Hole:
+            q.filter.return_value.order_by.return_value.all.return_value = holes
+            q.filter_by.return_value.order_by.return_value.all.return_value = holes
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = [mp1, mp2, mp3, mp4]
+            q.filter.return_value.all.return_value = [mp1, mp2, mp3, mp4]
+        elif model == Score:
+            q.filter.return_value.all.return_value = scores
+            q.filter_by.return_value.all.return_value = scores
+        elif model == Player:
+            q.filter.return_value.all.return_value = [p1, p2, p3, p4]
+            q.get.side_effect = lambda pid: {1: p1, 2: p2, 3: p3, 4: p4}.get(pid)
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup]
+        return q
+
+    import services.match_engine as engine
+    engine.Hole.query = mock_query(Hole)
+    engine.MatchupPlayer.query = mock_query(MatchupPlayer)
+    engine.Score.query = mock_query(Score)
+    engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
+    
+    # Compute overall winner (uses the logic we modified)
+    res = engine.calculate_overall_winner(1)
+    
+    # Under correct non-relative play:
+    # Team A score on hole 1 = min(5-1, 6-2) = min(4, 4) = 4 strokes.
+    # Team B score on hole 1 = min(5-1, 6-2) = min(4, 4) = 4 strokes.
+    # Since other holes are not played, it returns "In Progress" but with correct score sums:
+    assert res["score_a"] == 4
+    assert res["score_b"] == 4
+
+
+

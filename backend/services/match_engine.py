@@ -452,19 +452,8 @@ def calculate_overall_winner(matchup_id: int) -> dict:
                 else:
                     course_handicaps[p.id] = round_half_up(ch_u)
 
-        # Standard playing handicaps (only apply relative reduction for standard players)
-        standard_ch = {pid: ch for pid, ch in course_handicaps.items() if pid not in player_custom_pops}
-        if standard_ch:
-            standard_ph = calculate_playing_handicaps(standard_ch)
-        else:
-            standard_ph = {}
-            
-        playing_handicaps = {}
-        for pid in course_handicaps:
-            if pid in player_custom_pops:
-                playing_handicaps[pid] = course_handicaps[pid]
-            else:
-                playing_handicaps[pid] = standard_ph.get(pid, 0)
+        # Playing handicaps (no relative reduction for stroke play / scramble)
+        playing_handicaps = course_handicaps
                 
         all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
         pops_per_hole = {}

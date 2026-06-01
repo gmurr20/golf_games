@@ -199,7 +199,7 @@ export default function PlayerStats() {
                                     {sortedDistances && sortedDistances.length > 0 && (
                                         <div className="par-distance-section">
                                             {sortedDistances.map((dist, idx) => {
-                                                const barWidth = Math.min(Math.max((dist.avg / (par * 2)) * 100, 10), 100);
+                                                const barWidth = Math.min(Math.max(75 + 25 * (dist.avg - par), 10), 100);
                                                 return (
                                                     <div key={idx} className="distance-row">
                                                         <span className="distance-range-label">{dist.range}</span>

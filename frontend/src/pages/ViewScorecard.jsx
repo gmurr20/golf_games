@@ -8,6 +8,7 @@ export default function ViewScorecard() {
     const [searchParams] = useSearchParams();
     const teeTime = searchParams.get('tee_time');
     const playerId = searchParams.get('player_id');
+    const matchupId = searchParams.get('matchup_id');
     const navigate = useNavigate();
     
     const [data, setData] = useState(null);
@@ -17,13 +18,14 @@ export default function ViewScorecard() {
         fetchScorecard();
         const interval = setInterval(fetchScorecard, 30000);
         return () => clearInterval(interval);
-    }, [tournamentId, teeId, teeTime, playerId]);
+    }, [tournamentId, teeId, teeTime, playerId, matchupId]);
 
     const fetchScorecard = async () => {
         try {
             const params = new URLSearchParams();
             if (teeTime) params.set('tee_time', teeTime);
             if (playerId) params.set('player_id', playerId);
+            if (matchupId) params.set('matchup_id', matchupId);
             const res = await backend.get(`/scorecard/${tournamentId}/${teeId}?${params.toString()}`);
             setData(res.data);
         } catch (e) {

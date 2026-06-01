@@ -156,6 +156,7 @@ function MatchCard({ m, i, navigate }) {
             onClick={() => {
                 const params = new URLSearchParams();
                 if (m.tee_time) params.set('tee_time', m.tee_time);
+                params.set('matchup_id', m.id);
                 navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?${params.toString()}`);
             }}
         >
