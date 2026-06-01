@@ -943,3 +943,207 @@
         background: rgba(255, 255, 255, 0.05);
     }
 }
+
+/* ── Grouped Matchup Card Styling ── */
+.matchup-group-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.matchup-group-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--color-primary-light);
+}
+
+.matchup-group-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--radius-pill);
+    background: rgba(39, 125, 76, 0.08);
+    color: var(--color-primary);
+    border: 1px solid rgba(39, 125, 76, 0.15);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.matchup-tee-time-label {
+    margin-left: 0.75rem;
+    opacity: 0.85;
+    font-weight: 500;
+    color: var(--color-text-light);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* ── Nested Sub-Matches List ── */
+.matchup-group-matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.matchup-sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.matchup-sub-row:hover {
+    background: rgba(39, 125, 76, 0.04);
+    border-color: var(--color-primary-light);
+    transform: translateX(3px);
+}
+
+.matchup-sub-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.matchup-sub-hole-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    min-width: 65px;
+    text-align: center;
+}
+
+.matchup-sub-format-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+.matchup-sub-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.matchup-sub-live-score {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(39, 125, 76, 0.08);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    border: 1px solid rgba(39, 125, 76, 0.15);
+    animation: pulse-light 2s infinite ease-in-out;
+}
+
+.matchup-sub-result-chip {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+}
+
+.matchup-sub-result-chip.result-team-a {
+    background: rgba(39, 125, 76, 0.08);
+    border-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.matchup-sub-result-chip.result-team-b {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: hsl(0, 70%, 75%);
+    color: hsl(0, 80%, 35%);
+}
+
+.matchup-sub-result-chip.result-push {
+    background: rgba(100, 116, 139, 0.08);
+    border-color: var(--color-border);
+    color: var(--color-text-light);
+}
+
+.matchup-sub-pts {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    background: rgba(0, 0, 0, 0.03);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+}
+
+.matchup-sub-delete-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    font-size: 0.7rem;
+    color: var(--color-text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.matchup-sub-delete-btn:hover {
+    background: var(--color-accent-lose);
+    color: #fff;
+    border-color: var(--color-accent-lose);
+    transform: scale(1.1);
+}
+
+/* ── Dark Mode Enhancements ── */
+@media (prefers-color-scheme: dark) {
+    .matchup-group-card {
+        background: var(--color-surface);
+    }
+    
+    .matchup-group-card:hover {
+        background: rgba(255, 255, 255, 0.01);
+    }
+    
+    .matchup-sub-row {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .matchup-sub-row:hover {
+        background: rgba(39, 125, 76, 0.06);
+    }
+    
+    .matchup-sub-hole-label {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .matchup-sub-result-chip.result-team-a {
+        color: var(--color-primary-light);
+    }
+
+    .matchup-sub-result-chip.result-team-b {
+        color: hsl(0, 90%, 75%);
+    }
+
+    .matchup-sub-pts {
+        background: rgba(255, 255, 255, 0.04);
+    }
+}
+

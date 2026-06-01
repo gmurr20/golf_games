@@ -69,7 +69,26 @@ export default function ViewScorecard() {
         });
     }
     
-    const sortedPlayerIds = Object.keys(players).sort((a,b) => players[a].team.localeCompare(players[b].team));
+    const sortedPlayerIds = Object.keys(players).sort((a, b) => {
+        if (playerId && players[playerId]) {
+            // Place the clicked player first
+            if (a === playerId) return -1;
+            if (b === playerId) return 1;
+
+            const teamA = players[a].team;
+            const teamB = players[b].team;
+            const viewerTeam = players[playerId].team;
+
+            // Place teammates of the clicked player next
+            if (teamA === viewerTeam && teamB !== viewerTeam) return -1;
+            if (teamB === viewerTeam && teamA !== viewerTeam) return 1;
+        }
+        
+        // Otherwise sort by team, then alphabetically by name for a stable order
+        const teamCompare = players[a].team.localeCompare(players[b].team);
+        if (teamCompare !== 0) return teamCompare;
+        return players[a].name.localeCompare(players[b].name);
+    });
 
     const formatToPar = (score, par) => {
         const diff = score - par;
@@ -234,8 +253,9 @@ export default function ViewScorecard() {
                 <tbody>
                     {sortedPlayerIds.map(pid => {
                         let rowTotal = 0;
+                        const isViewer = pid === playerId;
                         return (
-                            <tr key={pid} className="sc-player-row">
+                            <tr key={pid} className={`sc-player-row ${isViewer ? 'is-viewer' : ''}`}>
                                  <td className="sc-player-name">
                                     <div className="sc-player-name-text">
                                         <span className="sc-name-full">{players[pid].name}</span>
@@ -311,9 +331,10 @@ export default function ViewScorecard() {
                     const toPar = formatToPar(p.total, p.parTotal);
                     const diff = p.total - p.parTotal;
                     const diffClass = diff < 0 ? 'under' : diff > 0 ? 'over' : 'even';
+                    const isViewer = pid === playerId;
 
                     return (
-                        <div key={pid} className="player-par-card">
+                        <div key={pid} className={`player-par-card ${isViewer ? 'is-viewer' : ''}`}>
                             <div className="player-par-name">
                                 <span className="sc-name-full">{p.name}</span>
                                 <span className="sc-name-initials">{getInitials(p.name)}</span>

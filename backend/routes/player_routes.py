@@ -651,10 +651,16 @@ def get_player_stats(player_id):
 
         # Matchup Item for list
         opponents = []
+        teammates = []
         for mp in MatchupPlayer.query.filter_by(matchup_id=m.id).all():
-            if mp.player_id != player_id and mp.team != my_team:
-                opp = db.session.get(Player, mp.player_id)
-                if opp: opponents.append(opp.name)
+            if mp.player_id == player_id:
+                continue
+            p = db.session.get(Player, mp.player_id)
+            if p:
+                if mp.team == my_team:
+                    teammates.append(p.name)
+                else:
+                    opponents.append(p.name)
 
         matchup_result = "Upcoming"
         if ms.get('holes_played', 0) > 0:
@@ -705,6 +711,7 @@ def get_player_stats(player_id):
             "course_name": m.tee.course.name if m.tee and m.tee.course else "Unknown",
             "format": m.format,
             "opponents": opponents,
+            "teammates": teammates,
             "result": matchup_result,
             "is_completed": ms.get('is_completed', False),
             "winner": res.get('winner'),

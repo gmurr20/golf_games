@@ -402,3 +402,24 @@
     }
 }
 
+/* Active Player / Viewer Highlighting */
+.sc-player-row.is-viewer td {
+    background-color: var(--color-border) !important;
+    font-weight: 700;
+}
+
+.sc-player-row.is-viewer td.sc-player-name {
+    box-shadow: inset -3px 0 0 0 var(--color-primary) !important;
+}
+
+.sc-player-row.is-viewer .sc-player-name-text {
+    color: var(--color-primary);
+}
+
+.player-par-card.is-viewer {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md) !important;
+    background-color: var(--color-border) !important;
+}
+
+

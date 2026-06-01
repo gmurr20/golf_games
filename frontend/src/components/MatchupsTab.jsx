@@ -195,6 +195,20 @@ export default function MatchupsTab({
         }
     };
 
+    const handleDeleteGroup = async (group) => {
+        const count = group.matchups.length;
+        if (!window.confirm(`Delete this entire round of matches (${count} matchup${count > 1 ? 's' : ''})? All associated scores will also be removed.`)) return;
+        try {
+            setStatus(`Deleting ${count} matchup${count > 1 ? 's' : ''}...`);
+            await Promise.all(group.matchups.map(m => backend.delete(`/matchups/${m.id}`)));
+            setStatus('Entire round of matches deleted.');
+            fetchMatchups();
+        } catch (e) {
+            setStatus('Failed to delete some or all matchups in the round.');
+            fetchMatchups();
+        }
+    };
+
     const FORMAT_DISPLAY = {
         'individual': 'Individual (1v1)',
         'scramble': 'Scramble',
@@ -267,6 +281,40 @@ export default function MatchupsTab({
 
     // All selected player IDs for Custom Net UI
     const selectedPlayerIds = [teamA1, teamA2, teamB1, teamB2].filter(Boolean);
+
+    // Group matchups that share the same tee box, tee time, and exact team lineups
+    const groupedMatchups = useMemo(() => {
+        const groups = {};
+        matchups.forEach(m => {
+            const teamAIds = (m.teams['A'] || []).map(p => p.id).sort((a, b) => a - b).join(',');
+            const teamBIds = (m.teams['B'] || []).map(p => p.id).sort((a, b) => a - b).join(',');
+            const teeTimeKey = m.tee_time ? new Date(m.tee_time).toISOString() : 'no-time';
+            
+            const key = `${m.tee_id}_${teeTimeKey}_[A:${teamAIds}]_[B:${teamBIds}]`;
+            if (!groups[key]) {
+                groups[key] = {
+                    key,
+                    course: m.course,
+                    course_logo: m.course_logo,
+                    tee: m.tee,
+                    tee_time: m.tee_time,
+                    teams: m.teams,
+                    matchups: []
+                };
+            }
+            groups[key].matchups.push(m);
+        });
+
+        // Convert to array and sort:
+        return Object.values(groups).sort((a, b) => {
+            const timeA = a.tee_time ? new Date(a.tee_time).getTime() : 0;
+            const timeB = b.tee_time ? new Date(b.tee_time).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            const firstIdA = a.matchups[0]?.id || 0;
+            const firstIdB = b.matchups[0]?.id || 0;
+            return firstIdA - firstIdB;
+        });
+    }, [matchups]);
 
     return (
         <div className="animate-slide-up">
@@ -638,95 +686,116 @@ export default function MatchupsTab({
                 )}
 
                 <div className="matchup-list">
-                    {matchups.map((m, i) => (
-                        <div 
-                            key={m.id} 
-                            className="matchup-card" 
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleMatchupClick(m)}
-                        >
-                            <div className="matchup-card-header">
-                                <div className="matchup-card-title-row">
-                                    <span className="matchup-card-id">#{i + 1}</span>
-                                    <span className="matchup-format-badge">{getMatchupLabel(m)}</span>
-                                    <span className="matchup-hole-badge">{m.hole_label}</span>
-                                </div>
-                                <button
-                                    className="matchup-delete-btn"
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteMatchup(m.id); }}
-                                    title="Delete matchup"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            <div className="matchup-card-course">
-                                📍 {m.course} — {m.tee}
-                                {m.tee_time && <span style={{ marginLeft: '0.5rem', opacity: 0.7 }}>🕐 {new Date(m.tee_time).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
-                            </div>
-
-                            <div className="matchup-card-teams">
-                                <div className="matchup-team-col">
-                                    <span className="matchup-team-name">{teamAName}</span>
-                                    <span className="matchup-team-players">
-                                        {m.teams['A']?.map((p, idx) => (
-                                            <React.Fragment key={p.id}>
-                                                {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
-                                                {idx < m.teams['A'].length - 1 ? ' & ' : ''}
-                                            </React.Fragment>
-                                        )) || '—'}
-                                    </span>
-                                </div>
-                                <div className="matchup-vs-divider">
-                                    <span>VS</span>
-                                </div>
-                                <div className="matchup-team-col matchup-team-col-right">
-                                    <span className="matchup-team-name">{teamBName}</span>
-                                    <span className="matchup-team-players">
-                                        {m.teams['B']?.map((p, idx) => (
-                                            <React.Fragment key={p.id}>
-                                                {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
-                                                {idx < m.teams['B'].length - 1 ? ' & ' : ''}
-                                            </React.Fragment>
-                                        )) || '—'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {m.status === 'completed' && m.result && (
-                                <div className={`matchup-result-banner ${m.result.winner === 'Push' ? 'result-push' : m.result.winner === 'A' ? 'result-team-a' : 'result-team-b'}`}>
-                                    <div className="matchup-result-summary">
-                                        <strong>{m.result.winner === 'Push' ? 'Match Halved' : `${m.result.winner === 'A' ? teamAName : teamBName} Wins`}</strong>
-                                        <span> • {m.result.summary}</span>
+                    {groupedMatchups.map((group, groupIdx) => {
+                        const statuses = group.matchups.map(m => m.status);
+                        const groupStatus = statuses.includes('in_progress')
+                            ? 'in_progress'
+                            : (statuses.every(s => s === 'completed') ? 'completed' : 'upcoming');
+                        
+                        return (
+                            <div key={group.key} className="matchup-group-card">
+                                <div className="matchup-card-header">
+                                    <div className="matchup-card-title-row">
+                                        <span className="matchup-card-id">#{groupIdx + 1}</span>
+                                        <span className="matchup-group-badge">
+                                            {group.matchups.length} Match{group.matchups.length !== 1 ? 'es' : ''}
+                                        </span>
+                                        <span className={`matchup-status matchup-status-${groupStatus}`}>
+                                            {groupStatus.replace('_', ' ')}
+                                        </span>
                                     </div>
-                                    <div className="matchup-result-points">
-                                        Pts: {m.result.points_a} - {m.result.points_b}
-                                    </div>
+                                    <button
+                                        className="matchup-delete-btn"
+                                        onClick={() => handleDeleteGroup(group)}
+                                        title="Delete entire round"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
-                            )}
 
-                            <div className="matchup-card-footer">
-                                <div className="matchup-points-display">
-                                    <span className="matchup-point-chip matchup-point-win">
-                                        🏆 {m.points_for_win} pt{m.points_for_win !== 1 ? 's' : ''}
-                                    </span>
-                                    <span className="matchup-point-chip matchup-point-push">
-                                        🤝 {m.points_for_push} pt{m.points_for_push !== 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                                <div className="matchup-status-group">
-                                    {m.status === 'in_progress' && m.live_status && (
-                                        <span className="matchup-live-score">
-                                            {m.live_status}
+                                <div className="matchup-card-course">
+                                    📍 {group.course} — {group.tee}
+                                    {group.tee_time && (
+                                        <span className="matchup-tee-time-label">
+                                            🕐 {new Date(group.tee_time).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                         </span>
                                     )}
-                                    <span className={`matchup-status matchup-status-${m.status}`}>
-                                        {m.status}
-                                    </span>
+                                </div>
+
+                                <div className="matchup-card-teams">
+                                    <div className="matchup-team-col">
+                                        <span className="matchup-team-name">{teamAName}</span>
+                                        <span className="matchup-team-players">
+                                            {group.teams['A']?.map((p, idx) => (
+                                                <React.Fragment key={p.id}>
+                                                    {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
+                                                    {idx < group.teams['A'].length - 1 ? ' & ' : ''}
+                                                </React.Fragment>
+                                            )) || '—'}
+                                        </span>
+                                    </div>
+                                    <div className="matchup-vs-divider">
+                                        <span>VS</span>
+                                    </div>
+                                    <div className="matchup-team-col matchup-team-col-right">
+                                        <span className="matchup-team-name">{teamBName}</span>
+                                        <span className="matchup-team-players">
+                                            {group.teams['B']?.map((p, idx) => (
+                                                <React.Fragment key={p.id}>
+                                                    {p.name} <span className="matchup-player-hcp">({p.handicap_index != null ? Number(p.handicap_index).toFixed(1) : '—'})</span>
+                                                    {idx < group.teams['B'].length - 1 ? ' & ' : ''}
+                                                </React.Fragment>
+                                            )) || '—'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="matchup-group-matches-list">
+                                    {group.matchups.map(m => {
+                                        const label = getMatchupLabel(m);
+                                        return (
+                                            <div 
+                                                key={m.id} 
+                                                className={`matchup-sub-row matchup-sub-status-${m.status}`}
+                                                onClick={() => handleMatchupClick(m)}
+                                            >
+                                                <div className="matchup-sub-info">
+                                                    <span className="matchup-sub-hole-label">{m.hole_label}</span>
+                                                    <span className="matchup-sub-format-label">{label}</span>
+                                                </div>
+
+                                                <div className="matchup-sub-actions" onClick={e => e.stopPropagation()}>
+                                                    {m.status === 'in_progress' && m.live_status && (
+                                                        <span className="matchup-sub-live-score">
+                                                            {m.live_status}
+                                                        </span>
+                                                    )}
+                                                    
+                                                    {m.status === 'completed' && m.result && (
+                                                        <span className={`matchup-sub-result-chip ${m.result.winner === 'Push' ? 'result-push' : m.result.winner === 'A' ? 'result-team-a' : 'result-team-b'}`}>
+                                                            {m.result.winner === 'Push' ? 'AS' : m.result.summary}
+                                                        </span>
+                                                    )}
+
+                                                    <span className="matchup-sub-pts">
+                                                        🏆 {m.points_for_win} / 🤝 {m.points_for_push}
+                                                    </span>
+
+                                                    <button
+                                                        className="matchup-sub-delete-btn"
+                                                        onClick={() => handleDeleteMatchup(m.id)}
+                                                        title="Delete matchup"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </Card>
         </div>

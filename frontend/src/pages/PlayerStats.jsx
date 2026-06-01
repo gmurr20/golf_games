@@ -199,7 +199,7 @@ export default function PlayerStats() {
                                     {sortedDistances && sortedDistances.length > 0 && (
                                         <div className="par-distance-section">
                                             {sortedDistances.map((dist, idx) => {
-                                                const barWidth = Math.min(Math.max((par / dist.avg) * 100, 35), 100);
+                                                const barWidth = Math.min(Math.max((dist.avg / (par * 2)) * 100, 10), 100);
                                                 return (
                                                     <div key={idx} className="distance-row">
                                                         <span className="distance-range-label">{dist.range}</span>
@@ -291,7 +291,7 @@ export default function PlayerStats() {
                             <div 
                                 key={m.id} 
                                 className="matchup-history-item"
-                                onClick={() => navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?matchup_id=${m.id}`)}
+                                onClick={() => navigate(`/view-scorecard/${m.tournament_id}/${m.tee_id}?matchup_id=${m.id}&player_id=${playerId}`)}
                             >
                                 <div className="matchup-meta-row">
                                     <span className="matchup-course">
@@ -302,7 +302,10 @@ export default function PlayerStats() {
                                     </span>
                                 </div>
                                 <div className="matchup-main">
-                                    <span className="matchup-opponents">vs {m.opponents.join(' & ')}</span>
+                                    <span className="matchup-opponents">
+                                        {m.teammates && m.teammates.length > 0 && `(with ${m.teammates.join(' & ')}) `}
+                                        vs {m.opponents.join(' & ')}
+                                    </span>
                                     <span className={`matchup-result-badge ${
                                         !m.is_completed ? 'tie' :
                                         m.winner === 'Push' ? 'tie' :

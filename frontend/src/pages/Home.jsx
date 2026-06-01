@@ -274,6 +274,9 @@ export default function Home() {
                                 <div key={m.id} className="round-matchup-snippet">
                                     <span>
                                         Holes {m.hole_start}–{m.hole_end}
+                                        {m.teammates && m.teammates.length > 0 && (
+                                            <> (with {m.teammates.map(t => t.name).join(' & ')})</>
+                                        )}
                                         {m.opponents.length > 0 && (
                                             <> vs {m.opponents.map(o => o.name).join(' & ')}</>
                                         )}

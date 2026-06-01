@@ -220,3 +220,92 @@ def test_get_player_stats_by_par(monkeypatch):
     m1 = data["matchups"][1]
     assert m1["hole_range"] == "Front Nine"
     assert m1["tee_time_display"] == "May 29 • 2:30 PM"
+
+
+def test_get_player_stats_matchup_teammates_and_opponents(monkeypatch):
+    # Setup mock competition & players
+    mock_comp = Competition(id=1, name="Murray Cup 2026", admin_key="secret", team_a_name="Team A", team_b_name="Team B")
+    mock_player = Player(id=42, name="Tiger", handicap_index=2.0, team="Team A")
+    mock_teammate = Player(id=43, name="Charlie", handicap_index=5.0, team="Team A")
+    mock_opponent = Player(id=44, name="Phil", handicap_index=3.0, team="Team B")
+    mock_tourney = Tournament(id=1, competition_id=1, name="Murray Cup")
+    
+    from models import db
+    def mock_get(model, ident):
+        if model == Player:
+            if ident == 42: return mock_player
+            if ident == 43: return mock_teammate
+            if ident == 44: return mock_opponent
+        elif model == Tournament and ident == 1:
+            return mock_tourney
+        return None
+    db.session.get = MagicMock(side_effect=mock_get)
+    
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Competition:
+            q.filter_by.return_value.first.return_value = mock_comp
+        elif model == Tournament:
+            q.filter_by.return_value.all.return_value = [mock_tourney]
+        elif model == MatchupPlayer:
+            mock_mp_me = MatchupPlayer(matchup_id=100, player_id=42, team="A")
+            mock_mp_partner = MatchupPlayer(matchup_id=100, player_id=43, team="A")
+            mock_mp_opp = MatchupPlayer(matchup_id=100, player_id=44, team="B")
+            
+            mock_mp_me.player = mock_player
+            mock_mp_partner.player = mock_teammate
+            mock_mp_opp.player = mock_opponent
+            
+            # For query filtering
+            q.filter.return_value.all.return_value = [mock_mp_me]
+            q.filter_by.return_value.all.return_value = [mock_mp_me, mock_mp_partner, mock_mp_opp]
+        elif model == Matchup:
+            from datetime import datetime
+            mock_matchup = Matchup(
+                id=100, 
+                tournament_id=1, 
+                tee_id=1, 
+                format="fourball", 
+                scoring_type="match_play", 
+                tee_time=datetime(2026, 5, 29, 14, 30),
+                hole_start=1,
+                hole_end=18,
+                points_for_win=1.0,
+                points_for_push=0.5
+            )
+            mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+            mock_matchup.tee = mock_tee
+            q.filter.return_value.all.return_value = [mock_matchup]
+        return q
+
+    import routes.player_routes as pr
+    pr.Competition.query = mock_query(Competition)
+    pr.Tournament.query = mock_query(Tournament)
+    pr.MatchupPlayer.query = mock_query(MatchupPlayer)
+    pr.Matchup.query = mock_query(Matchup)
+    
+    class MockResponse:
+        def __init__(self, data):
+            self.json = data
+    pr.jsonify = MagicMock(side_effect=lambda data: MockResponse(data))
+    
+    class MockConfig:
+        def __getitem__(self, key):
+            if key == 'MASTER_PASSWORD': return 'secret'
+            return None
+    class MockApp:
+        config = MockConfig()
+    pr.current_app = MockApp()
+
+    pr.calculate_match_status = MagicMock(return_value={"is_completed": True, "holes_played": 18, "scorecard": []})
+    pr.calculate_overall_winner = MagicMock(return_value={"winner": "A"})
+
+    response, status_code = get_player_stats(42)
+    assert status_code == 200
+    data = response.json
+    
+    assert len(data["matchups"]) == 1
+    m = data["matchups"][0]
+    assert m["opponents"] == ["Phil"]
+    assert m["teammates"] == ["Charlie"]
