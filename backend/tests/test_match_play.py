@@ -945,4 +945,213 @@ def test_stroke_play_handicapping_without_relative_reduction():
     assert res["score_b"] == 4
 
 
+def test_12_hole_matchup_scaling():
+    # Setup mock data for 12-hole individual matchup
+    mock_comp = Competition(id=1, name="Comp", team_a_name="Team A", team_b_name="Team B")
+    mock_tournament = Tournament(id=1, competition_id=1, competition=mock_comp)
+    mock_tee = Tee(id=1, rating=72.0, slope=113, par=72)
+    
+    mock_matchup = Matchup(
+        id=1, 
+        tournament_id=1, 
+        tee_id=1, 
+        format='individual', 
+        scoring_type='match_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        hole_start=1,
+        hole_end=12
+    )
+    
+    # Player A: handicap index 18.0. On 18 holes, CH=18. 
+    # Scaled to 12 holes: CH = 18.0 * (12/18) = 12.0.
+    p1 = Player(id=1, handicap_index=18.0, name="Player A", gender='male')
+    p2 = Player(id=2, handicap_index=0.0, name="Player B", gender='male')
+    
+    mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A')
+    mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='B')
+    mp1.player = p1
+    mp2.player = p2
+    
+    # 12 holes in matchup
+    holes_in_range = [Hole(hole_number=i, par=4, handicap_index=i, tee_id=1) for i in range(1, 13)]
+    
+    from models import db
+    db.session.get = MagicMock(return_value=mock_matchup)
+    
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Hole:
+            q.filter.return_value.order_by.return_value.all.return_value = holes_in_range
+            q.filter_by.return_value.order_by.return_value.all.return_value = holes_in_range
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = [mp1, mp2]
+            q.filter.return_value.all.return_value = [mp1, mp2]
+        elif model == Score:
+            q.filter.return_value.all.return_value = []
+            q.filter_by.return_value.all.return_value = []
+        elif model == Player:
+            q.filter.return_value.all.return_value = [p1, p2]
+            q.get.side_effect = lambda pid: p1 if pid == 1 else p2
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup]
+        return q
+
+    import services.match_engine as engine
+    engine.Hole.query = mock_query(Hole)
+    engine.MatchupPlayer.query = mock_query(MatchupPlayer)
+    engine.Score.query = mock_query(Score)
+    engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
+    
+    status = engine.calculate_match_status(1)
+    
+    p1_st = status['player_stats'][1]
+    
+    # Course handicap should be scaled to 12 (from 18)
+    assert p1_st['course_handicap'] == 12
+    # Playing handicap (relative difference) should also be scaled to 12
+    assert p1_st['playing_handicap'] == 12
+    
+    # Pops should be exactly 1 on each of the 12 holes, and 0 elsewhere
+    pops = p1_st['pops_per_hole']
+    for i in range(1, 13):
+        assert pops.get(i) == 1
+    assert pops.get(13, 0) == 0
+
+
+def test_split_matchup_18_hole_handicap_allocation():
+    # Setup mock data for split matchup: front 9 and back 9 of an 18-hole round
+    mock_comp = Competition(id=1, name="Comp", team_a_name="Team A", team_b_name="Team B")
+    mock_tournament = Tournament(id=1, competition_id=1, competition=mock_comp)
+    mock_tee = Tee(id=1, rating=72.8, slope=138, par=72)
+    
+    from datetime import datetime
+    tee_time = datetime(2026, 6, 1, 12, 36)
+    
+    # Matchup 1: holes 1-9
+    mock_matchup_1 = Matchup(
+        id=1, 
+        tournament_id=1, 
+        tee_id=1, 
+        format='best_ball', 
+        scoring_type='match_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        hole_start=1,
+        hole_end=9,
+        tee_time=tee_time
+    )
+    # Matchup 2: holes 10-18
+    mock_matchup_2 = Matchup(
+        id=2, 
+        tournament_id=1, 
+        tee_id=1, 
+        format='best_ball', 
+        scoring_type='match_play',
+        tournament=mock_tournament,
+        tee=mock_tee,
+        use_handicaps=True,
+        points_for_win=1.0,
+        points_for_push=0.5,
+        hole_start=10,
+        hole_end=18,
+        tee_time=tee_time
+    )
+    
+    p1 = Player(id=1, handicap_index=5.4, name="Greg", gender='male') # 18-hole CH: 7
+    p2 = Player(id=2, handicap_index=4.2, name="Vidur", gender='male') # 18-hole CH: 6
+    
+    mp1 = MatchupPlayer(matchup_id=1, player_id=1, team='A')
+    mp2 = MatchupPlayer(matchup_id=1, player_id=2, team='A')
+    mp1.player = p1
+    mp2.player = p2
+    
+    # Holes: 18 holes. 
+    # Hole 4: handicap index 1 (hardest). Hole 10: handicap index 2 (second hardest).
+    holes = []
+    for i in range(1, 19):
+        # assign unique handicap index (1-18)
+        if i == 4:
+            hcp_idx = 1
+        elif i == 10:
+            hcp_idx = 2
+        else:
+            hcp_idx = i + 2 if i < 4 else i + 1
+        holes.append(Hole(hole_number=i, par=4, handicap_index=hcp_idx, tee_id=1))
+        
+    holes_front = holes[:9]
+    holes_back = holes[9:]
+    
+    from models import db
+    db.session.get = MagicMock(side_effect=lambda model, ident: mock_matchup_1 if ident == 1 else mock_matchup_2)
+    
+    from sqlalchemy.orm import Query
+    def mock_query(model):
+        q = MagicMock(spec=Query)
+        if model == Hole:
+            # We want all_holes query to return all 18, and matchup query to return correct slice
+            q.filter_by.return_value.order_by.return_value.all.return_value = holes
+            q.filter.return_value.order_by.return_value.all.side_effect = lambda: holes_front
+        elif model == MatchupPlayer:
+            q.filter_by.return_value.all.return_value = [mp1, mp2]
+            q.filter.return_value.all.return_value = [mp1, mp2]
+        elif model == Score:
+            q.filter_by.return_value.all.return_value = []
+            q.filter.return_value.all.return_value = []
+        elif model == Player:
+            q.filter.return_value.all.return_value = [p1, p2]
+            q.get.side_effect = lambda pid: p1 if pid == 1 else p2
+        elif model == Matchup:
+            q.filter_by.return_value.all.return_value = [mock_matchup_1, mock_matchup_2]
+        return q
+
+    import services.match_engine as engine
+    engine.Hole.query = mock_query(Hole)
+    engine.MatchupPlayer.query = mock_query(MatchupPlayer)
+    engine.Score.query = mock_query(Score)
+    engine.Player.query = mock_query(Player)
+    engine.Matchup.query = mock_query(Matchup)
+    
+    status_1 = engine.calculate_match_status(1)
+    
+    p1_st = status_1['player_stats'][1]
+    p2_st = status_1['player_stats'][2]
+    
+    # 18-hole course handicap should be calculated: Greg=7, Vidur=6
+    assert p1_st['course_handicap'] == 7
+    assert p2_st['course_handicap'] == 6
+    
+    # Relative playing handicap: Greg=7-6=1, Vidur=0
+    assert p1_st['playing_handicap'] == 1
+    assert p2_st['playing_handicap'] == 0
+    
+    # Greg's pops should be allocated over 18 holes, which gives him a pop on Hole 4
+    # For matchup 1, we filter to holes 1-9. Greg should have pop=1 on Hole 4, and 0 on others.
+    assert p1_st['pops_per_hole'].get(4) == 1
+    for h in range(1, 10):
+        if h != 4:
+            assert p1_st['pops_per_hole'].get(h, 0) == 0
+            
+    # Now verify matchup 2 (back nine)
+    engine.Hole.query.filter.return_value.order_by.return_value.all.side_effect = lambda: holes_back
+    status_2 = engine.calculate_match_status(2)
+    p1_st_2 = status_2['player_stats'][1]
+    
+    # Course handicap remains 7
+    assert p1_st_2['course_handicap'] == 7
+    # Playing handicap remains 1
+    assert p1_st_2['playing_handicap'] == 1
+    # For matchup 2, Greg should have 0 pops because the 1 stroke was allocated to Hole 4 (front 9)
+    for h in range(10, 19):
+        assert p1_st_2['pops_per_hole'].get(h, 0) == 0
+
+
 

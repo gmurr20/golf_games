@@ -4,9 +4,10 @@ def round_half_up(n: float) -> int:
     """USGA rounding: .5 rounds up (to the next highest integer)"""
     return int(math.floor(n + 0.5))
 
-def calculate_course_handicap(handicap_index: float, slope: int, rating: float, par: int, rounded: bool = True) -> float:
-    """WHS 2020 Formula: CH = (Index * (Slope / 113)) + (Rating - Par)"""
+def calculate_course_handicap(handicap_index: float, slope: int, rating: float, par: int, rounded: bool = True, num_holes: int = 18) -> float:
+    """WHS 2020 Formula: CH = ((Index * (Slope / 113)) + (Rating - Par)) * (num_holes / 18.0)"""
     ch = (handicap_index * (slope / 113.0)) + (rating - par)
+    ch = ch * (num_holes / 18.0)
     if rounded:
         return round_half_up(ch)
     return ch
@@ -35,7 +36,8 @@ def calculate_shamble_pops(players: list, tee_data: dict, holes: list, shamble_t
             tee_data['slope'], 
             tee_data['rating'], 
             tee_data['par'], 
-            rounded=False
+            rounded=False,
+            num_holes=len(holes)
         )
         # Apply allowance then round
         ph = round_half_up(ch_unrounded * allowance)

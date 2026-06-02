@@ -52,6 +52,14 @@ def calculate_match_status(matchup_id: int) -> dict:
             except Exception:
                 pass
 
+    # Check if this matchup is part of a split round (e.g. 18 holes split into 9-hole matches)
+    rel_matchups = Matchup.query.filter_by(
+        tournament_id=matchup.tournament_id,
+        tee_time=matchup.tee_time
+    ).all()
+    total_round_holes = sum((rm.hole_end or 18) - (rm.hole_start or 1) + 1 for rm in rel_matchups)
+    use_full_course = total_round_holes > 9 and len(all_holes) > 9
+
     m_format = (matchup.format or 'individual').lower()
     if m_format == 'shamble':
         # Shamble uses 75% for 2-person, 65% for 4-person
@@ -68,7 +76,9 @@ def calculate_match_status(matchup_id: int) -> dict:
                 r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
                 s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
                 hcp_index = player_hcp_map.get(p.id, p.handicap_index)
-                ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False)
+                # CH calculation holes count
+                h_count = len(all_holes) if use_full_course else len(holes)
+                ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False, num_holes=h_count)
                 course_playing_handicaps[p.id] = round_half_up(ch_u * allowance)
         
         # Match handicaps (Relative to low man in the matchup)
@@ -89,17 +99,25 @@ def calculate_match_status(matchup_id: int) -> dict:
         course_pops_per_hole = {}
         for p in players:
             if p.id in player_custom_pops:
-                course_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in all_holes}
+                course_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in holes}
             else:
-                course_pops_per_hole[p.id] = allocate_pops(course_playing_handicaps[p.id], all_holes)
+                if use_full_course:
+                    all_course_pops = allocate_pops(course_playing_handicaps[p.id], all_holes)
+                    course_pops_per_hole[p.id] = {h.hole_number: all_course_pops.get(h.hole_number, 0) for h in holes}
+                else:
+                    course_pops_per_hole[p.id] = allocate_pops(course_playing_handicaps[p.id], holes)
         
         # Pops for Match UI (Relative)
         match_pops_per_hole = {}
         for p in players:
             if p.id in player_custom_pops:
-                match_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in all_holes}
+                match_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in holes}
             else:
-                match_pops_per_hole[p.id] = allocate_pops(match_playing_handicaps[p.id], all_holes)
+                if use_full_course:
+                    all_match_pops = allocate_pops(match_playing_handicaps[p.id], all_holes)
+                    match_pops_per_hole[p.id] = {h.hole_number: all_match_pops.get(h.hole_number, 0) for h in holes}
+                else:
+                    match_pops_per_hole[p.id] = allocate_pops(match_playing_handicaps[p.id], holes)
 
         # For the engine logic: 
         # - course_handicaps (adjusted Shamble CH)
@@ -121,7 +139,8 @@ def calculate_match_status(matchup_id: int) -> dict:
                 r = tee.rating_female if p.gender == 'female' and tee.rating_female else tee.rating
                 s = tee.slope_female if p.gender == 'female' and tee.slope_female else tee.slope
                 hcp_index = player_hcp_map.get(p.id, p.handicap_index)
-                ch_dict[p.id] = calculate_course_handicap(hcp_index, s, r, tee.par)
+                h_count = len(all_holes) if use_full_course else len(holes)
+                ch_dict[p.id] = calculate_course_handicap(hcp_index, s, r, tee.par, num_holes=h_count)
         
         # PH (Relative) is used for Match Standings UI dots
         is_match_play = matchup.scoring_type == 'match_play'
@@ -147,17 +166,25 @@ def calculate_match_status(matchup_id: int) -> dict:
         stats_pops_per_hole = {}
         for p in players:
             if p.id in player_custom_pops:
-                stats_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in all_holes}
+                stats_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in holes}
             else:
-                stats_pops_per_hole[p.id] = allocate_pops(course_handicaps[p.id], all_holes)
+                if use_full_course:
+                    all_course_pops = allocate_pops(course_handicaps[p.id], all_holes)
+                    stats_pops_per_hole[p.id] = {h.hole_number: all_course_pops.get(h.hole_number, 0) for h in holes}
+                else:
+                    stats_pops_per_hole[p.id] = allocate_pops(course_handicaps[p.id], holes)
                 
         # Match Pops (Relative) for internal winner determination logic if match play
         match_pops_per_hole = {}
         for p in players:
             if p.id in player_custom_pops:
-                match_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in all_holes}
+                match_pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in holes}
             else:
-                match_pops_per_hole[p.id] = allocate_pops(playing_handicaps[p.id], all_holes)
+                if use_full_course:
+                    all_match_pops = allocate_pops(playing_handicaps[p.id], all_holes)
+                    match_pops_per_hole[p.id] = {h.hole_number: all_match_pops.get(h.hole_number, 0) for h in holes}
+                else:
+                    match_pops_per_hole[p.id] = allocate_pops(playing_handicaps[p.id], holes)
                 
         pops_per_hole = match_pops_per_hole # Used for winner determination
     
@@ -409,12 +436,21 @@ def calculate_overall_winner(matchup_id: int) -> dict:
     # Stroke play / Scramble logic
     tee = matchup.tee
     holes = Hole.query.filter(Hole.tee_id == tee.id, Hole.hole_number >= (matchup.hole_start or 1), Hole.hole_number <= (matchup.hole_end or 18)).order_by(Hole.hole_number).all()
+    all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
     
     m_players = MatchupPlayer.query.filter_by(matchup_id=matchup_id).all()
     team_a_pids = [mp.player_id for mp in m_players if mp.team == 'A']
     team_b_pids = [mp.player_id for mp in m_players if mp.team == 'B']
     
     players = Player.query.filter(Player.id.in_(team_a_pids + team_b_pids)).all()
+
+    # Check if this matchup is part of a split round (e.g. 18 holes split into 9-hole matches)
+    rel_matchups = Matchup.query.filter_by(
+        tournament_id=matchup.tournament_id,
+        tee_time=matchup.tee_time
+    ).all()
+    total_round_holes = sum((rm.hole_end or 18) - (rm.hole_start or 1) + 1 for rm in rel_matchups)
+    use_full_course = total_round_holes > 9 and len(all_holes) > 9
     
     if matchup.use_handicaps:
         # Check for custom pops
@@ -441,7 +477,8 @@ def calculate_overall_winner(matchup_id: int) -> dict:
                 hcp_index = mp.handicap_index if (mp and mp.handicap_index is not None) else p.handicap_index
 
                 # WHS CH
-                ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False)
+                h_count = len(all_holes) if use_full_course else len(holes)
+                ch_u = calculate_course_handicap(hcp_index, s, r, tee.par, rounded=False, num_holes=h_count)
                 
                 # Application of Format Allowance (Shamble)
                 if matchup.format == 'shamble':
@@ -455,13 +492,16 @@ def calculate_overall_winner(matchup_id: int) -> dict:
         # Playing handicaps (no relative reduction for stroke play / scramble)
         playing_handicaps = course_handicaps
                 
-        all_holes = Hole.query.filter_by(tee_id=tee.id).order_by(Hole.hole_number).all()
         pops_per_hole = {}
         for p in players:
             if p.id in player_custom_pops:
-                pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in all_holes}
+                pops_per_hole[p.id] = {h.hole_number: player_custom_pops[p.id].get(h.hole_number, 0) for h in holes}
             else:
-                pops_per_hole[p.id] = allocate_pops(playing_handicaps[p.id], all_holes)
+                if use_full_course:
+                    all_pops = allocate_pops(playing_handicaps[p.id], all_holes)
+                    pops_per_hole[p.id] = {h.hole_number: all_pops.get(h.hole_number, 0) for h in holes}
+                else:
+                    pops_per_hole[p.id] = allocate_pops(playing_handicaps[p.id], holes)
     else:
         pops_per_hole = { p.id: {} for p in players }
     

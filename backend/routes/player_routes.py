@@ -343,13 +343,22 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                         raw = p_st.get('raw')
                         net = p_st.get('net')
 
+            course_hcp = 0
+            hcp_idx = pdata.get("handicap_index", 0.0)
+            if matchup.id in matchup_stats:
+                st = matchup_stats[matchup.id].get('player_stats', {}).get(pid, {})
+                course_hcp = st.get('course_handicap', 0)
+                hcp_idx = st.get('handicap_index', hcp_idx)
+
             hole_data["players"][str(pid)] = {
                 "name": pdata.get("name", "Unknown"),
                 "team": mp_entry.team if mp_entry else None,
                 "is_me": pid == player_id,
                 "pops": pops,
                 "score": raw,
-                "net": net
+                "net": net,
+                "course_handicap": course_hcp,
+                "handicap_index": hcp_idx
             }
 
         scorecard.append(hole_data)
@@ -430,6 +439,8 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
         grand_net = 0
         grand_par = 0
         h_played = 0
+        course_hcp = 0
+        hcp_idx = pdata.get("handicap_index", 0.0)
         for m_id, ms in matchup_stats.items():
             st = ms.get('player_stats', {}).get(pid)
             if st:
@@ -437,6 +448,8 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                 grand_net += st.get('total_net', 0)
                 grand_par += st.get('total_par', 0)
                 h_played += st.get('holes_scored', 0)
+                course_hcp = st.get('course_handicap', 0)
+                hcp_idx = st.get('handicap_index', hcp_idx)
         
         player_totals[str(pid)] = {
             "total_raw": grand_raw,
@@ -444,7 +457,9 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             "total_par": grand_par,
             "holes_played": h_played,
             "to_par": grand_raw - grand_par if h_played > 0 else 0,
-            "net_to_par": grand_net - grand_par if h_played > 0 else 0
+            "net_to_par": grand_net - grand_par if h_played > 0 else 0,
+            "course_handicap": course_hcp,
+            "handicap_index": hcp_idx
         }
 
     matchups_serialized = []

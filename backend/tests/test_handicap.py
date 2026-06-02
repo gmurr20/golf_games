@@ -9,6 +9,14 @@ def test_calculate_course_handicap():
     ch = calculate_course_handicap(10.0, 120, 70.0, 72)
     assert ch == 9
 
+    # Test 9-hole scaling (9/18 = 0.5)
+    ch_9 = calculate_course_handicap(10.0, 120, 70.0, 72, num_holes=9)
+    assert ch_9 == 4
+
+    # Test 12-hole scaling (12/18 = 2/3)
+    ch_12 = calculate_course_handicap(10.0, 120, 70.0, 72, num_holes=12)
+    assert ch_12 == 6
+
 def test_calculate_playing_handicaps():
     ch_dict = {
         1: 5,

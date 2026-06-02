@@ -399,14 +399,17 @@ export default function PlayRound() {
                     <table className="golf-scorecard-table">
                         <thead>
                             <tr className="sc-matchup-group-header-row">
-                                <th className="sc-label-cell">Match</th>
+                                <th className="sc-label-cell">
+                                    <span className="sc-match-label-full">Match</span>
+                                    <span className="sc-label-initials">M</span>
+                                </th>
                                 {matchupGroups.map((g, idx) => {
                                     const mInfo = scorecard.matchups?.find(m => m.id === g.matchupId);
                                     const mRes = scorecard.match_results?.find(mr => mr.matchup_id === g.matchupId);
                                     const formatText = mInfo ? mInfo.format.replace(/_/g, ' ') : (scorecard.format ? scorecard.format.replace(/_/g, ' ') : 'Match');
                                     const resultText = mRes ? mRes.result_string : '';
                                     const resultClass = getMatchupResultClass(resultText);
-                                    const isHeaderGroupEnd = idx !== matchupGroups.length - 1;
+                                    const isHeaderGroupEnd = true;
                                     return (
                                         <th 
                                             key={g.matchupId || idx} 
@@ -430,7 +433,7 @@ export default function PlayRound() {
                                     <span className="sc-label-initials">{label}</span>
                                 </th>
                                 {holes.map((h, idx) => {
-                                    const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
                                     return (
                                         <th 
                                             key={h.hole_number} 
@@ -448,7 +451,7 @@ export default function PlayRound() {
                                     <span className="sc-label-initials">P</span>
                                 </td>
                                 {holes.map((h, idx) => {
-                                    const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
                                     return (
                                         <td 
                                             key={h.hole_number} 
@@ -469,7 +472,7 @@ export default function PlayRound() {
                                         <span className="sc-label-initials">M</span>
                                     </td>
                                     {holes.map((h, idx) => {
-                                        const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                        const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
                                         const mr = h.match_result;
                                         let display = '–';
                                         let className = '';
@@ -497,12 +500,12 @@ export default function PlayRound() {
                         </thead>
                         <tbody>
                             {allPlayerIds.map(pid => {
-                                const firstHoleData = holes[0]?.players[pid];
+                                const firstHoleData = holes[0]?.players?.[pid];
                                 const name = firstHoleData?.name || 'Unknown';
                                 const isMe = firstHoleData?.is_me;
                                 let sectionTotal = 0;
                                 let sectionCount = 0;
-
+ 
                                 return (
                                     <tr key={pid} className={isMe ? 'sc-me-row' : ''}>
                                         <td className="sc-player-name">
@@ -511,7 +514,7 @@ export default function PlayRound() {
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
                                         {holes.map((h, idx) => {
-                                            const isGroupEnd = idx !== holes.length - 1 && holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                            const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
                                             const s = getScore(h.hole_number, pid);
                                             const pdata = h.players[pid];
                                             if (s != null) {
@@ -622,10 +625,7 @@ export default function PlayRound() {
                     <table className="golf-scorecard-table">
                         <thead>
                             <tr>
-                                <th className="sc-label-cell">
-                                    <span className="sc-label-full">Total</span>
-                                    <span className="sc-label-initials">T</span>
-                                </th>
+                                <th className="sc-label-cell"></th>
                                 <th className="sc-total-header">OUT</th>
                                 <th className="sc-total-header">IN</th>
                                 <th className="sc-total-header">TOT</th>
@@ -634,7 +634,7 @@ export default function PlayRound() {
                         </thead>
                         <tbody>
                             {allPlayerIds.map(pid => {
-                                const firstHoleData = scorecard.scorecard[0]?.players[pid];
+                                const firstHoleData = scorecard.scorecard[0]?.players?.[pid];
                                 const name = firstHoleData?.name || 'Unknown';
                                 const isMe = firstHoleData?.is_me;
 
@@ -649,8 +649,8 @@ export default function PlayRound() {
                                 return (
                                     <tr key={pid} className={isMe ? 'sc-me-row' : ''}>
                                         <td className="sc-player-name">
-                                            <span className="sc-name-full">{name}</span>
-                                            <span className="sc-name-initials">{getInitials(name)}</span>
+                                            <span className="sc-name-full">{name} <span className="sc-player-hcp">({firstHoleData?.course_handicap || 0})</span></span>
+                                            <span className="sc-name-initials">{getInitials(name)} <span className="sc-player-hcp">({firstHoleData?.course_handicap || 0})</span></span>
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
                                         <td className="sc-total-cell">{outTotal || '–'}</td>

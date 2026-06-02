@@ -1,3 +1,49 @@
+.play-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-2);
+    padding-bottom: 80px;
+    min-height: calc(100dvh - 60px);
+    display: flex;
+    flex-direction: column;
+}
+
+.play-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-2);
+}
+
+.play-back-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    cursor: pointer;
+}
+
+.play-back-btn:hover {
+    color: var(--color-primary);
+}
+
+.hole-header {
+    text-align: center;
+    margin-bottom: var(--spacing-6);
+}
+
+.hole-number-label {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
 .view-scorecard-container {
     max-width: 600px;
     margin: 0 auto;
@@ -215,6 +261,8 @@
     line-height: 1;
     margin-top: 1px;
     letter-spacing: 1px;
+    position: relative;
+    z-index: 2;
 }
 
 .sc-match-row {
@@ -398,7 +446,7 @@
 
 @media (prefers-color-scheme: dark) {
     .sc-group-end {
-        border-right: 2.5px solid rgba(255, 255, 255, 0.35) !important;
+        border-right: 2.5px solid var(--color-primary) !important;
     }
 }
 
@@ -420,6 +468,106 @@
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md) !important;
     background-color: var(--color-border) !important;
+}
+
+/* Totals Card Styles */
+.scorecard-totals-card {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    margin-bottom: var(--spacing-6);
+    box-shadow: var(--shadow-md);
+}
+
+.golf-scorecard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    min-width: 500px;
+}
+
+.golf-scorecard-table th,
+.golf-scorecard-table td {
+    text-align: center;
+    padding: var(--spacing-2) 4px;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+    background: var(--color-surface);
+}
+
+.golf-scorecard-table th:last-child,
+.golf-scorecard-table td:last-child {
+    border-right: none;
+}
+
+.golf-scorecard-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sc-label-cell {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: var(--color-surface) !important;
+    text-align: left !important;
+    padding-left: 8px !important;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-light);
+    min-width: 60px;
+    box-shadow: inset -1px 0 0 0 var(--color-border);
+}
+
+.sc-total-header {
+    font-weight: 800;
+    font-size: 0.7rem;
+    color: var(--color-text);
+    min-width: 36px;
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-you-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.sc-player-hcp {
+    font-size: 0.85em;
+    color: var(--color-text-light);
+    font-weight: normal;
+    margin-left: 4px;
+    opacity: 0.85;
+}
+
+.sc-me-row {
+    background: rgba(34, 139, 84, 0.04);
+}
+
+.sc-me-row td {
+    background: rgba(var(--color-primary-rgb), 0.04) !important;
+}
+
+.sc-total-cell {
+    font-weight: 700;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.02);
+}
+
+.sc-under {
+    color: var(--color-accent-win) !important;
+}
+
+.sc-over {
+    color: var(--color-accent-lose) !important;
 }
 
 

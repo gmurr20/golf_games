@@ -685,6 +685,14 @@
     vertical-align: middle;
 }
 
+.sc-player-hcp {
+    font-size: 0.85em;
+    color: var(--color-text-light);
+    font-weight: normal;
+    margin-left: 4px;
+    opacity: 0.85;
+}
+
 .sc-me-row {
     background: rgba(34, 139, 84, 0.04);
 }
@@ -754,6 +762,8 @@
     line-height: 1;
     margin-top: 1px;
     letter-spacing: 1px;
+    position: relative;
+    z-index: 2;
 }
 
 .sc-total-cell {
@@ -1167,6 +1177,6 @@
 
 @media (prefers-color-scheme: dark) {
     .sc-group-end {
-        border-right: 2.5px solid rgba(255, 255, 255, 0.35) !important;
+        border-right: 2.5px solid var(--color-primary) !important;
     }
 }
