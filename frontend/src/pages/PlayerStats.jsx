@@ -4,6 +4,79 @@ import backend from '../api/backend';
 import PlayerAvatar from '../components/ui/PlayerAvatar';
 import './PlayerStats.css';
 
+const StatsIcon = ({ size = 20, className = "" }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className={className}
+        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}
+    >
+        {/* Speedometer Gauge Arc */}
+        <path d="M 4 15 A 8 8 0 0 1 20 15" strokeWidth="1.8" />
+        
+        {/* Under Par, Even Par, Over Par Ticks */}
+        <line x1="6.3" y1="9.3" x2="7.8" y2="10.8" opacity="0.6" strokeWidth="1.5" />
+        <line x1="12" y1="7" x2="12" y2="9" opacity="0.8" strokeWidth="1.8" />
+        <line x1="17.7" y1="9.3" x2="16.2" y2="10.8" opacity="0.6" strokeWidth="1.5" />
+        
+        {/* Tee at the base */}
+        <path d="M12 16.5v4.5M10 21h4" strokeWidth="1.8" />
+        
+        {/* Needle pointing to the left (under-par/birdie zone) */}
+        <line x1="12" y1="14" x2="9.5" y2="9.5" strokeWidth="2.2" />
+        
+        {/* Golf Ball Pivot */}
+        <circle cx="12" cy="14" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="0.5" />
+    </svg>
+);
+
+const GolfFlagIcon = ({ size = 20, className = "" }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className={className}
+        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}
+    >
+        <path d="M2 20c4-1.5 16-1.5 20 0" />
+        <line x1="12" y1="6" x2="12" y2="20" strokeWidth="1.8" />
+        <path d="M12 6l6 3-6 3V6z" fill="currentColor" />
+        <ellipse cx="12" cy="20" rx="3" ry="1" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const MatchupIcon = ({ size = 20, className = "" }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className={className}
+        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}
+    >
+        <line x1="6" y1="18" x2="18" y2="6" strokeWidth="2" />
+        <path d="M5.5 18.5l-1.5 1.5a1 1 0 0 0 1.4 1.4l1.5-1.5z" fill="currentColor" />
+        <line x1="18" y1="18" x2="6" y2="6" strokeWidth="2" />
+        <path d="M18.5 18.5l1.5 1.5a1 1 0 0 1-1.4 1.4l-1.5-1.5z" fill="currentColor" />
+        <circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+);
+
 export default function PlayerStats() {
     const { playerId } = useParams();
     const navigate = useNavigate();
@@ -129,7 +202,7 @@ export default function PlayerStats() {
             {/* Par Breakdown Section */}
             {by_par && Object.keys(by_par).length > 0 && (
                 <section className="history-section animate-slide-up" style={{ animationDelay: '0.12s' }}>
-                    <h3 className="history-title">📊 Performance by Par</h3>
+                    <h3 className="history-title"><StatsIcon /> Performance by Par</h3>
                     <div className="par-cards-container">
                         {[3, 4, 5].map((par) => {
                             const parData = by_par[par.toString()];
@@ -224,7 +297,7 @@ export default function PlayerStats() {
 
             {/* Round History */}
             <section className="history-section animate-slide-up" style={{ animationDelay: '0.15s' }}>
-                <h3 className="history-title">⛳ Round History</h3>
+                <h3 className="history-title"><GolfFlagIcon /> Round History</h3>
                 <div className="history-list">
                     {rounds.length === 0 ? (
                         <div className="list-empty">No rounds recorded yet.</div>
@@ -282,7 +355,7 @@ export default function PlayerStats() {
 
             {/* Matchup History */}
             <section className="history-section animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                <h3 className="history-title">⚔️ Matchup History</h3>
+                <h3 className="history-title"><MatchupIcon /> Matchup History</h3>
                 <div className="history-list">
                     {matchups.length === 0 ? (
                         <div className="list-empty">No matchups played yet.</div>

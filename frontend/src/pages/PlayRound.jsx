@@ -6,6 +6,71 @@ import './PlayRound.css';
 const STORAGE_ACTIVE_ROUND = 'golf_active_round';
 const STORAGE_PLAYER_ID = 'golf_player_id';
 
+const ScorecardIcon = ({ size = 18, className = "" }) => (
+    <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="1.8" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className={className}
+        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }}
+    >
+        {/* Bifold scorecard card */}
+        <rect x="2" y="5" width="20" height="14" rx="1.5" />
+        
+        {/* Center crease fold */}
+        <line x1="12" y1="5" x2="12" y2="19" strokeWidth="1.5" />
+        
+        {/* Left page grid lines */}
+        <line x1="2" y1="9" x2="12" y2="9" opacity="0.5" />
+        <line x1="2" y1="13" x2="12" y2="13" opacity="0.5" />
+        <line x1="2" y1="16" x2="12" y2="16" opacity="0.5" />
+        <line x1="7" y1="5" x2="7" y2="19" opacity="0.3" />
+        
+        {/* Right page grid lines */}
+        <line x1="12" y1="9" x2="22" y2="9" opacity="0.5" />
+        <line x1="12" y1="13" x2="22" y2="13" opacity="0.5" />
+        <line x1="12" y1="16" x2="22" y2="16" opacity="0.5" />
+        <line x1="17" y1="5" x2="17" y2="19" opacity="0.3" />
+        
+        {/* Mask behind pencil to clear card lines */}
+        <path 
+            d="M13.5 16.5 l 1.5 1.5 l 5.5 -5.5 l -1.5 -1.5 z" 
+            stroke="var(--color-surface)" 
+            strokeWidth="3.5" 
+            fill="var(--color-surface)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path 
+            d="M13.5 16.5 l 1.5 1.5 l -3.5 0.5 z" 
+            stroke="var(--color-surface)" 
+            strokeWidth="3.5" 
+            fill="var(--color-surface)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        
+        {/* Golf Pencil Shaft */}
+        <path 
+            d="M13.5 16.5 l 1.5 1.5 l 5.5 -5.5 l -1.5 -1.5 z" 
+            fill="currentColor" 
+            stroke="none"
+        />
+        {/* Pencil Tip */}
+        <path 
+            d="M13.5 16.5 l 1.5 1.5 l -3.5 0.5 z" 
+            fill="currentColor" 
+            stroke="none"
+        />
+    </svg>
+);
+
+
 export default function PlayRound() {
     const { tournamentId, teeId } = useParams();
     const [searchParams] = useSearchParams();
@@ -577,7 +642,7 @@ export default function PlayRound() {
 
                 <div className="scorecard-complete-header animate-slide-up">
                     <div className="round-complete-trophy">
-                        {complete ? '🏆' : (scorecard?.course_logo ? <img src={scorecard.course_logo} alt="logo" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '50%' }} /> : '⛳️')}
+                        {scorecard?.course_logo ? <img src={scorecard.course_logo} alt="logo" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '50%' }} /> : '⛳️'}
                     </div>
                     <h2>{complete ? 'Round Complete' : 'Live Scorecard'}</h2>
                     <p className="round-complete-subtitle">
@@ -884,17 +949,9 @@ export default function PlayRound() {
                             className="view-scorecard-btn"
                             onClick={handleBackToScorecard}
                             disabled={saving}
-                            style={{
-                                width: '100%',
-                                padding: 'var(--spacing-3)',
-                                background: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
-                                fontWeight: 600,
-                                color: 'var(--color-text)'
-                            }}
                         >
-                            ⬅ Back to Scorecard
+                            <ScorecardIcon />
+                            Back to Scorecard
                         </button>
                     </>
                 ) : (
@@ -926,9 +983,9 @@ export default function PlayRound() {
                         onClick={() => {
                             setViewingScorecard(true);
                         }}
-                        style={{marginTop: 'var(--spacing-2)', width: '100%', padding: 'var(--spacing-3)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--color-text)'}}
                     >
-                        📊 View Full Scorecard
+                        <ScorecardIcon />
+                        View Full Scorecard
                     </button>
                 )}
 

@@ -356,6 +356,54 @@
     transform: scale(0.98);
 }
 
+.view-scorecard-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    width: 100%;
+    padding: var(--spacing-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: var(--spacing-2);
+    box-shadow: var(--shadow-sm);
+}
+
+.view-scorecard-btn:hover {
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+    background: hsla(220, 30%, 25%, 0.02);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.view-scorecard-btn:active {
+    transform: translateY(0);
+    background: hsla(220, 30%, 25%, 0.05);
+}
+
+.view-scorecard-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .view-scorecard-btn:hover {
+        background: hsla(220, 50%, 70%, 0.05);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+    .view-scorecard-btn:active {
+        background: hsla(220, 50%, 70%, 0.1);
+    }
+}
+
 /* Hole Navigation Dots */
 .hole-nav-dots {
     display: flex;
