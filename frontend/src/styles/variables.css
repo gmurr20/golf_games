@@ -15,6 +15,7 @@
   --color-accent-win: hsl(200, 80%, 45%);   /* Blue for winning */
   --color-accent-lose: hsl(0, 70%, 55%);    /* Red for losing */
   --color-accent-push: hsl(40, 90%, 55%);   /* Orange for push */
+  --color-winner-bg: hsla(200, 80%, 45%, 0.15);
 
   /* Shadows for depth */
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
@@ -60,5 +61,6 @@
     
     --glass-bg: rgba(30, 40, 50, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --color-winner-bg: hsla(200, 80%, 45%, 0.25);
   }
 }

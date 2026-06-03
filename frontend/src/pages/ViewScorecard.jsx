@@ -279,15 +279,15 @@ export default function ViewScorecard() {
                                         Idx: {players[pid].handicap_index} • {players[pid].total_pops} strokes
                                     </div>
                                 </td>
-                                {holes.map((h, idx) => {
-                                    const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
-                                    const pdata = h.players[pid];
-                                    const s = pdata?.score;
-                                    return (
-                                        <td 
-                                            key={h.hole_number} 
-                                            className={isGroupEnd ? 'sc-group-end' : ''}
-                                        >
+                                 {holes.map((h, idx) => {
+                                     const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                     const pdata = h.players[pid];
+                                     const s = pdata?.score;
+                                     return (
+                                         <td 
+                                             key={h.hole_number} 
+                                             className={`${isGroupEnd ? 'sc-group-end' : ''} ${data.scoring_type === 'match_play' && pdata?.won_hole ? 'sc-hole-winner' : ''}`}
+                                         >
                                             <span className={`sc-score-val ${getScoreClass(s, h.par)}`}>
                                                 {s || '–'}
                                             </span>
@@ -332,7 +332,7 @@ export default function ViewScorecard() {
                 <p style={{ color: 'var(--color-text-light)', marginTop: 'var(--spacing-1)', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                     <span>{tee_name} Tees</span>
                     {tee_time && <span>• 🕐 {formatTime(tee_time)}</span>}
-                    {current_hole > 0 && current_hole < 18 && (
+                    {!data.is_completed && current_hole > 0 && current_hole < 18 && (
                         <span className="live-badge" style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
                             <span className="dot"></span>
                             Live: Hole {current_hole}

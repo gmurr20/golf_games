@@ -254,6 +254,10 @@
 .sc-score-val.bogey { border: 2px solid var(--color-accent-lose); border-radius: 2px; color: var(--color-accent-lose); }
 .sc-score-val.dbl-bogey { border: 2px solid var(--color-accent-lose); border-radius: 2px; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-lose); color: var(--color-accent-lose); }
 
+.sc-hole-winner {
+    background-color: var(--color-winner-bg) !important;
+}
+
 .sc-pop-dot {
     display: block;
     font-size: 0.5rem;
@@ -451,13 +455,9 @@
 }
 
 /* Active Player / Viewer Highlighting */
-.sc-player-row.is-viewer td {
-    background-color: var(--color-border) !important;
-    font-weight: 700;
-}
-
 .sc-player-row.is-viewer td.sc-player-name {
     box-shadow: inset -3px 0 0 0 var(--color-primary) !important;
+    font-weight: 700;
 }
 
 .sc-player-row.is-viewer .sc-player-name-text {
@@ -548,12 +548,9 @@
     opacity: 0.85;
 }
 
-.sc-me-row {
-    background: rgba(34, 139, 84, 0.04);
-}
-
-.sc-me-row td {
+.sc-me-row td.sc-player-name {
     background: rgba(var(--color-primary-rgb), 0.04) !important;
+    font-weight: 700;
 }
 
 .sc-total-cell {

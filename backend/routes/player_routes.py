@@ -328,6 +328,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
             raw = None
             net = None
             pops = 0
+            won_hole = False
             if matchup.id in matchup_stats:
                 ms = matchup_stats[matchup.id]
                 # Player general stats
@@ -342,6 +343,7 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                     if p_st:
                         raw = p_st.get('raw')
                         net = p_st.get('net')
+                        won_hole = p_st.get('won_hole', False)
 
             course_hcp = 0
             hcp_idx = pdata.get("handicap_index", 0.0)
@@ -358,7 +360,8 @@ def get_round_scorecard(player_id, tournament_id, tee_id):
                 "score": raw,
                 "net": net,
                 "course_handicap": course_hcp,
-                "handicap_index": hcp_idx
+                "handicap_index": hcp_idx,
+                "won_hole": won_hole
             }
 
         scorecard.append(hole_data)

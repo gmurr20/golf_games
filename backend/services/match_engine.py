@@ -268,7 +268,8 @@ def calculate_match_status(matchup_id: int) -> dict:
                 "net": raw_score - c_pops if raw_score is not None else None,
                 "match_net": raw_score - m_pops if raw_score is not None else None,
                 "pops": m_pops, # Show relative dots for match-centric UI
-                "course_pops": c_pops 
+                "course_pops": c_pops,
+                "won_hole": False
             }
 
             if raw_score is not None:
@@ -289,9 +290,17 @@ def calculate_match_status(matchup_id: int) -> dict:
                 if best_a < best_b:
                     hole_data["winner"] = "A"
                     match_status["team_a_wins"] += 1
+                    for pid in team_a_pids:
+                        p_info = hole_data["players"].get(pid)
+                        if p_info and p_info.get("match_net") == best_a:
+                            p_info["won_hole"] = True
                 elif best_b < best_a:
                     hole_data["winner"] = "B"
                     match_status["team_b_wins"] += 1
+                    for pid in team_b_pids:
+                        p_info = hole_data["players"].get(pid)
+                        if p_info and p_info.get("match_net") == best_b:
+                            p_info["won_hole"] = True
                 else:
                     hole_data["winner"] = "Push"
                 

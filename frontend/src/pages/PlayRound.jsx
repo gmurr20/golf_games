@@ -589,7 +589,7 @@ export default function PlayRound() {
                                             return (
                                                 <td
                                                     key={h.hole_number}
-                                                    className={`sc-score-cell ${isGroupEnd ? 'sc-group-end' : ''}`}
+                                                    className={`sc-score-cell ${isGroupEnd ? 'sc-group-end' : ''} ${scorecard.scoring_type === 'match_play' && pdata?.won_hole ? 'sc-hole-winner' : ''}`}
                                                 >
                                                     {s != null ? (
                                                         <span className={`sc-score-mark ${getScoreClass(s, h.par)}`}>

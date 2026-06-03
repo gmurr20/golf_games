@@ -741,8 +741,9 @@
     opacity: 0.85;
 }
 
-.sc-me-row {
-    background: rgba(34, 139, 84, 0.04);
+.sc-me-row td.sc-player-name {
+    background: rgba(34, 139, 84, 0.04) !important;
+    font-weight: 700;
 }
 
 .sc-score-cell {
@@ -801,6 +802,10 @@
 .sc-score-empty {
     color: var(--color-text-light);
     opacity: 0.4;
+}
+
+.sc-hole-winner {
+    background-color: var(--color-winner-bg) !important;
 }
 
 .sc-pop-dot {

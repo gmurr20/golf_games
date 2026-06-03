@@ -719,6 +719,7 @@ def get_public_scorecard(tournament_id, tee_id):
                 pops = 0
                 handicap_index = 0
                 total_pops = 0
+                won_hole = False
 
                 if m.id in matchup_stats:
                     ms = matchup_stats[m.id]
@@ -737,6 +738,7 @@ def get_public_scorecard(tournament_id, tee_id):
                         if p_st_hole:
                             raw = p_st_hole.get('raw')
                             net = p_st_hole.get('net')
+                            won_hole = p_st_hole.get('won_hole', False)
 
                 p = player_map.get(mp.player_id)
                 hole_data["players"][str(mp.player_id)] = {
@@ -746,7 +748,8 @@ def get_public_scorecard(tournament_id, tee_id):
                     "net": net,
                     "pops": pops,
                     "handicap_index": handicap_index,
-                    "total_pops": total_pops
+                    "total_pops": total_pops,
+                    "won_hole": won_hole
                 }
         
         if hole_data["players"]:
@@ -869,6 +872,7 @@ def get_public_scorecard(tournament_id, tee_id):
         "tee_name": tee.name,
         "tee_time": matchups[0].tee_time.isoformat() if matchups[0].tee_time else None,
         "current_hole": current_hole,
+        "is_completed": all(stats.get("is_completed", False) for stats in matchup_stats.values()) if matchups else False,
         "scorecard": scorecard_data,
         "player_totals": player_totals,
         "matchups": matchups_serialized,
