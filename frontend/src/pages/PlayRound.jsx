@@ -498,7 +498,7 @@ export default function PlayRound() {
                                     <span className="sc-label-initials">{label}</span>
                                 </th>
                                 {holes.map((h, idx) => {
-                                    const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                     return (
                                         <th 
                                             key={h.hole_number} 
@@ -516,7 +516,7 @@ export default function PlayRound() {
                                     <span className="sc-label-initials">P</span>
                                 </td>
                                 {holes.map((h, idx) => {
-                                    const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                    const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                     return (
                                         <td 
                                             key={h.hole_number} 
@@ -537,7 +537,7 @@ export default function PlayRound() {
                                         <span className="sc-label-initials">M</span>
                                     </td>
                                     {holes.map((h, idx) => {
-                                        const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                        const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                         const mr = h.match_result;
                                         let display = '–';
                                         let className = '';
@@ -564,22 +564,27 @@ export default function PlayRound() {
                             )}
                         </thead>
                         <tbody>
-                            {allPlayerIds.map(pid => {
+                            {allPlayerIds.map((pid, pIdx) => {
                                 const firstHoleData = holes[0]?.players?.[pid];
                                 const name = firstHoleData?.name || 'Unknown';
                                 const isMe = firstHoleData?.is_me;
                                 let sectionTotal = 0;
                                 let sectionCount = 0;
+                                
+                                const nextPlayerId = allPlayerIds[pIdx + 1];
+                                const nextHoleData = nextPlayerId ? holes[0]?.players?.[nextPlayerId] : null;
+                                const isTeamFormat = scorecard.matchups?.some(m => m.format && m.format !== 'individual');
+                                const isTeamEnd = isTeamFormat && firstHoleData && nextHoleData && firstHoleData.team !== nextHoleData.team;
  
                                 return (
-                                    <tr key={pid} className={isMe ? 'sc-me-row' : ''}>
+                                    <tr key={pid} className={`${isMe ? 'sc-me-row' : ''} ${isTeamEnd ? 'sc-team-end' : ''}`}>
                                         <td className="sc-player-name">
                                             <span className="sc-name-full">{name}</span>
                                             <span className="sc-name-initials">{getInitials(name)}</span>
                                             {isMe && <span className="sc-you-dot"></span>}
                                         </td>
                                         {holes.map((h, idx) => {
-                                            const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                            const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                             const s = getScore(h.hole_number, pid);
                                             const pdata = h.players[pid];
                                             if (s != null) {

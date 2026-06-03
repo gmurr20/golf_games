@@ -3,6 +3,7 @@
   --color-primary: hsl(220, 30%, 25%); /* Deep Navy/Slate for competition theme */
   --color-primary-light: hsl(220, 25%, 40%);
   --color-primary-dark: hsl(220, 35%, 15%);
+  --color-primary-rgb: 45, 51, 82; /* RGB of hsl(220, 30%, 25%) */
   
   /* Background / Dark Mode Support Base */
   --color-background: hsl(0, 0%, 98%);
@@ -58,6 +59,7 @@
     --color-primary: hsl(220, 50%, 70%); /* Lighter Navy for Dark Mode legibility */
     --color-primary-light: hsl(220, 50%, 80%);
     --color-primary-dark: hsl(220, 50%, 60%);
+    --color-primary-rgb: 133, 163, 214; /* RGB of hsl(220, 50%, 70%) */
     
     --glass-bg: rgba(30, 40, 50, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);

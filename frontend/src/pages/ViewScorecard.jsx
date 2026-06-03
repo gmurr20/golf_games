@@ -75,7 +75,8 @@ export default function ViewScorecard() {
                 holesPlayed: pt.holes_played || 0,
                 handicap_index: pdata.handicap_index,
                 total_pops: pdata.total_pops,
-                netTotal: pt.total_net || 0
+                netTotal: pt.total_net || 0,
+                profile_picture: pdata.profile_picture || null
             };
         });
     }
@@ -192,7 +193,7 @@ export default function ViewScorecard() {
                         <tr className="sc-header-row">
                             <th className="sc-label">{label}</th>
                             {holes.map((h, idx) => {
-                                const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                 return (
                                     <th 
                                         key={h.hole_number} 
@@ -210,7 +211,7 @@ export default function ViewScorecard() {
                             <span className="sc-label-initials">P</span>
                         </td>
                         {holes.map((h, idx) => {
-                            const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                            const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                             return (
                                 <td 
                                     key={h.hole_number} 
@@ -228,7 +229,7 @@ export default function ViewScorecard() {
                             <span className="sc-label-initials">Y</span>
                         </td>
                         {holes.map((h, idx) => {
-                            const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                            const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                             return (
                                 <td 
                                     key={h.hole_number} 
@@ -247,7 +248,7 @@ export default function ViewScorecard() {
                                 <span className="sc-label-initials">M</span>
                             </td>
                             {holes.map((h, idx) => {
-                                const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                 const mr = h.match_result;
                                 if (!mr) return <td key={h.hole_number} className={isGroupEnd ? 'sc-group-end' : ''}>–</td>;
                                 const display = mr.running === 0 ? 'AS' : (mr.running > 0 ? `+${mr.running}` : mr.running);
@@ -265,11 +266,13 @@ export default function ViewScorecard() {
                     )}
                 </thead>
                 <tbody>
-                    {sortedPlayerIds.map(pid => {
+                    {sortedPlayerIds.map((pid, pIdx) => {
                         let rowTotal = 0;
                         const isViewer = pid === playerId;
+                        const isTeamFormat = data.matchups?.some(m => m.format && m.format !== 'individual');
+                        const isTeamEnd = isTeamFormat && sortedPlayerIds[pIdx + 1] && players[pid].team !== players[sortedPlayerIds[pIdx + 1]].team;
                         return (
-                            <tr key={pid} className={`sc-player-row ${isViewer ? 'is-viewer' : ''}`}>
+                            <tr key={pid} className={`sc-player-row ${isViewer ? 'is-viewer' : ''} ${isTeamEnd ? 'sc-team-end' : ''}`}>
                                  <td className="sc-player-name">
                                     <div className="sc-player-name-text">
                                         <span className="sc-name-full">{players[pid].name}</span>
@@ -280,7 +283,7 @@ export default function ViewScorecard() {
                                     </div>
                                 </td>
                                  {holes.map((h, idx) => {
-                                     const isGroupEnd = idx === holes.length - 1 || holes[idx + 1]?.matchup_id !== h.matchup_id;
+                                     const isGroupEnd = holes[idx + 1] && holes[idx + 1].matchup_id !== h.matchup_id;
                                      const pdata = h.players[pid];
                                      const s = pdata?.score;
                                      return (
@@ -322,18 +325,18 @@ export default function ViewScorecard() {
                 )}
             </div>
 
-            <header className="hole-header" style={{ marginBottom: 'var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <header className="sc-header-section">
                 {course_logo ? (
-                    <img src={course_logo} alt="course logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', marginBottom: '0.5rem', border: '2px solid var(--color-border)' }} />
+                    <img src={course_logo} alt="course logo" className="sc-course-logo" />
                 ) : (
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⛳️</div>
+                    <div className="sc-course-emoji">⛳️</div>
                 )}
-                <h1 className="hole-number-label" style={{ margin: 0 }}>{course_name}</h1>
-                <p style={{ color: 'var(--color-text-light)', marginTop: 'var(--spacing-1)', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                <h1 className="hole-number-label">{course_name}</h1>
+                <p className="sc-header-meta">
                     <span>{tee_name} Tees</span>
                     {tee_time && <span>• 🕐 {formatTime(tee_time)}</span>}
                     {!data.is_completed && current_hole > 0 && current_hole < 18 && (
-                        <span className="live-badge" style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+                        <span className="live-badge">
                             <span className="dot"></span>
                             Live: Hole {current_hole}
                         </span>
@@ -351,9 +354,13 @@ export default function ViewScorecard() {
 
                     return (
                         <div key={pid} className={`player-par-card ${isViewer ? 'is-viewer' : ''}`}>
-                            <div className="player-par-name">
-                                <span className="sc-name-full">{p.name}</span>
-                                <span className="sc-name-initials">{getInitials(p.name)}</span>
+                            <div className="player-par-left">
+                                {p.profile_picture ? (
+                                    <img src={p.profile_picture} alt={p.name} className="player-par-avatar" />
+                                ) : (
+                                    <div className="player-par-avatar-fallback">{getInitials(p.name)}</div>
+                                )}
+                                <span className="player-par-name">{p.name}</span>
                             </div>
                             <div className={`player-par-score ${diffClass}`}>{toPar}</div>
                         </div>
@@ -412,7 +419,7 @@ export default function ViewScorecard() {
 
                             return (
                                 <tr key={pid} className={isHighlighted ? 'sc-me-row' : ''}>
-                                    <td className="sc-player-name" style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--color-surface)' }}>
+                                    <td className="sc-player-name sc-label-cell">
                                         <span className="sc-name-full">{p.name} <span className="sc-player-hcp">({p.total_pops || 0})</span></span>
                                         <span className="sc-name-initials">{getInitials(p.name)} <span className="sc-player-hcp">({p.total_pops || 0})</span></span>
                                         {isHighlighted && <span className="sc-you-dot"></span>}

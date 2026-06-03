@@ -701,6 +701,7 @@
     color: var(--color-text);
     min-width: 36px;
     background: rgba(0,0,0,0.02);
+    box-shadow: inset 1px 0 0 0 var(--color-border) !important;
 }
 
 .sc-par-row td {
@@ -808,6 +809,10 @@
     background-color: var(--color-winner-bg) !important;
 }
 
+.sc-team-end td {
+    border-bottom: 2px solid var(--color-primary) !important;
+}
+
 .sc-pop-dot {
     display: block;
     font-size: 0.4rem;
@@ -823,6 +828,7 @@
     font-weight: 700;
     font-size: 0.8rem;
     background: rgba(0,0,0,0.02);
+    box-shadow: inset 1px 0 0 0 var(--color-border) !important;
 }
 
 .sc-under {
@@ -1222,7 +1228,6 @@
         color: hsl(215, 20%, 80%) !important;
     }
 }
-
 /* Vertical Matchup separators */
 .sc-group-end {
     border-right: 2.5px solid rgba(0, 0, 0, 0.15) !important;

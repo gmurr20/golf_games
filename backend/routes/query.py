@@ -749,7 +749,8 @@ def get_public_scorecard(tournament_id, tee_id):
                     "pops": pops,
                     "handicap_index": handicap_index,
                     "total_pops": total_pops,
-                    "won_hole": won_hole
+                    "won_hole": won_hole,
+                    "profile_picture": p.profile_picture if p else None
                 }
         
         if hole_data["players"]:
