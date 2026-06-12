@@ -361,7 +361,7 @@ def get_leaderboard():
                     })
     
     # Sort for Leaderboard
-    sorted_stats.sort(key=lambda x: (x['points_earned'], -x['gross_rel_num'], x['birdies'], -x['net_rel_num']), reverse=True)
+    sorted_stats.sort(key=lambda x: (x['points_earned'], -x['net_rel_num'], -x['gross_rel_num'], x['birdies']), reverse=True)
 
     # Award Calculations
     # MVP
@@ -369,11 +369,11 @@ def get_leaderboard():
     
     # Birdie King (Most natural birdies+)
     birdie_king = max(sorted_stats, key=lambda x: x['birdies']) if sorted_stats else None
-    birdie_king_tie = (len([x for x in sorted_stats if x['birdies'] == birdie_king['birdies']]) > 1) if birdie_king else False
+    birdie_king_tie = (len([x for x in sorted_stats if x['birdies'] == birdie_king['birdies']]) > 1) if (birdie_king and birdie_king['birdies'] > 0) else False
 
     # Net Birdie King
     net_birdie_king = max(sorted_stats, key=lambda x: x['net_birdies']) if sorted_stats else None
-    net_birdie_king_tie = (len([x for x in sorted_stats if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1) if net_birdie_king else False
+    net_birdie_king_tie = (len([x for x in sorted_stats if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1) if (net_birdie_king and net_birdie_king['net_birdies'] > 0) else False
 
     # Best Golfer (Lowest cumulative gross relative to par)
     active_players = [x for x in sorted_stats if x.get('holes', 0) > 0]

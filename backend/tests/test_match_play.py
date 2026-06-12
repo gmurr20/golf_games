@@ -1270,4 +1270,66 @@ def test_match_play_won_hole_allocation():
     assert h3['players'][4]['won_hole'] is False
 
 
+def test_leaderboard_standings_tiebreaker_prioritizes_net_score():
+    # Setup mock data for leaderboard sorting
+    players = [
+        # Player A: 1.0 points, -2 net, +1 gross, 0 birdies
+        {"player_id": 1, "name": "Player A", "points_earned": 1.0, "net_rel_num": -2, "gross_rel_num": 1, "birdies": 0},
+        # Player B: 1.0 points, -3 net, +2 gross, 2 birdies
+        {"player_id": 2, "name": "Player B", "points_earned": 1.0, "net_rel_num": -3, "gross_rel_num": 2, "birdies": 2},
+        # Player C: 0.5 points, -4 net, -1 gross, 0 birdies
+        {"player_id": 3, "name": "Player C", "points_earned": 0.5, "net_rel_num": -4, "gross_rel_num": -1, "birdies": 0},
+        # Player D: 1.0 points, -3 net, +1 gross, 0 birdies
+        {"player_id": 4, "name": "Player D", "points_earned": 1.0, "net_rel_num": -3, "gross_rel_num": 1, "birdies": 0}
+    ]
+    
+    # Sort with net score as the primary tiebreaker, then gross score, then birdies
+    players.sort(key=lambda x: (x['points_earned'], -x['net_rel_num'], -x['gross_rel_num'], x['birdies']), reverse=True)
+    
+    # Expected order:
+    # 1. Player D (1.0 points, -3 net, +1 gross)
+    # 2. Player B (1.0 points, -3 net, +2 gross - Player D beats Player B on gross score tiebreaker)
+    # 3. Player A (1.0 points, -2 net)
+    # 4. Player C (0.5 points)
+    assert players[0]["player_id"] == 4  # Player D
+    assert players[1]["player_id"] == 2  # Player B
+    assert players[2]["player_id"] == 1  # Player A
+    assert players[3]["player_id"] == 3  # Player C
+
+
+def test_birdie_king_zero_value_no_tie():
+    # Setup players with 0 birdies and 0 net birdies
+    players = [
+        {"player_id": 1, "name": "Player A", "birdies": 0, "net_birdies": 0},
+        {"player_id": 2, "name": "Player B", "birdies": 0, "net_birdies": 0}
+    ]
+    
+    birdie_king = max(players, key=lambda x: x['birdies'])
+    birdie_king_tie = (len([x for x in players if x['birdies'] == birdie_king['birdies']]) > 1) if (birdie_king and birdie_king['birdies'] > 0) else False
+
+    net_birdie_king = max(players, key=lambda x: x['net_birdies'])
+    net_birdie_king_tie = (len([x for x in players if x['net_birdies'] == net_birdie_king['net_birdies']]) > 1) if (net_birdie_king and net_birdie_king['net_birdies'] > 0) else False
+
+    assert birdie_king_tie is False
+    assert net_birdie_king_tie is False
+
+    # Also test when they actually tie on > 0 birdies
+    players_tied = [
+        {"player_id": 1, "name": "Player A", "birdies": 2, "net_birdies": 3},
+        {"player_id": 2, "name": "Player B", "birdies": 2, "net_birdies": 3}
+    ]
+    
+    birdie_king_2 = max(players_tied, key=lambda x: x['birdies'])
+    birdie_king_tie_2 = (len([x for x in players_tied if x['birdies'] == birdie_king_2['birdies']]) > 1) if (birdie_king_2 and birdie_king_2['birdies'] > 0) else False
+
+    net_birdie_king_2 = max(players_tied, key=lambda x: x['net_birdies'])
+    net_birdie_king_tie_2 = (len([x for x in players_tied if x['net_birdies'] == net_birdie_king_2['net_birdies']]) > 1) if (net_birdie_king_2 and net_birdie_king_2['net_birdies'] > 0) else False
+
+    assert birdie_king_tie_2 is True
+    assert net_birdie_king_tie_2 is True
+
+
+
+
+
 

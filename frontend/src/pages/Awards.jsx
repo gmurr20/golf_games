@@ -155,15 +155,15 @@ export default function Awards() {
 
                                     <div className="stat-metrics">
                                         <div className="stat-metric-block">
-                                            <span className="metric-label">GROSS</span>
-                                            <span className={`metric-value ${s.gross_to_par === 'E' ? 'even' : s.gross_to_par.startsWith('-') ? 'under' : 'over'}`}>
-                                                {s.gross_to_par}
-                                            </span>
-                                        </div>
-                                        <div className="stat-metric-block">
                                             <span className="metric-label">NET</span>
                                             <span className={`metric-value ${s.net_to_par === 'E' ? 'even' : s.net_to_par.startsWith('-') ? 'under' : 'over'}`}>
                                                 {s.net_to_par}
+                                            </span>
+                                        </div>
+                                        <div className="stat-metric-block">
+                                            <span className="metric-label">GROSS</span>
+                                            <span className={`metric-value ${s.gross_to_par === 'E' ? 'even' : s.gross_to_par.startsWith('-') ? 'under' : 'over'}`}>
+                                                {s.gross_to_par}
                                             </span>
                                         </div>
                                     </div>
